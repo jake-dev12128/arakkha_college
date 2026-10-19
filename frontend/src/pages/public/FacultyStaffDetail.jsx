@@ -99,7 +99,8 @@ export default function FacultyStaffDetail() {
       />
 
       <Box
-        bg="gray.50"
+        bg="var(--public-bg)"
+        color="var(--public-text)"
         minH="65vh"
         py={{ base: 10, md: 16 }}
       >
@@ -117,22 +118,32 @@ export default function FacultyStaffDetail() {
 
           {loading && (
             <Flex justify="center" py={16}>
-              <Spinner size="lg" color="blue.600" />
+              <Spinner
+                size="lg"
+                color="var(--public-accent)"
+              />
             </Flex>
           )}
 
           {!loading && (error || !member) && (
             <Box
-              bg="white"
+              bg="var(--public-surface)"
+              color="var(--public-text)"
               p={10}
               borderRadius="2xl"
               textAlign="center"
             >
-              <Heading size="lg" color="gray.800">
+              <Heading
+                size="lg"
+                color="var(--public-text)"
+              >
                 Profile Unavailable
               </Heading>
 
-              <Text mt={3} color="gray.600">
+              <Text
+                mt={3}
+                color="var(--public-muted)"
+              >
                 {error || "Faculty profile not found."}
               </Text>
             </Box>
@@ -140,9 +151,10 @@ export default function FacultyStaffDetail() {
 
           {!loading && member && (
             <Box
-              bg="white"
+              bg="var(--public-surface)"
+              color="var(--public-text)"
               borderWidth="1px"
-              borderColor="gray.200"
+              borderColor="var(--public-border)"
               borderRadius="2xl"
               overflow="hidden"
               shadow="sm"
@@ -157,7 +169,7 @@ export default function FacultyStaffDetail() {
                   flexShrink={0}
                   w={{ base: "100%", md: "280px" }}
                   h={{ base: "300px", md: "340px" }}
-                  bg="gray.100"
+                  bg="var(--public-surface-alt)"
                   borderRadius="xl"
                   overflow="hidden"
                 >
@@ -174,7 +186,7 @@ export default function FacultyStaffDetail() {
                       h="100%"
                       align="center"
                       justify="center"
-                      color="gray.400"
+                      color="var(--public-muted)"
                     >
                       <FaGraduationCap size={72} />
                     </Flex>
@@ -189,7 +201,7 @@ export default function FacultyStaffDetail() {
                 >
                   <Box>
                     <Text
-                      color="blue.600"
+                      color="var(--public-accent)"
                       fontSize="sm"
                       fontWeight="bold"
                       letterSpacing="wide"
@@ -201,7 +213,7 @@ export default function FacultyStaffDetail() {
 
                     <Heading
                       size={{ base: "xl", md: "2xl" }}
-                      color="gray.800"
+                      color="var(--public-text)"
                     >
                       {member.name}
                     </Heading>
@@ -210,19 +222,22 @@ export default function FacultyStaffDetail() {
                       mt={3}
                       fontSize="lg"
                       fontWeight="semibold"
-                      color="blue.700"
+                      color="var(--public-accent)"
                     >
                       {member.position}
                     </Text>
 
-                    <Text mt={2} color="gray.600">
+                    <Text
+                      mt={2}
+                      color="var(--public-muted)"
+                    >
                       {member.department}
                     </Text>
                   </Box>
 
                   {member.bio && (
                     <Text
-                      color="gray.700"
+                      color="var(--public-text)"
                       lineHeight="1.9"
                       whiteSpace="pre-wrap"
                     >
@@ -234,7 +249,7 @@ export default function FacultyStaffDetail() {
                     {member.email && (
                       <Link
                         href={`mailto:${member.email}`}
-                        color="blue.600"
+                        color="var(--public-accent)"
                       >
                         <FaEnvelope />
                         Email
@@ -246,7 +261,7 @@ export default function FacultyStaffDetail() {
                         href={linkedin}
                         target="_blank"
                         rel="noopener noreferrer"
-                        color="blue.600"
+                        color="var(--public-accent)"
                       >
                         <FaLinkedin />
                         LinkedIn
@@ -258,7 +273,7 @@ export default function FacultyStaffDetail() {
                         href={website}
                         target="_blank"
                         rel="noopener noreferrer"
-                        color="blue.600"
+                        color="var(--public-accent)"
                       >
                         <FaGlobe />
                         Website
@@ -275,22 +290,24 @@ export default function FacultyStaffDetail() {
                 >
                   <Box
                     borderTopWidth="1px"
-                    borderColor="gray.200"
+                    borderColor="var(--public-border)"
                     pt={8}
                   >
                     <Heading
                       size="lg"
-                      color="gray.800"
+                      color="var(--public-text)"
                       mb={5}
                     >
                       About {member.name}
                     </Heading>
 
                     <Box
-                      color="gray.700"
+                      color="var(--public-text)"
                       lineHeight="1.9"
                       css={{
-                        "& p": { marginBottom: "1rem" },
+                        "& p": {
+                          marginBottom: "1rem",
+                        },
                         "& h2, & h3": {
                           fontWeight: "bold",
                           marginTop: "1.5rem",
@@ -305,7 +322,7 @@ export default function FacultyStaffDetail() {
                           paddingLeft: "1.5rem",
                         },
                         "& a": {
-                          color: "#2563eb",
+                          color: "var(--public-accent)",
                           textDecoration: "underline",
                         },
                         "& img": {

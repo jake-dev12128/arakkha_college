@@ -32,7 +32,7 @@ const MISSION_IMAGE = "/img/c3.jpg";
 
 function RichText({
   html,
-  color = "gray.700",
+  color = "var(--public-text)",
   textAlign = "left",
 }) {
   const safeHtml = useMemo(
@@ -91,13 +91,13 @@ function RichText({
         },
 
         "& a": {
-          color: "blue.600",
+          color: "var(--public-accent)",
           textDecoration: "underline",
         },
 
         "& blockquote": {
           borderLeft: "3px solid",
-          borderColor: "blue.400",
+          borderColor: "var(--public-accent)",
           paddingLeft: "16px",
           fontStyle: "italic",
           marginY: "12px",
@@ -174,7 +174,11 @@ function AboutFeature({
           md: reverse ? 1 : 2,
         }}
       >
-        <Heading size="xl" mb="5">
+        <Heading
+          size="xl"
+          mb="5"
+          color="var(--public-text)"
+        >
           {title}
         </Heading>
 
@@ -250,10 +254,10 @@ export default function About() {
         <VStack gap="4">
           <Spinner
             size="xl"
-            color="blue.500"
+            color="var(--public-accent)"
           />
 
-          <Text color="gray.500">
+          <Text color="var(--public-muted)">
             Loading About Us...
           </Text>
         </VStack>
@@ -297,7 +301,7 @@ export default function About() {
         />
 
         <Container maxW="1280px" py="20">
-          <Text color="gray.600">
+          <Text color="var(--public-muted)">
             About Us information is currently unavailable.
           </Text>
         </Container>
@@ -324,37 +328,43 @@ export default function About() {
           WHO WE ARE — FULL WIDTH
       ========================================== */}
 
-     {/* WHO WE ARE */}
+      {/* WHO WE ARE */}
 
-<Box as="section" width="100%" py={{ base: 14, md: 20 }}>
-  <Container maxW="1280px" width="100%">
-    <SectionTitle
-      eyebrow={about.introduction?.eyebrow || ""}
-      title={about.introduction?.title || ""}
-    />
+      <Box
+        as="section"
+        width="100%"
+        py={{ base: 14, md: 20 }}
+        bg="var(--public-bg)"
+        color="var(--public-text)"
+      >
+        <Container maxW="1280px" width="100%">
+          <SectionTitle
+            eyebrow={about.introduction?.eyebrow || ""}
+            title={about.introduction?.title || ""}
+          />
 
-    <Box
-      mt="6"
-      width="100%"
-      maxWidth="none"
-      css={{
-        "& p": {
-          maxWidth: "none !important",
-          width: "100% !important",
-          whiteSpace: "normal !important",
-        },
-        "& div": {
-          maxWidth: "none !important",
-        },
-      }}
-    >
-      <RichText
-        html={about.introduction?.description}
-        color="gray.600"
-      />
-    </Box>
-  </Container>
-</Box>
+          <Box
+            mt="6"
+            width="100%"
+            maxWidth="none"
+            css={{
+              "& p": {
+                maxWidth: "none !important",
+                width: "100% !important",
+                whiteSpace: "normal !important",
+              },
+              "& div": {
+                maxWidth: "none !important",
+              },
+            }}
+          >
+            <RichText
+              html={about.introduction?.description}
+              color="var(--public-muted)"
+            />
+          </Box>
+        </Container>
+      </Box>
 
       {/* ==========================================
           VISION SECTION
@@ -363,7 +373,8 @@ export default function About() {
       <Box
         as="section"
         width="100%"
-        bg="blue.50"
+        bg="var(--public-surface-alt)"
+        color="var(--public-text)"
         py={{ base: "14", md: "20" }}
       >
         <Container
@@ -390,6 +401,8 @@ export default function About() {
       <Box
         as="section"
         width="100%"
+        bg="var(--public-bg)"
+        color="var(--public-text)"
         py={{ base: "14", md: "20" }}
       >
         <Container

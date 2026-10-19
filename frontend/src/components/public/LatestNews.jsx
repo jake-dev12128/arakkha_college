@@ -10,7 +10,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { Link as RouterLink } from "react-router-dom";
-
+import { truncateText } from "../../utils/truncateText.js";
 import SectionTitle from "../common/SectionTitle.jsx";
 import { newsService } from "../../services/news.service.js";
 
@@ -50,7 +50,11 @@ export default function LatestNews() {
   }, []);
 
   return (
-    <Box py={{ base: "14", md: "20" }} bg="white">
+    <Box
+      py={{ base: "14", md: "20" }}
+      bg="var(--public-bg)"
+      color="var(--public-text)"
+    >
       <Container maxW="1280px">
         <SectionTitle
           eyebrow="Stay informed"
@@ -59,7 +63,11 @@ export default function LatestNews() {
         />
 
         {loading && (
-          <Text color="gray.500" textAlign="center" py={8}>
+          <Text
+            color="var(--public-muted)"
+            textAlign="center"
+            py={8}
+          >
             Loading news...
           </Text>
         )}
@@ -71,7 +79,11 @@ export default function LatestNews() {
         )}
 
         {!loading && !error && news.length === 0 && (
-          <Text color="gray.500" textAlign="center" py={8}>
+          <Text
+            color="var(--public-muted)"
+            textAlign="center"
+            py={8}
+          >
             No news available yet.
           </Text>
         )}
@@ -87,10 +99,11 @@ export default function LatestNews() {
               to={`/news/${item._id}`}
               display="block"
               borderWidth="1px"
-              borderColor="gray.200"
+              borderColor="var(--public-border)"
               borderRadius="2xl"
               p="7"
-              bg="white"
+              bg="var(--public-surface)"
+              color="var(--public-text)"
               textDecoration="none"
               transition="all .2s"
               _hover={{
@@ -110,20 +123,29 @@ export default function LatestNews() {
                 )}
               </Flex>
 
-              <Heading size="md" mt="5" lineHeight="1.4">
+              <Heading
+                size="md"
+                mt="5"
+                lineHeight="1.4"
+                color="var(--public-text)"
+              >
                 {item.title}
               </Heading>
 
               <Text
                 mt="3"
-                color="gray.600"
+                color="var(--public-muted)"
                 lineHeight="1.7"
                 lineClamp={3}
               >
-                {item.summary}
+                {truncateText(item.summary)}
               </Text>
 
-              <Text mt="5" fontSize="sm" color="gray.400">
+              <Text
+                mt="5"
+                fontSize="sm"
+                color="var(--public-muted)"
+              >
                 {item.publishedAt
                   ? new Date(
                       item.publishedAt

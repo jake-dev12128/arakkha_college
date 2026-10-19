@@ -13,7 +13,7 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import { Link as RouterLink } from "react-router-dom";
-
+import { truncateText } from "../../utils/truncateText.js";
 import PageHero from "../../components/common/PageHero.jsx";
 import { newsService } from "../../services/news.service.js";
 
@@ -38,24 +38,29 @@ function NewsCard({ article }) {
       to={`/news/${article._id}`}
       display="block"
       borderWidth="1px"
-      borderColor="gray.200"
+      borderColor="var(--public-border)"
       borderRadius="2xl"
       overflow="hidden"
-      bg="white"
+      bg="var(--public-surface)"
+      color="var(--public-text)"
       textDecoration="none"
       transition="all 0.25s ease"
       _hover={{
         transform: "translateY(-5px)",
         shadow: "xl",
-        borderColor: "blue.300",
+        borderColor: "var(--public-accent)",
       }}
       _focusVisible={{
         outline: "3px solid",
-        outlineColor: "blue.500",
+        outlineColor: "var(--public-accent)",
         outlineOffset: "3px",
       }}
     >
-      <Box h="220px" bg="gray.100" overflow="hidden">
+      <Box
+        h="220px"
+        bg="var(--public-surface-alt)"
+        overflow="hidden"
+      >
         {article.coverImage ? (
           <Image
             src={article.coverImage}
@@ -70,7 +75,7 @@ function NewsCard({ article }) {
             h="100%"
             justify="center"
             align="center"
-            color="gray.400"
+            color="var(--public-muted)"
             fontWeight="bold"
             fontSize="xl"
           >
@@ -92,20 +97,27 @@ function NewsCard({ article }) {
           )}
         </Flex>
 
-        <Heading size="md" color="gray.800" lineHeight="1.5">
+        <Heading
+          size="md"
+          color="var(--public-text)"
+          lineHeight="1.5"
+        >
           {article.title}
         </Heading>
 
         <Text
-          color="gray.600"
+          color="var(--public-muted)"
           fontSize="sm"
           lineHeight="1.8"
           lineClamp={3}
         >
-          {article.summary}
+          {truncateText(article.summary)}
         </Text>
 
-        <Text fontSize="xs" color="gray.500">
+        <Text
+          fontSize="xs"
+          color="var(--public-muted)"
+        >
           {formatDate(article.publishedAt)}
         </Text>
       </VStack>
@@ -163,10 +175,17 @@ export default function News() {
         description="Latest news, announcements and important college updates."
       />
 
-      <Container maxW="1280px" py={{ base: 10, md: 16 }}>
+      <Container
+        maxW="1280px"
+        py={{ base: 10, md: 16 }}
+        color="var(--public-text)"
+      >
         {loading && (
           <Flex justify="center" py={16}>
-            <Spinner size="lg" color="blue.600" />
+            <Spinner
+              size="lg"
+              color="var(--public-accent)"
+            />
           </Flex>
         )}
 
@@ -177,7 +196,11 @@ export default function News() {
         )}
 
         {!loading && !error && articles.length === 0 && (
-          <Text textAlign="center" color="gray.600" py={10}>
+          <Text
+            textAlign="center"
+            color="var(--public-muted)"
+            py={10}
+          >
             No published news is currently available.
           </Text>
         )}
@@ -186,7 +209,11 @@ export default function News() {
           <VStack align="stretch" gap={12}>
             {featured.length > 0 && (
               <Box>
-                <Heading size="xl" mb={6} color="gray.800">
+                <Heading
+                  size="xl"
+                  mb={6}
+                  color="var(--public-text)"
+                >
                   Featured News
                 </Heading>
 
@@ -206,7 +233,11 @@ export default function News() {
 
             {regular.length > 0 && (
               <Box>
-                <Heading size="xl" mb={6} color="gray.800">
+                <Heading
+                  size="xl"
+                  mb={6}
+                  color="var(--public-text)"
+                >
                   Latest News
                 </Heading>
 

@@ -1,22 +1,29 @@
+
 import { useEffect, useState } from "react";
 
 import {
   Box,
   Button,
   Container,
+  Flex,
   Heading,
+  Image,
   SimpleGrid,
   Spinner,
   Text,
+  VStack,
 } from "@chakra-ui/react";
 
 import { Link as RouterLink } from "react-router-dom";
+import { FiArrowUpRight, FiClock } from "react-icons/fi";
 
 import SectionTitle from "../common/SectionTitle.jsx";
 
 import {
   getPublicPrograms,
 } from "../../services/publicAcademic.service.js";
+
+import { truncateText } from "../../utils/truncateText.js";
 
 export default function Programs() {
   const [programs, setPrograms] = useState([]);
@@ -55,8 +62,9 @@ export default function Programs() {
 
   return (
     <Box
-      py={{ base: "14", md: "20" }}
-      bg="gray.50"
+      py={{ base: 14, md: 20 }}
+      bg="var(--public-bg)"
+      color="var(--public-text)"
     >
       <Container maxW="1280px">
         <SectionTitle
@@ -66,90 +74,192 @@ export default function Programs() {
         />
 
         {loading ? (
-          <Box textAlign="center" py={10}>
-            <Spinner size="lg" />
-          </Box>
+          <Flex justify="center" py={12}>
+            <Spinner
+              size="lg"
+              color="var(--public-accent)"
+            />
+          </Flex>
         ) : error ? (
-          <Text color="red.500">
-            {error}
-          </Text>
+          <Text color="red.500">{error}</Text>
         ) : programs.length === 0 ? (
-          <Text textAlign="center" color="gray.600">
+          <Text
+            textAlign="center"
+            color="var(--public-muted)"
+            py={10}
+          >
             No published programs available.
           </Text>
         ) : (
           <SimpleGrid
-            columns={{ base: 1, md: 3 }}
-            gap="6"
+            columns={{ base: 1, md: 2, lg: 3 }}
+            gap={6}
+            alignItems="stretch"
           >
             {programs.map((program) => (
               <Box
                 key={program._id}
-                p="8"
+                display="flex"
+                flexDirection="column"
+                minW={0}
+                h="100%"
                 borderWidth="1px"
-                borderColor="gray.200"
+                borderColor="var(--public-border)"
                 borderRadius="2xl"
-                bg="white"
-                color="gray.800"
+                overflow="hidden"
+                bg="var(--public-surface)"
+                color="var(--public-text)"
+                transition="all 0.25s ease"
+                _hover={{
+                  transform: "translateY(-5px)",
+                  borderColor: "var(--public-accent)",
+                  boxShadow:
+                    "0 16px 35px rgba(0,0,0,0.12)",
+                }}
               >
+                {/* PROGRAM IMAGE */}
+
                 <Box
-                  w="12"
-                  h="12"
-                  borderRadius="xl"
-                  bg="blue.50"
-                  color="blue.600"
-                  display="grid"
-                  placeItems="center"
-                  fontWeight="900"
+                  position="relative"
+                  h="200px"
+                  overflow="hidden"
+                  bg="var(--public-surface-alt)"
                 >
-                  {program.name.charAt(0)}
+                  {program.imageUrl ? (
+                    <Image
+                      src={program.imageUrl}
+                      alt={program.name}
+                      w="100%"
+                      h="100%"
+                      objectFit="cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <Flex
+                      h="100%"
+                      align="center"
+                      justify="center"
+                    >
+                      <Heading
+                        size="xl"
+                        color="var(--public-accent)"
+                      >
+                        {program.code ||
+                          program.name.charAt(0)}
+                      </Heading>
+                    </Flex>
+                  )}
                 </Box>
 
-                <Heading size="md" mt="6">
-                  {program.name}
-                </Heading>
+                {/* PROGRAM CONTENT */}
 
-                <Text
-                  mt="3"
-                  color="gray.600"
-                  lineHeight="1.8"
+                <VStack
+                  align="stretch"
+                  gap={4}
+                  p={{ base: 5, md: 6 }}
+                  flex="1"
                 >
-                  {program.description ||
-                    "Explore this academic program."}
-                </Text>
+                  <Flex
+                    justify="space-between"
+                    align="center"
+                    gap={3}
+                    wrap="wrap"
+                  >
+                    <Box
+                      px={3}
+                      py={1}
+                      borderRadius="full"
+                      bg="var(--public-surface-alt)"
+                      color="var(--public-accent)"
+                      fontSize="xs"
+                      fontWeight="bold"
+                      textTransform="uppercase"
+                    >
+                      {program.type}
+                    </Box>
 
-                <Text
-                  mt="3"
-                  fontSize="sm"
-                  color="gray.500"
-                >
-                  Duration: {program.durationYears}{" "}
-                  {program.durationYears === 1
-                    ? "Year"
-                    : "Years"}
-                </Text>
+                    <Flex
+                      align="center"
+                      gap={1.5}
+                      color="var(--public-muted)"
+                      fontSize="xs"
+                    >
+                      <FiClock />
 
-                <Button
-                  as={RouterLink}
-                  to={`/academic/courses/${program._id}`}
-                  mt="6"
-                  variant="outline"
-                  colorPalette="blue"
-                >
-                  View Courses
-                </Button>
+                      <Text>
+                        {program.durationYears}{" "}
+                        {program.durationYears === 1
+                          ? "Year"
+                          : "Years"}
+                      </Text>
+                    </Flex>
+                  </Flex>
+
+                  <Heading
+                    size="lg"
+                    color="var(--public-text)"
+                    lineHeight="1.4"
+                  >
+                    {program.name}
+                  </Heading>
+
+                  <Text
+                    color="var(--public-muted)"
+                    fontSize="sm"
+                    lineHeight="1.8"
+                    overflowWrap="anywhere"
+                  >
+                    {truncateText(
+                      program.description ||
+                        "Explore this academic program.",
+                      150
+                    )}
+                  </Text>
+
+                  {/* CARD ACTION */}
+
+                  <Box mt="auto" pt={3}>
+                    <Box
+                      h="1px"
+                      bg="var(--public-border)"
+                      mb={4}
+                    />
+
+                    <Button
+                      as={RouterLink}
+                      to={`/academic/courses/${program._id}`}
+                      variant="ghost"
+                      color="var(--public-accent)"
+                      w="100%"
+                      justifyContent="space-between"
+                      px={0}
+                      _hover={{
+                        bg: "var(--public-surface-alt)",
+                        px: 3,
+                      }}
+                    >
+                      View Courses
+                      <FiArrowUpRight />
+                    </Button>
+                  </Box>
+                </VStack>
               </Box>
             ))}
           </SimpleGrid>
         )}
 
-        <Box textAlign="center" mt={8}>
+        {/* EXPLORE ALL PROGRAMS */}
+
+        <Box textAlign="center" mt={10}>
           <Button
             as={RouterLink}
             to="/programs"
             colorPalette="blue"
+            size="lg"
+            borderRadius="xl"
           >
             Explore All Programs
+            <FiArrowUpRight />
           </Button>
         </Box>
       </Container>

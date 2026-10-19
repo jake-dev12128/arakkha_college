@@ -1,0 +1,79 @@
+/* ==========================================
+   ACC PUBLIC WEBSITE THEME
+   Scoped to public layout only
+========================================== */
+
+.acc-public {
+  --public-bg: #f5f7fb;
+  --public-surface: #ffffff;
+  --public-surface-alt: #edf2f8;
+  --public-navbar: #ffffff;
+
+  --public-text: #172b45;
+  --public-muted: #64748b;
+  --public-border: #dce5ef;
+  --public-accent: #2563eb;
+
+  background-color: var(--public-bg);
+  color: var(--public-text);
+  min-height: 100vh;
+
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease;
+}
+
+/* SOFT NAVY DARK MODE */
+
+:root[data-theme="dark"] .acc-public {
+  --public-bg: #26384e;
+  --public-surface: #344a63;
+  --public-surface-alt: #405772;
+  --public-navbar: #172c49;
+
+  --public-text: #f3f7ff;
+  --public-muted: #b9cbe0;
+  --public-border: #526984;
+  --public-accent: #79b9ff;
+}
+
+/* PUBLIC LAYOUT */
+
+.acc-public-main {
+  flex: 1;
+  background-color: var(--public-bg);
+  color: var(--public-text);
+}
+
+/* REUSABLE PUBLIC COMPONENTS */
+
+.acc-public-section {
+  background-color: var(--public-bg);
+  color: var(--public-text);
+}
+
+.acc-public-card {
+  background-color: var(--public-surface);
+  color: var(--public-text);
+  border: 1px solid var(--public-border);
+  border-radius: 16px;
+
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease;
+}
+
+.acc-public-muted {
+  color: var(--public-muted);
+}
+
+.acc-public-accent {
+  color: var(--public-accent);
+}
+
+.acc-public-navbar {
+  background-color: var(--public-navbar);
+  color: var(--public-text);
+  border-color: var(--public-border);
+}

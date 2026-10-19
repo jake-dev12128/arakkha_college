@@ -63,7 +63,10 @@ export default function Collaboration() {
       <Container maxW="1280px" py={{ base: 10, md: 16 }}>
         {loading && (
           <Flex justify="center" py={16}>
-            <Spinner size="lg" color="blue.600" />
+            <Spinner
+              size="lg"
+              color="var(--public-accent)"
+            />
           </Flex>
         )}
 
@@ -74,7 +77,11 @@ export default function Collaboration() {
         )}
 
         {!loading && !error && partners.length === 0 && (
-          <Text color="gray.600" textAlign="center" py={10}>
+          <Text
+            color="var(--public-muted)"
+            textAlign="center"
+            py={10}
+          >
             No collaboration partners are currently available.
           </Text>
         )}
@@ -89,20 +96,21 @@ export default function Collaboration() {
                 display="block"
                 p={{ base: 6, md: 8 }}
                 borderWidth="1px"
-                borderColor="gray.200"
+                borderColor="var(--public-border)"
                 borderRadius="2xl"
-                bg="white"
+                bg="var(--public-surface)"
+                color="var(--public-text)"
                 textAlign="center"
                 textDecoration="none"
                 transition="all 0.3s ease"
                 _hover={{
                   transform: "translateY(-6px)",
                   shadow: "xl",
-                  borderColor: "blue.300",
+                  borderColor: "var(--public-accent)",
                 }}
                 _focusVisible={{
                   outline: "3px solid",
-                  outlineColor: "blue.500",
+                  outlineColor: "var(--public-accent)",
                   outlineOffset: "3px",
                 }}
               >
@@ -112,9 +120,9 @@ export default function Collaboration() {
                     h={{ base: "150px", md: "170px" }}
                     borderRadius="full"
                     overflow="hidden"
-                    bg="white"
+                    bg="#ffffff"
                     border="3px solid"
-                    borderColor="blue.100"
+                    borderColor="var(--public-border)"
                     boxShadow="0 6px 20px rgba(37,99,235,0.12)"
                     align="center"
                     justify="center"
@@ -137,7 +145,7 @@ export default function Collaboration() {
                     <Text
                       fontSize="sm"
                       fontWeight="semibold"
-                      color="blue.600"
+                      color="var(--public-accent)"
                       letterSpacing="wide"
                       textTransform="uppercase"
                     >
@@ -147,7 +155,7 @@ export default function Collaboration() {
                     <Heading
                       size="md"
                       mt={2}
-                      color="gray.800"
+                      color="var(--public-text)"
                     >
                       {partner.name}
                     </Heading>
@@ -155,7 +163,7 @@ export default function Collaboration() {
 
                   {partner.shortDescription && (
                     <Text
-                      color="gray.600"
+                      color="var(--public-muted)"
                       lineHeight="1.8"
                       fontSize="sm"
                       lineClamp={4}

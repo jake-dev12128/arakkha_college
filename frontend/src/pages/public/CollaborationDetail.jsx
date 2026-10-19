@@ -89,7 +89,12 @@ export default function CollaborationDetail() {
         description="Learn more about our academic and industry partners."
       />
 
-      <Box bg="gray.50" minH="60vh" py={{ base: 10, md: 16 }}>
+      <Box
+        bg="var(--public-bg)"
+        color="var(--public-text)"
+        minH="60vh"
+        py={{ base: 10, md: 16 }}
+      >
         <Container maxW="1000px">
           <Button
             as={RouterLink}
@@ -104,19 +109,32 @@ export default function CollaborationDetail() {
 
           {loading && (
             <Flex justify="center" py={16}>
-              <Spinner size="lg" color="blue.600" />
+              <Spinner
+                size="lg"
+                color="var(--public-accent)"
+              />
             </Flex>
           )}
 
           {!loading && (error || !partner) && (
             <Box
               p={10}
-              bg="white"
+              bg="var(--public-surface)"
+              color="var(--public-text)"
               borderRadius="2xl"
               textAlign="center"
             >
-              <Heading size="lg">Profile Unavailable</Heading>
-              <Text mt={3} color="gray.600">
+              <Heading
+                size="lg"
+                color="var(--public-text)"
+              >
+                Profile Unavailable
+              </Heading>
+
+              <Text
+                mt={3}
+                color="var(--public-muted)"
+              >
                 {error || "Collaboration partner not found."}
               </Text>
             </Box>
@@ -124,9 +142,10 @@ export default function CollaborationDetail() {
 
           {!loading && partner && (
             <Box
-              bg="white"
+              bg="var(--public-surface)"
+              color="var(--public-text)"
               borderWidth="1px"
-              borderColor="gray.200"
+              borderColor="var(--public-border)"
               borderRadius="2xl"
               p={{ base: 6, md: 10 }}
               shadow="sm"
@@ -142,7 +161,8 @@ export default function CollaborationDetail() {
                     h="180px"
                     borderRadius="full"
                     border="3px solid"
-                    borderColor="blue.100"
+                    borderColor="var(--public-border)"
+                    bg="#ffffff"
                     align="center"
                     justify="center"
                     overflow="hidden"
@@ -166,21 +186,24 @@ export default function CollaborationDetail() {
                     textAlign={{ base: "center", md: "left" }}
                   >
                     <Text
-                      color="blue.600"
+                      color="var(--public-accent)"
                       fontWeight="bold"
                       mb={2}
                     >
                       {partner.type}
                     </Text>
 
-                    <Heading size="2xl" color="gray.800">
+                    <Heading
+                      size="2xl"
+                      color="var(--public-text)"
+                    >
                       {partner.name}
                     </Heading>
 
                     {partner.shortDescription && (
                       <Text
                         mt={4}
-                        color="gray.600"
+                        color="var(--public-muted)"
                         lineHeight="1.9"
                         whiteSpace="pre-wrap"
                       >
@@ -193,7 +216,7 @@ export default function CollaborationDetail() {
                         href={website}
                         target="_blank"
                         rel="noopener noreferrer"
-                        color="blue.600"
+                        color="var(--public-accent)"
                         mt={4}
                         display="inline-block"
                       >
@@ -202,11 +225,14 @@ export default function CollaborationDetail() {
                     )}
 
                     {partner.email && (
-                      <Text mt={3} color="gray.600">
+                      <Text
+                        mt={3}
+                        color="var(--public-muted)"
+                      >
                         Email:{" "}
                         <Link
                           href={`mailto:${partner.email}`}
-                          color="blue.600"
+                          color="var(--public-accent)"
                         >
                           {partner.email}
                         </Link>
@@ -218,18 +244,24 @@ export default function CollaborationDetail() {
                 {partner.description && (
                   <Box
                     borderTopWidth="1px"
-                    borderColor="gray.200"
+                    borderColor="var(--public-border)"
                     pt={8}
                   >
-                    <Heading size="lg" mb={5} color="gray.800">
+                    <Heading
+                      size="lg"
+                      mb={5}
+                      color="var(--public-text)"
+                    >
                       About Our Collaboration
                     </Heading>
 
                     <Box
-                      color="gray.700"
+                      color="var(--public-text)"
                       lineHeight="1.9"
                       css={{
-                        "& p": { marginBottom: "1rem" },
+                        "& p": {
+                          marginBottom: "1rem",
+                        },
                         "& h2, & h3": {
                           fontWeight: "bold",
                           marginBottom: "0.75rem",
@@ -244,7 +276,7 @@ export default function CollaborationDetail() {
                           paddingLeft: "1.5rem",
                         },
                         "& a": {
-                          color: "#2563eb",
+                          color: "var(--public-accent)",
                           textDecoration: "underline",
                         },
                       }}

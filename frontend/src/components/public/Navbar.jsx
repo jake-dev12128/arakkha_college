@@ -52,9 +52,9 @@ const academicLinks = [
 // ==================================================
 
 function NavItem({ to, children, onClick, isDark = false }) {
-  const activeColor = isDark ? "#93c5fd" : "#2563eb";
-  const activeBg = isDark ? "#1e3a5f" : "#eff6ff";
-  const normalColor = isDark ? "#e5e7eb" : "#374151";
+ const activeColor = isDark ? "#79B9FF" : "#2563EB";
+const activeBg = isDark ? "#344A63" : "#EFF6FF";
+const normalColor = isDark ? "#F3F7FF" : "#374151";
 
   return (
     <NavLink
@@ -140,10 +140,9 @@ function AcademicMenu({ isDark, isActive }) {
         <Menu.Content
           minW="220px"
           p="1"
-          bg={isDark ? "gray.900" : "white"}
-          color={isDark ? "gray.100" : "gray.800"}
-          borderWidth="1px"
-          borderColor={isDark ? "gray.700" : "gray.200"}
+          bg={isDark ? "#172C49" : "white"}
+color={isDark ? "#F3F7FF" : "#172B45"}
+borderColor={isDark ? "#405772" : "#DCE5EF"}
           borderRadius="xl"
           boxShadow="lg"
         >

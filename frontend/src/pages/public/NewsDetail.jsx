@@ -89,7 +89,12 @@ export default function NewsDetail() {
         description="News and announcements from ACC Computer College."
       />
 
-      <Box bg="gray.50" minH="65vh" py={{ base: 10, md: 16 }}>
+      <Box
+        bg="var(--public-bg)"
+        color="var(--public-text)"
+        minH="65vh"
+        py={{ base: 10, md: 16 }}
+      >
         <Container maxW="950px">
           <Button
             as={RouterLink}
@@ -104,22 +109,32 @@ export default function NewsDetail() {
 
           {loading && (
             <Flex justify="center" py={16}>
-              <Spinner size="lg" color="blue.600" />
+              <Spinner
+                size="lg"
+                color="var(--public-accent)"
+              />
             </Flex>
           )}
 
           {!loading && (error || !article) && (
             <Box
-              bg="white"
+              bg="var(--public-surface)"
+              color="var(--public-text)"
               p={10}
               borderRadius="2xl"
               textAlign="center"
             >
-              <Heading size="lg">
+              <Heading
+                size="lg"
+                color="var(--public-text)"
+              >
                 News Unavailable
               </Heading>
 
-              <Text mt={3} color="gray.600">
+              <Text
+                mt={3}
+                color="var(--public-muted)"
+              >
                 {error || "News article not found."}
               </Text>
             </Box>
@@ -127,9 +142,10 @@ export default function NewsDetail() {
 
           {!loading && article && (
             <Box
-              bg="white"
+              bg="var(--public-surface)"
+              color="var(--public-text)"
               borderWidth="1px"
-              borderColor="gray.200"
+              borderColor="var(--public-border)"
               borderRadius="2xl"
               overflow="hidden"
               shadow="sm"
@@ -163,19 +179,22 @@ export default function NewsDetail() {
 
                 <Heading
                   size={{ base: "xl", md: "2xl" }}
-                  color="gray.800"
+                  color="var(--public-text)"
                   lineHeight="1.4"
                 >
                   {article.title}
                 </Heading>
 
-                <Text fontSize="sm" color="gray.500">
+                <Text
+                  fontSize="sm"
+                  color="var(--public-muted)"
+                >
                   Published: {formatDate(article.publishedAt)}
                 </Text>
 
                 <Text
                   fontSize="lg"
-                  color="gray.700"
+                  color="var(--public-text)"
                   fontWeight="medium"
                   lineHeight="1.9"
                   whiteSpace="pre-wrap"
@@ -185,9 +204,9 @@ export default function NewsDetail() {
 
                 <Box
                   borderTopWidth="1px"
-                  borderColor="gray.200"
+                  borderColor="var(--public-border)"
                   pt={7}
-                  color="gray.700"
+                  color="var(--public-text)"
                   lineHeight="1.9"
                   css={{
                     "& p": {
@@ -210,12 +229,12 @@ export default function NewsDetail() {
                       marginBottom: "0.4rem",
                     },
                     "& blockquote": {
-                      borderLeft: "4px solid #93c5fd",
+                      borderLeft: "4px solid var(--public-accent)",
                       paddingLeft: "1rem",
                       fontStyle: "italic",
                     },
                     "& a": {
-                      color: "#2563eb",
+                      color: "var(--public-accent)",
                       textDecoration: "underline",
                     },
                   }}

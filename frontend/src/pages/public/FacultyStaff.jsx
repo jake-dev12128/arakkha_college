@@ -60,11 +60,15 @@ export default function FacultyStaff() {
         description="Meet the academic and administrative team dedicated to excellence at ACC."
       />
 
-      <Box bg="gray.50" py={{ base: 10, md: 16 }}>
+      <Box
+        bg="var(--public-bg)"
+        color="var(--public-text)"
+        py={{ base: 10, md: 16 }}
+      >
         <Container maxW="1280px">
           <VStack gap={3} mb={10} textAlign="center">
             <Text
-              color="blue.600"
+              color="var(--public-accent)"
               fontWeight="bold"
               fontSize="sm"
               letterSpacing="widest"
@@ -75,13 +79,13 @@ export default function FacultyStaff() {
 
             <Heading
               size={{ base: "xl", md: "2xl" }}
-              color="gray.800"
+              color="var(--public-text)"
             >
               Meet Our Professional Team
             </Heading>
 
             <Text
-              color="gray.600"
+              color="var(--public-muted)"
               maxW="650px"
               lineHeight="1.8"
             >
@@ -93,8 +97,13 @@ export default function FacultyStaff() {
 
           {loading && (
             <HStack justify="center" py={12}>
-              <Spinner color="blue.600" size="lg" />
-              <Text color="gray.600">Loading faculty...</Text>
+              <Spinner
+                color="var(--public-accent)"
+                size="lg"
+              />
+              <Text color="var(--public-muted)">
+                Loading faculty...
+              </Text>
             </HStack>
           )}
 
@@ -105,7 +114,11 @@ export default function FacultyStaff() {
           )}
 
           {!loading && !error && members.length === 0 && (
-            <Text textAlign="center" color="gray.600" py={10}>
+            <Text
+              textAlign="center"
+              color="var(--public-muted)"
+              py={10}
+            >
               No faculty profiles are currently available.
             </Text>
           )}
@@ -121,27 +134,28 @@ export default function FacultyStaff() {
                   as={RouterLink}
                   to={`/faculties-staff/${person._id}`}
                   display="block"
-                  bg="white"
+                  bg="var(--public-surface)"
+                  color="var(--public-text)"
                   border="1px solid"
-                  borderColor="gray.200"
+                  borderColor="var(--public-border)"
                   borderRadius="2xl"
                   overflow="hidden"
                   textDecoration="none"
                   transition="all 0.2s ease"
                   _hover={{
-                    borderColor: "blue.300",
+                    borderColor: "var(--public-accent)",
                     shadow: "lg",
                     transform: "translateY(-4px)",
                   }}
                   _focusVisible={{
                     outline: "3px solid",
-                    outlineColor: "blue.500",
+                    outlineColor: "var(--public-accent)",
                     outlineOffset: "3px",
                   }}
                 >
                   <Box
                     h="220px"
-                    bg="gray.100"
+                    bg="var(--public-surface-alt)"
                     overflow="hidden"
                   >
                     {person.image ? (
@@ -158,7 +172,7 @@ export default function FacultyStaff() {
                       <HStack
                         justify="center"
                         h="100%"
-                        color="gray.400"
+                        color="var(--public-muted)"
                       >
                         <FaGraduationCap size={55} />
                       </HStack>
@@ -169,7 +183,7 @@ export default function FacultyStaff() {
                     <Box>
                       <Heading
                         size="md"
-                        color="gray.800"
+                        color="var(--public-text)"
                         mb={3}
                       >
                         {person.name}
@@ -180,8 +194,8 @@ export default function FacultyStaff() {
                         px={3}
                         py={1.5}
                         borderRadius="full"
-                        bg="blue.50"
-                        color="blue.700"
+                        bg="var(--public-surface-alt)"
+                        color="var(--public-accent)"
                         fontSize="sm"
                         fontWeight="semibold"
                       >
@@ -192,10 +206,10 @@ export default function FacultyStaff() {
                     <HStack
                       align="start"
                       gap={3}
-                      color="gray.600"
+                      color="var(--public-muted)"
                     >
                       <FaGraduationCap
-                        color="#3182ce"
+                        color="var(--public-accent)"
                         size={16}
                       />
 
@@ -206,7 +220,7 @@ export default function FacultyStaff() {
 
                     {person.bio && (
                       <Text
-                        color="gray.600"
+                        color="var(--public-muted)"
                         fontSize="sm"
                         lineClamp={3}
                       >
