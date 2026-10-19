@@ -1,0 +1,412 @@
+
+/* =========================================
+   ACC COMPUTER COLLEGE
+   Shared Management Page Design System
+========================================= */
+
+:root {
+  --acc-sidebar: #253783;
+  --acc-navy: #192968;
+  --acc-primary: #4359b5;
+  --acc-primary-hover: #30458f;
+  --acc-gold: #f2a23a;
+  --acc-page-bg: #f5f7fc;
+  --acc-surface: #ffffff;
+  --acc-text: #202b45;
+  --acc-muted: #74809a;
+  --acc-border: #e1e6f0;
+  --acc-success: #16845b;
+  --acc-danger: #c83f50;
+  --acc-radius: 14px;
+  --acc-shadow: 0 4px 18px rgba(25, 41, 104, 0.06);
+}
+
+/* Main page */
+
+.acc-role-management {
+  width: 100%;
+  min-width: 0;
+  color: var(--acc-text);
+}
+
+.acc-page-heading {
+  min-width: 0;
+}
+
+.acc-page-title {
+  color: var(--acc-navy);
+  font-weight: 750 !important;
+  letter-spacing: -0.035em;
+}
+
+.acc-page-description {
+  color: var(--acc-muted);
+  line-height: 1.7;
+}
+
+/* Buttons */
+
+.acc-add-button {
+  background: var(--acc-sidebar) !important;
+  color: var(--acc-surface) !important;
+  border: 1px solid var(--acc-sidebar) !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 10px rgba(37, 55, 131, 0.12);
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.acc-add-button:hover {
+  background: var(--acc-primary-hover) !important;
+  box-shadow: 0 6px 14px rgba(37, 55, 131, 0.18);
+  transform: translateY(-1px);
+}
+
+/* Search and filters */
+
+.acc-toolbar {
+  padding: 18px;
+  background: var(--acc-surface);
+  border: 1px solid var(--acc-border);
+  border-radius: var(--acc-radius);
+  box-shadow: var(--acc-shadow);
+}
+
+.acc-search-form {
+  min-width: 0;
+}
+
+.acc-search-input,
+.acc-status-select {
+  background: var(--acc-surface) !important;
+  border-color: var(--acc-border) !important;
+  border-radius: 10px !important;
+  color: var(--acc-text) !important;
+  min-height: 42px;
+}
+
+.acc-search-input::placeholder {
+  color: #929bb0;
+}
+
+.acc-search-input:focus,
+.acc-search-input:focus-visible,
+.acc-status-select:focus,
+.acc-status-select:focus-visible {
+  border-color: var(--acc-primary) !important;
+  box-shadow: 0 0 0 1px var(--acc-primary) !important;
+  outline: none;
+}
+
+.acc-search-button {
+  background: #edf0fc !important;
+  color: var(--acc-sidebar) !important;
+  border: 1px solid #dce2fb !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+}
+
+.acc-search-button:hover {
+  background: #e1e7ff !important;
+}
+
+/* Table container */
+
+.acc-table-card {
+  overflow: hidden;
+  background: var(--acc-surface);
+  border: 1px solid var(--acc-border);
+  border-radius: var(--acc-radius);
+  box-shadow: var(--acc-shadow);
+}
+
+.acc-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.acc-management-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.acc-management-table thead th {
+  padding: 15px 18px;
+  background: #f3f5fc;
+  color: #526080;
+  border-bottom: 1px solid var(--acc-border);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.065em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.acc-management-table tbody td {
+  padding: 16px 18px;
+  color: #46516b;
+  border-bottom: 1px solid #edf0f6;
+  vertical-align: middle;
+  font-size: 13px;
+}
+
+.acc-management-table tbody tr {
+  transition: background 0.15s ease;
+}
+
+.acc-management-table tbody tr:hover td {
+  background: #f8f9ff;
+}
+
+.acc-management-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.acc-person-name {
+  color: var(--acc-navy);
+  font-weight: 650;
+}
+
+.acc-person-email {
+  color: #66728d;
+  overflow-wrap: anywhere;
+}
+
+.acc-empty-cell {
+  padding: 42px 18px !important;
+  color: var(--acc-muted) !important;
+  text-align: center;
+}
+
+/* Status badges */
+
+.acc-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 76px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.acc-status-badge--active {
+  background: #e4f6ed;
+  color: #13784f;
+}
+
+.acc-status-badge--inactive {
+  background: #ffebed;
+  color: #b83245;
+}
+
+/* Row actions */
+
+.acc-row-actions {
+  flex-wrap: wrap;
+  gap: 6px !important;
+}
+
+.acc-action-button {
+  border-radius: 8px !important;
+  font-size: 11px !important;
+  font-weight: 650 !important;
+  min-height: 30px !important;
+  transition: all 0.15s ease;
+}
+
+.acc-action-view {
+  background: #edf0fc !important;
+  color: var(--acc-sidebar) !important;
+  border: 1px solid #dce2fb !important;
+}
+
+.acc-action-view:hover {
+  background: #dfe5ff !important;
+}
+
+.acc-action-edit {
+  background: #fff5e8 !important;
+  color: #a95b08 !important;
+  border: 1px solid #f7dfbd !important;
+}
+
+.acc-action-edit:hover {
+  background: #ffebd2 !important;
+}
+
+.acc-action-deactivate {
+  background: #fff0f1 !important;
+  color: #b83245 !important;
+  border: 1px solid #f5d4d9 !important;
+}
+
+.acc-action-deactivate:hover:not(:disabled) {
+  background: #ffe1e5 !important;
+}
+
+.acc-action-deactivate:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Loading */
+
+.acc-loading-cell {
+  padding: 42px 18px !important;
+  text-align: center;
+}
+
+/* Error panel */
+
+.acc-error-panel {
+  padding: 16px;
+  background: #fff5f5;
+  border: 1px solid #f3c7cc;
+  border-radius: 12px;
+}
+
+.acc-error-message {
+  color: #b83245;
+  font-size: 13px;
+}
+
+/* Pagination */
+
+.acc-pagination {
+  padding: 15px 18px;
+  background: var(--acc-surface);
+  border: 1px solid var(--acc-border);
+  border-radius: 12px;
+}
+
+.acc-total-count {
+  color: var(--acc-muted);
+  font-size: 13px;
+}
+
+.acc-page-indicator {
+  color: var(--acc-navy);
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.acc-pagination-button {
+  border-color: var(--acc-border) !important;
+  border-radius: 9px !important;
+  color: var(--acc-sidebar) !important;
+}
+
+.acc-pagination-button:hover:not(:disabled) {
+  background: #edf0fc !important;
+}
+
+.acc-pagination-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Deactivation confirmation */
+
+.acc-confirm-panel {
+  padding: 22px;
+  background: #fffaf4;
+  border: 1px solid #f2d6b2;
+  border-left: 4px solid var(--acc-gold);
+  border-radius: var(--acc-radius);
+  box-shadow: var(--acc-shadow);
+}
+
+.acc-confirm-title {
+  color: var(--acc-navy);
+  font-weight: 750 !important;
+}
+
+.acc-confirm-description {
+  color: #59647b;
+  line-height: 1.8;
+  font-size: 13px;
+}
+
+.acc-confirm-cancel {
+  border: 1px solid var(--acc-border) !important;
+  border-radius: 9px !important;
+  color: var(--acc-navy) !important;
+}
+
+.acc-confirm-button {
+  border-radius: 9px !important;
+  background: #c83f50 !important;
+  color: white !important;
+}
+
+.acc-confirm-button:hover:not(:disabled) {
+  background: #a92e40 !important;
+}
+
+/* Responsive */
+
+@media (max-width: 768px) {
+  .acc-toolbar {
+    padding: 13px;
+  }
+
+  .acc-search-form {
+    flex-basis: 100%;
+    width: 100%;
+  }
+
+  .acc-search-input {
+    min-width: 0;
+  }
+
+  .acc-status-select {
+    max-width: none;
+    width: 100%;
+  }
+
+  .acc-table-card {
+    border-radius: 11px;
+  }
+
+  .acc-management-table thead th {
+    padding: 13px;
+  }
+
+  .acc-management-table tbody td {
+    padding: 13px;
+  }
+
+  .acc-pagination {
+    padding: 13px;
+  }
+
+  .acc-confirm-panel {
+    padding: 17px;
+  }
+}
+
+@media (max-width: 480px) {
+  .acc-add-button {
+    width: 100%;
+  }
+
+  .acc-pagination {
+    align-items: flex-start;
+  }
+
+  .acc-pagination-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
