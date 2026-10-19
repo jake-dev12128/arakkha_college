@@ -410,3 +410,171 @@
     justify-content: space-between;
   }
 }
+
+/* ==========================================================
+   SHARED DASHBOARD THEME
+   One palette for User, Student, Teacher, Account, Sessions.
+   Scoped to dashboard classes; public site is unaffected.
+========================================================== */
+
+.acc-management {
+  --mg-bg: #f5f7fb;
+  --mg-surface: #ffffff;
+  --mg-surface-alt: #f3f5fc;
+  --mg-text: #192968;
+  --mg-muted: #66728d;
+  --mg-border: #e1e6f0;
+  --mg-accent: #4359b5;
+  --mg-button: #253783;
+  --mg-button-hover: #30458f;
+}
+
+.acc-account-theme {
+  --account-bg: #f5f7fb;
+  --account-surface: #ffffff;
+  --account-surface-alt: #f3f5fc;
+  --account-text: #192968;
+  --account-muted: #66728d;
+  --account-border: #e1e6f0;
+  --account-accent: #4359b5;
+  color: var(--account-text);
+}
+
+:root[data-theme="dark"] .acc-management,
+:root[data-theme="dark"] .acc-account-theme {
+  --dashboard-bg: #111111;
+  --dashboard-card: #1a1a1a;
+  --dashboard-soft: #242424;
+  --dashboard-text: #f5f5f5;
+  --dashboard-muted: #aaaaaa;
+  --dashboard-border: #333333;
+  --dashboard-accent: #93b4ff;
+  --dashboard-button: #365c99;
+  --dashboard-button-hover: #4774b5;
+}
+
+:root[data-theme="dark"] .acc-management {
+  --mg-bg: var(--dashboard-bg);
+  --mg-surface: var(--dashboard-card);
+  --mg-surface-alt: var(--dashboard-soft);
+  --mg-text: var(--dashboard-text);
+  --mg-muted: var(--dashboard-muted);
+  --mg-border: var(--dashboard-border);
+  --mg-accent: var(--dashboard-accent);
+  --mg-button: var(--dashboard-button);
+  --mg-button-hover: var(--dashboard-button-hover);
+  --acc-surface: var(--dashboard-card);
+  --acc-navy: var(--dashboard-text);
+  --acc-text: var(--dashboard-text);
+  --acc-muted: var(--dashboard-muted);
+  --acc-border: var(--dashboard-border);
+  color: var(--mg-text);
+}
+
+:root[data-theme="dark"] .acc-account-theme {
+  --account-bg: var(--dashboard-bg);
+  --account-surface: var(--dashboard-card);
+  --account-surface-alt: var(--dashboard-soft);
+  --account-text: var(--dashboard-text);
+  --account-muted: var(--dashboard-muted);
+  --account-border: var(--dashboard-border);
+  --account-accent: var(--dashboard-accent);
+  color: var(--account-text);
+}
+
+/* Management headings and secondary copy */
+:root[data-theme="dark"] .acc-management :is(h1, h2, h3, .acc-page-title, .acc-person-name, .acc-confirm-title, .acc-page-indicator) {
+  color: var(--mg-text) !important;
+}
+:root[data-theme="dark"] .acc-management :is(.acc-page-description, .acc-person-email, .acc-total-count, .acc-confirm-description) {
+  color: var(--mg-muted) !important;
+}
+
+/* Cards, toolbars, tables and pagination */
+:root[data-theme="dark"] .acc-management :is(.acc-toolbar, .acc-table-card, .acc-pagination, .acc-confirm-panel, .acc-management-table) {
+  background-color: var(--mg-surface) !important;
+  color: var(--mg-text) !important;
+  border-color: var(--mg-border) !important;
+}
+
+/* Both classed Student/Teacher tables and unclassed User tables */
+:root[data-theme="dark"] .acc-management table {
+  background-color: var(--mg-surface) !important;
+  color: var(--mg-text) !important;
+  border-color: var(--mg-border) !important;
+}
+:root[data-theme="dark"] .acc-management table thead :is(tr, th) {
+  background-color: var(--mg-surface-alt) !important;
+  color: var(--mg-muted) !important;
+  border-color: var(--mg-border) !important;
+}
+:root[data-theme="dark"] .acc-management table tbody :is(tr, td) {
+  background-color: var(--mg-surface) !important;
+  color: var(--mg-text) !important;
+  border-color: var(--mg-border) !important;
+}
+:root[data-theme="dark"] .acc-management table tbody tr:hover,
+:root[data-theme="dark"] .acc-management table tbody tr:hover td {
+  background-color: var(--mg-surface-alt) !important;
+}
+:root[data-theme="dark"] .acc-management table .acc-person-email {
+  color: var(--mg-muted) !important;
+}
+:root[data-theme="dark"] .acc-management :is(.acc-loading-cell, .acc-empty-cell) {
+  background-color: var(--mg-surface) !important;
+  color: var(--mg-muted) !important;
+}
+
+/* Form controls */
+:root[data-theme="dark"] .acc-management :is(input:not([type="checkbox"]), select, textarea, .acc-search-input, .acc-status-select) {
+  background-color: var(--mg-surface-alt) !important;
+  color: var(--mg-text) !important;
+  border-color: var(--mg-border) !important;
+}
+:root[data-theme="dark"] .acc-management :is(input, textarea)::placeholder {
+  color: var(--mg-muted) !important;
+  opacity: 1;
+}
+:root[data-theme="dark"] .acc-management select option {
+  background-color: var(--mg-surface-alt);
+  color: var(--mg-text);
+}
+:root[data-theme="dark"] .acc-management input[readonly] {
+  background-color: var(--mg-bg) !important;
+  color: var(--mg-muted) !important;
+}
+:root[data-theme="dark"] .acc-management :is(input, select, textarea):focus-visible {
+  border-color: var(--mg-accent) !important;
+  outline-color: var(--mg-accent) !important;
+}
+
+/* Pagination controls */
+:root[data-theme="dark"] .acc-management .acc-pagination-button {
+  background-color: var(--mg-surface-alt) !important;
+  color: var(--mg-text) !important;
+  border-color: var(--mg-border) !important;
+}
+:root[data-theme="dark"] .acc-dashboard-content {
+  --dashboard-card: #1a1a1a;
+  --dashboard-header: #242424;
+  --dashboard-border: #333333;
+  --dashboard-text: #f5f5f5;
+}
+
+:root[data-theme="dark"] .acc-dashboard-content table {
+  background-color: var(--dashboard-card);
+  color: var(--dashboard-text);
+  border-color: var(--dashboard-border);
+}
+
+:root[data-theme="dark"] .acc-dashboard-content table thead th {
+  background-color: var(--dashboard-header);
+  color: var(--dashboard-text);
+  border-color: var(--dashboard-border);
+}
+
+:root[data-theme="dark"] .acc-dashboard-content table tbody td {
+  background-color: var(--dashboard-card);
+  color: var(--dashboard-text);
+  border-color: var(--dashboard-border);
+}

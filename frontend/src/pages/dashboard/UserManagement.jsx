@@ -17,7 +17,6 @@ import {
 } from "@chakra-ui/react";
 
 import { Link as RouterLink } from "react-router-dom";
-
 import { useUser } from "@clerk/react";
 
 import { dashboardService } from "../../services/dashboard.service.js";
@@ -92,7 +91,7 @@ export default function UserManagement() {
   const [saving, setSaving] = useState(false);
 
   // ==================================================
-  // LOAD USERS
+  // LOAD USERS — ORIGINAL LOGIC
   // ==================================================
 
   useEffect(() => {
@@ -147,7 +146,7 @@ export default function UserManagement() {
   }, [page, role, search, reloadKey]);
 
   // ==================================================
-  // SEARCH
+  // SEARCH — ORIGINAL LOGIC
   // ==================================================
 
   const handleSearch = (event) => {
@@ -158,7 +157,7 @@ export default function UserManagement() {
   };
 
   // ==================================================
-  // OPEN EDIT FORM
+  // OPEN EDIT FORM — ORIGINAL LOGIC
   // ==================================================
 
   const openEdit = (user) => {
@@ -174,7 +173,7 @@ export default function UserManagement() {
   };
 
   // ==================================================
-  // SAVE USER
+  // SAVE USER — ORIGINAL LOGIC
   // ==================================================
 
   const saveUser = async (event) => {
@@ -237,16 +236,50 @@ export default function UserManagement() {
   };
 
   // ==================================================
+  // THEME STYLES — PRESENTATION ONLY
+  // ==================================================
+
+  const cardStyles = {
+    bg: "var(--mg-surface)",
+    color: "var(--mg-text)",
+    border: "1px solid var(--mg-border)",
+    borderRadius: "14px",
+  };
+
+  const inputStyles = {
+    bg: "var(--mg-surface-alt)",
+    color: "var(--mg-text)",
+    borderColor: "var(--mg-border)",
+    _placeholder: {
+      color: "var(--mg-muted)",
+    },
+    _focusVisible: {
+      borderColor: "var(--mg-accent)",
+      outlineColor: "var(--mg-accent)",
+    },
+  };
+
+  const outlineButtonStyles = {
+    bg: "transparent",
+    color: "var(--mg-text)",
+    borderColor: "var(--mg-border)",
+    _hover: {
+      bg: "var(--mg-surface-alt)",
+    },
+  };
+
+  // ==================================================
   // RENDER
   // ==================================================
 
   return (
     <VStack
+      className="acc-management"
       align="stretch"
       gap={5}
       w="100%"
       minW="0"
-      color="#202B45"
+      color="var(--mg-text)"
     >
       {/* ========================================== */}
       {/* PAGE HEADING */}
@@ -269,7 +302,7 @@ export default function UserManagement() {
 
             <Heading
               size="2xl"
-              color="#192968"
+              color="var(--mg-text)"
               fontWeight="750"
               letterSpacing="-0.03em"
             >
@@ -277,20 +310,25 @@ export default function UserManagement() {
             </Heading>
           </HStack>
 
-          <Text color="#74809A" fontSize="sm">
+          <Text
+            color="var(--mg-muted)"
+            fontSize="sm"
+          >
             Manage ACC staff and student accounts.
           </Text>
         </Box>
 
         <Button
           asChild
-          bg="#253783"
+          bg="var(--mg-button)"
           color="white"
           borderRadius="10px"
           px={5}
           minH="44px"
           fontWeight="600"
-          _hover={{ bg: "#30458F" }}
+          _hover={{
+            bg: "var(--mg-button-hover)",
+          }}
         >
           <RouterLink to="/acc/auth/users/create">
             + Create Account
@@ -307,9 +345,7 @@ export default function UserManagement() {
         flexWrap="wrap"
         align="center"
         p={4}
-        bg="white"
-        border="1px solid #E1E6F0"
-        borderRadius="14px"
+        {...cardStyles}
       >
         <Box
           as="form"
@@ -327,17 +363,19 @@ export default function UserManagement() {
             }
             maxLength={100}
             minH="42px"
-            bg="white"
-            borderColor="#E1E6F0"
-            borderRadius="10px"
+            {...inputStyles}
           />
 
           <Button
             type="submit"
             minH="42px"
             px={5}
-            bg="#EDF0FC"
-            color="#253783"
+            bg="var(--mg-surface-alt)"
+            color="var(--mg-accent)"
+            border="1px solid var(--mg-border)"
+            _hover={{
+              bg: "var(--mg-bg)",
+            }}
           >
             Search
           </Button>
@@ -352,8 +390,7 @@ export default function UserManagement() {
                 setPage(1);
               }}
               minH="42px"
-              bg="white"
-              borderColor="#E1E6F0"
+              {...inputStyles}
             >
               <option value="">All Roles</option>
               <option value="super_admin">
@@ -364,7 +401,9 @@ export default function UserManagement() {
               <option value="student">Student</option>
             </NativeSelect.Field>
 
-            <NativeSelect.Indicator />
+            <NativeSelect.Indicator
+              color="var(--mg-muted)"
+            />
           </NativeSelect.Root>
         </Box>
       </Flex>
@@ -404,15 +443,20 @@ export default function UserManagement() {
       {/* ========================================== */}
 
       <Box
-        bg="white"
-        border="1px solid #E1E6F0"
-        borderRadius="14px"
+        {...cardStyles}
         overflow="hidden"
       >
         <Box overflowX="auto" w="100%">
-          <Table.Root size="sm" minW="950px">
+          <Table.Root
+            size="sm"
+            minW="950px"
+            bg="var(--mg-surface)"
+            color="var(--mg-text)"
+          >
             <Table.Header>
-              <Table.Row bg="#F3F5FC">
+              <Table.Row
+                bg="var(--mg-surface-alt)"
+              >
                 {[
                   "NAME",
                   "EMAIL",
@@ -425,7 +469,9 @@ export default function UserManagement() {
                     key={column}
                     px={5}
                     py={4}
-                    color="#526080"
+                    bg="var(--mg-surface-alt)"
+                    color="var(--mg-muted)"
+                    borderColor="var(--mg-border)"
                     fontSize="11px"
                     fontWeight="750"
                   >
@@ -437,24 +483,33 @@ export default function UserManagement() {
 
             <Table.Body>
               {loading ? (
-                <Table.Row>
+                <Table.Row
+                  bg="var(--mg-surface)"
+                >
                   <Table.Cell
                     colSpan={6}
                     textAlign="center"
                     py={10}
+                    bg="var(--mg-surface)"
+                    borderColor="var(--mg-border)"
                   >
                     <Spinner
                       size="sm"
-                      color="#4359B5"
+                      color="var(--mg-accent)"
                     />
                   </Table.Cell>
                 </Table.Row>
               ) : users.length === 0 ? (
-                <Table.Row>
+                <Table.Row
+                  bg="var(--mg-surface)"
+                >
                   <Table.Cell
                     colSpan={6}
                     textAlign="center"
                     py={12}
+                    bg="var(--mg-surface)"
+                    color="var(--mg-muted)"
+                    borderColor="var(--mg-border)"
                   >
                     No users found.
                   </Table.Cell>
@@ -463,37 +518,59 @@ export default function UserManagement() {
                 users.map((user) => (
                   <Table.Row
                     key={user._id}
-                    _hover={{ bg: "#F8F9FF" }}
+                    bg="var(--mg-surface)"
+                    color="var(--mg-text)"
+                    _hover={{
+                      bg: "var(--mg-surface-alt)",
+                    }}
                   >
-                    <Table.Cell px={5} py={4}>
+                    <Table.Cell
+                      px={5}
+                      py={4}
+                      borderColor="var(--mg-border)"
+                    >
                       <Text
                         fontWeight="650"
-                        color="#192968"
+                        color="var(--mg-text)"
                       >
                         {user.firstName}{" "}
                         {user.lastName}
                       </Text>
                     </Table.Cell>
 
-                    <Table.Cell px={5} py={4}>
+                    <Table.Cell
+                      px={5}
+                      py={4}
+                      borderColor="var(--mg-border)"
+                    >
                       <Text
-                        color="#66728D"
+                        color="var(--mg-muted)"
                         overflowWrap="anywhere"
                       >
                         {user.email}
                       </Text>
                     </Table.Cell>
 
-                    <Table.Cell px={5} py={4}>
-                      <Text color="#4359B5">
+                    <Table.Cell
+                      px={5}
+                      py={4}
+                      borderColor="var(--mg-border)"
+                    >
+                      <Text
+                        color="var(--mg-accent)"
+                      >
                         {user.studentId ?? "—"}
                       </Text>
                     </Table.Cell>
 
-                    <Table.Cell px={5} py={4}>
+                    <Table.Cell
+                      px={5}
+                      py={4}
+                      borderColor="var(--mg-border)"
+                    >
                       <Badge
-                        bg="#EDF0FC"
-                        color="#30458F"
+                        bg="var(--mg-surface-alt)"
+                        color="var(--mg-accent)"
                         borderRadius="full"
                         px={2}
                       >
@@ -501,7 +578,11 @@ export default function UserManagement() {
                       </Badge>
                     </Table.Cell>
 
-                    <Table.Cell px={5} py={4}>
+                    <Table.Cell
+                      px={5}
+                      py={4}
+                      borderColor="var(--mg-border)"
+                    >
                       <Badge
                         bg={
                           user.isActive
@@ -522,12 +603,19 @@ export default function UserManagement() {
                       </Badge>
                     </Table.Cell>
 
-                    <Table.Cell px={5} py={4}>
+                    <Table.Cell
+                      px={5}
+                      py={4}
+                      borderColor="var(--mg-border)"
+                    >
                       <HStack gap={2}>
                         <Button
                           size="xs"
-                          bg="#EDF0FC"
-                          color="#253783"
+                          bg="var(--mg-surface-alt)"
+                          color="var(--mg-accent)"
+                          _hover={{
+                            bg: "var(--mg-bg)",
+                          }}
                           onClick={() =>
                             openEdit(user)
                           }
@@ -538,6 +626,7 @@ export default function UserManagement() {
                         <Button
                           size="xs"
                           variant="outline"
+                          {...outlineButtonStyles}
                           disabled
                           title="Account lifecycle service is not ready."
                         >
@@ -577,16 +666,17 @@ export default function UserManagement() {
         flexWrap="wrap"
         gap={3}
         p={4}
-        bg="white"
-        border="1px solid #E1E6F0"
-        borderRadius="12px"
+        {...cardStyles}
       >
-        <Text fontSize="sm" color="#74809A">
+        <Text
+          fontSize="sm"
+          color="var(--mg-muted)"
+        >
           Total:{" "}
           <Text
             as="span"
             fontWeight="700"
-            color="#192968"
+            color="var(--mg-text)"
           >
             {pagination?.total ?? 0}
           </Text>{" "}
@@ -597,6 +687,7 @@ export default function UserManagement() {
           <Button
             size="sm"
             variant="outline"
+            {...outlineButtonStyles}
             disabled={page <= 1 || loading}
             onClick={() =>
               setPage((value) => value - 1)
@@ -608,7 +699,7 @@ export default function UserManagement() {
           <Text
             fontSize="sm"
             fontWeight="650"
-            color="#192968"
+            color="var(--mg-text)"
           >
             Page {page} /{" "}
             {Math.max(
@@ -620,6 +711,7 @@ export default function UserManagement() {
           <Button
             size="sm"
             variant="outline"
+            {...outlineButtonStyles}
             disabled={
               loading ||
               page >=
@@ -641,22 +733,27 @@ export default function UserManagement() {
       {editingUser && (
         <Box
           p={5}
-          bg="white"
-          border="1px solid #E1E6F0"
-          borderRadius="14px"
+          {...cardStyles}
         >
           <Heading
             size="md"
-            color="#192968"
+            color="var(--mg-text)"
             mb={4}
           >
             Edit User
           </Heading>
 
-          <Box as="form" onSubmit={saveUser}>
+          <Box
+            as="form"
+            onSubmit={saveUser}
+          >
             <VStack align="stretch" gap={4}>
               <Box>
-                <Text mb={2} fontWeight="600">
+                <Text
+                  mb={2}
+                  fontWeight="600"
+                  color="var(--mg-text)"
+                >
                   First Name
                 </Text>
 
@@ -671,11 +768,16 @@ export default function UserManagement() {
                   }
                   required
                   maxLength={100}
+                  {...inputStyles}
                 />
               </Box>
 
               <Box>
-                <Text mb={2} fontWeight="600">
+                <Text
+                  mb={2}
+                  fontWeight="600"
+                  color="var(--mg-text)"
+                >
                   Last Name
                 </Text>
 
@@ -690,24 +792,31 @@ export default function UserManagement() {
                   }
                   required
                   maxLength={100}
+                  {...inputStyles}
                 />
               </Box>
 
               <Box>
-                <Text mb={2} fontWeight="600">
+                <Text
+                  mb={2}
+                  fontWeight="600"
+                  color="var(--mg-text)"
+                >
                   Email
                 </Text>
 
                 <Input
                   value={editingUser.email}
                   readOnly
-                  bg="#F3F5FC"
+                  bg="var(--mg-bg)"
+                  color="var(--mg-muted)"
+                  borderColor="var(--mg-border)"
                 />
 
                 <Text
                   mt={1}
                   fontSize="xs"
-                  color="#74809A"
+                  color="var(--mg-muted)"
                 >
                   Email changes require a separate
                   verified identity update flow.
@@ -718,6 +827,7 @@ export default function UserManagement() {
                 <Button
                   type="button"
                   variant="outline"
+                  {...outlineButtonStyles}
                   disabled={saving}
                   onClick={() =>
                     setEditingUser(null)
@@ -728,9 +838,12 @@ export default function UserManagement() {
 
                 <Button
                   type="submit"
-                  bg="#253783"
+                  bg="var(--mg-button)"
                   color="white"
                   loading={saving}
+                  _hover={{
+                    bg: "var(--mg-button-hover)",
+                  }}
                 >
                   Save Changes
                 </Button>
@@ -746,13 +859,14 @@ export default function UserManagement() {
 
       <Box
         p={4}
-        bg="#F8F9FF"
-        border="1px solid #E1E6F0"
+        bg="var(--mg-surface-alt)"
+        color="var(--mg-text)"
+        border="1px solid var(--mg-border)"
         borderRadius="12px"
       >
         <Text
           fontSize="sm"
-          color="#66728D"
+          color="var(--mg-muted)"
         >
           Account deactivation, reactivation,
           and permanent deletion will become

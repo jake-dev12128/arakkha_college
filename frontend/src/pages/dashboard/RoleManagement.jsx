@@ -145,10 +145,13 @@ export default function RoleManagement({ role }) {
 
   return (
     <VStack
-      className="acc-role-management"
-      align="stretch"
-      gap={5}
-    >
+  className="acc-management"
+  align="stretch"
+  gap={5}
+  w="100%"
+  minW="0"
+  color="var(--mg-text)"
+>
       {/* Page heading */}
       <Flex
         justify="space-between"

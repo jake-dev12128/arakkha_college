@@ -1,3 +1,4 @@
+
 /* ==========================================
    ACC PUBLIC WEBSITE THEME
    Scoped to public layout only
@@ -14,6 +15,9 @@
   --public-border: #dce5ef;
   --public-accent: #2563eb;
 
+  /* Shared hero height */
+  --hero-height: 600px;
+
   background-color: var(--public-bg);
   color: var(--public-text);
   min-height: 100vh;
@@ -23,7 +27,9 @@
     color 0.25s ease;
 }
 
-/* SOFT NAVY DARK MODE */
+/* ==========================================
+   SOFT NAVY DARK MODE
+========================================== */
 
 :root[data-theme="dark"] .acc-public {
   --public-bg: #26384e;
@@ -37,7 +43,9 @@
   --public-accent: #79b9ff;
 }
 
-/* PUBLIC LAYOUT */
+/* ==========================================
+   PUBLIC LAYOUT
+========================================== */
 
 .acc-public-main {
   flex: 1;
@@ -45,7 +53,9 @@
   color: var(--public-text);
 }
 
-/* REUSABLE PUBLIC COMPONENTS */
+/* ==========================================
+   REUSABLE PUBLIC COMPONENTS
+========================================== */
 
 .acc-public-section {
   background-color: var(--public-bg);
@@ -76,4 +86,49 @@
   background-color: var(--public-navbar);
   color: var(--public-text);
   border-color: var(--public-border);
+}
+
+/* ==========================================
+   SHARED HERO SLIDESHOW
+========================================== */
+
+.acc-public .acc-hero-slideshow {
+  display: flex;
+  align-items: center;
+
+  width: 100%;
+  height: var(--hero-height);
+  min-height: var(--hero-height);
+  max-height: var(--hero-height);
+
+  overflow: hidden;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+/* Slideshow content wrapper */
+
+.acc-public .acc-hero-slideshow > div:last-child {
+  width: 100%;
+  min-width: 0;
+}
+
+/* ==========================================
+   RESPONSIVE HERO HEIGHT
+========================================== */
+
+@media (max-width: 767px) {
+  .acc-public {
+    --hero-height: 500px;
+  }
+}
+
+/* ==========================================
+   ACCESSIBILITY
+========================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .acc-public .acc-hero-slideshow > div {
+    transition: none !important;
+  }
 }

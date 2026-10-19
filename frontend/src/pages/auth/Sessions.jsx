@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 
 import {
@@ -138,16 +139,21 @@ function Sessions() {
   if (loading) {
     return (
       <Box
+        className="acc-account-theme"
         minH="100vh"
-        bg="gray.50"
+        bg="var(--account-bg)"
+        color="var(--account-text)"
         display="flex"
         alignItems="center"
         justifyContent="center"
       >
         <VStack gap={4}>
-          <Spinner size="xl" />
+          <Spinner
+            size="xl"
+            color="var(--account-accent)"
+          />
 
-          <Text color="gray.500">
+          <Text color="var(--account-muted)">
             Loading sessions...
           </Text>
         </VStack>
@@ -164,16 +170,21 @@ function Sessions() {
   );
 
   return (
-    <Box minH="100vh" bg="gray.50">
+    <Box
+      className="acc-account-theme"
+      minH="100vh"
+      bg="var(--account-bg)"
+      color="var(--account-text)"
+    >
 
       {/* ================================================== */}
       {/* HEADER */}
       {/* ================================================== */}
 
       <Box
-        bg="white"
+        bg="var(--account-surface)"
         borderBottom="1px solid"
-        borderColor="gray.100"
+        borderColor="var(--account-border)"
       >
         <Flex
           maxW="1000px"
@@ -186,19 +197,28 @@ function Sessions() {
           <Box>
             <Text
               fontSize="sm"
-              color="blue.600"
+              color="var(--account-accent)"
               fontWeight="600"
             >
               SECURITY
             </Text>
 
-            <Heading size="lg">
+            <Heading
+              size="lg"
+              color="var(--account-text)"
+            >
               Active Sessions
             </Heading>
           </Box>
 
           <Button
             variant="outline"
+            bg="var(--account-surface-alt)"
+            color="var(--account-text)"
+            borderColor="var(--account-border)"
+            _hover={{
+              bg: "var(--account-border)",
+            }}
             onClick={() => navigate("/acc/auth/dashboard")}
           >
             Dashboard
@@ -258,9 +278,10 @@ function Sessions() {
         {/* ================================================== */}
 
         <Card.Root
-          bg="white"
+          bg="var(--account-surface)"
+          color="var(--account-text)"
           border="1px solid"
-          borderColor="gray.100"
+          borderColor="var(--account-border)"
           borderRadius="20px"
           boxShadow="0 8px 30px rgba(0,0,0,0.05)"
         >
@@ -275,14 +296,17 @@ function Sessions() {
               gap={4}
             >
               <Box>
-                <Heading size="md">
+                <Heading
+                  size="md"
+                  color="var(--account-text)"
+                >
                   Your Sessions
                 </Heading>
 
                 <Text
                   mt={1}
                   fontSize="sm"
-                  color="gray.500"
+                  color="var(--account-muted)"
                 >
                   Manage devices currently signed in
                   to your account.
@@ -319,7 +343,11 @@ function Sessions() {
                 return (
                   <Box key={session._id}>
 
-                    {index > 0 && <Separator />}
+                    {index > 0 && (
+                      <Separator
+                        borderColor="var(--account-border)"
+                      />
+                    )}
 
                     <Flex
                       py={5}
@@ -346,7 +374,7 @@ function Sessions() {
                         >
                           <Text
                             fontWeight="700"
-                            color="gray.800"
+                            color="var(--account-text)"
                           >
                             {session.deviceName}
                           </Text>
@@ -374,7 +402,7 @@ function Sessions() {
 
                         <Text
                           fontSize="sm"
-                          color="gray.600"
+                          color="var(--account-muted)"
                         >
                           {session.browser}
                           {" · "}
@@ -383,7 +411,7 @@ function Sessions() {
 
                         <Text
                           fontSize="xs"
-                          color="gray.500"
+                          color="var(--account-muted)"
                           mt={1}
                         >
                           IP: {session.ipAddress || "Unknown"}
@@ -391,7 +419,7 @@ function Sessions() {
 
                         <Text
                           fontSize="xs"
-                          color="gray.500"
+                          color="var(--account-muted)"
                           mt={1}
                         >
                           Last active:{" "}

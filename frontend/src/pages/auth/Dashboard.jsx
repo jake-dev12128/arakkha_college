@@ -149,9 +149,11 @@ function Dashboard() {
   if (!isLoaded || loading) {
     return (
       <Flex
+        className="acc-account-theme"
         minH="60vh"
         align="center"
         justify="center"
+        color="var(--account-text)"
       >
         <VStack gap={4}>
           <Image
@@ -163,7 +165,7 @@ function Dashboard() {
 
           <Text
             fontSize="sm"
-            color="gray.500"
+            color="var(--account-muted)"
           >
             Loading account overview...
           </Text>
@@ -178,7 +180,12 @@ function Dashboard() {
 
   if (error || !user) {
     return (
-      <Box maxW="700px" mx="auto" py={8}>
+      <Box
+        className="acc-account-theme"
+        maxW="700px"
+        mx="auto"
+        py={8}
+      >
         <Alert.Root
           status="error"
           borderRadius="12px"
@@ -201,13 +208,14 @@ function Dashboard() {
 
   return (
     <Box
+      className="acc-account-theme"
       width="100%"
       maxW="1100px"
       mx="auto"
       px={{ base: 4, md: 6 }}
       py={{ base: 6, md: 8 }}
+      color="var(--account-text)"
     >
-   
       {/* ==========================================
           ERRORS
       ========================================== */}
@@ -233,9 +241,10 @@ function Dashboard() {
       ========================================== */}
 
       <Card.Root
-        bg="white"
+        bg="var(--account-surface)"
+        color="var(--account-text)"
         border="1px solid"
-        borderColor="gray.100"
+        borderColor="var(--account-border)"
         borderRadius="20px"
         boxShadow="0 8px 30px rgba(0,0,0,0.05)"
         maxW="760px"
@@ -245,7 +254,7 @@ function Dashboard() {
         <Card.Header px={6} pt={6}>
           <Text
             fontSize="xs"
-            color="blue.600"
+            color="var(--account-accent)"
             fontWeight="700"
             mb={1}
           >
@@ -254,7 +263,7 @@ function Dashboard() {
 
           <Heading
             size="md"
-            color="gray.800"
+            color="var(--account-text)"
           >
             Profile Information
           </Heading>
@@ -272,7 +281,9 @@ function Dashboard() {
                 .join(" ")}
             />
 
-            <Separator />
+            <Separator
+              borderColor="var(--account-border)"
+            />
 
             <ProfileField
               label="Email Address"
@@ -284,7 +295,9 @@ function Dashboard() {
             {user.role === "student" &&
               user.studentId && (
                 <>
-                  <Separator />
+                  <Separator
+                    borderColor="var(--account-border)"
+                  />
 
                   <ProfileField
                     label="Student ID"
@@ -293,12 +306,14 @@ function Dashboard() {
                 </>
               )}
 
-            <Separator />
+            <Separator
+              borderColor="var(--account-border)"
+            />
 
             <Box py={4}>
               <Text
                 fontSize="xs"
-                color="gray.500"
+                color="var(--account-muted)"
                 mb={2}
               >
                 Account Role
@@ -319,12 +334,14 @@ function Dashboard() {
               </Badge>
             </Box>
 
-            <Separator />
+            <Separator
+              borderColor="var(--account-border)"
+            />
 
             <Box py={4}>
               <Text
                 fontSize="xs"
-                color="gray.500"
+                color="var(--account-muted)"
                 mb={2}
               >
                 Account Status
@@ -349,7 +366,6 @@ function Dashboard() {
           </VStack>
         </Card.Body>
       </Card.Root>
-
     </Box>
   );
 }
@@ -366,7 +382,7 @@ function ProfileField({
     <Box py={4}>
       <Text
         fontSize="xs"
-        color="gray.500"
+        color="var(--account-muted)"
         mb={1}
       >
         {label}
@@ -374,7 +390,7 @@ function ProfileField({
 
       <Text
         fontWeight="600"
-        color="gray.800"
+        color="var(--account-text)"
         wordBreak="break-word"
       >
         {value || "Not provided"}

@@ -414,6 +414,7 @@ export default function DashboardLayout() {
 
         <Box
           as="main"
+          className="acc-dashboard-content"
           p={{
             base: 4,
             md: 6,

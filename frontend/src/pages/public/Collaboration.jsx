@@ -87,7 +87,7 @@ export default function Collaboration() {
         )}
 
         {!loading && !error && (
-          <SimpleGrid columns={{ base: 1, sm: 2 }} gap={8}>
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={8}>
             {partners.map((partner) => (
               <Box
                 key={partner._id}

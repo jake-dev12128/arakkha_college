@@ -1,21 +1,56 @@
-import { Box, Container, Heading, Text } from "@chakra-ui/react";
 
-export default function PageHero({ title, description }) {
+import {
+  Container,
+  Heading,
+  Text,
+  VStack,
+} from "@chakra-ui/react";
+
+import HeroSlideshow from "../public/HeroSlideshow.jsx";
+
+export default function PageHero({
+  title,
+  description,
+}) {
   return (
-    <Box bg="blue.700" color="white">
-      <Container maxW="1280px" py={{ base: "14", md: "20" }}>
-        <Text textTransform="uppercase" letterSpacing="widest" fontSize="sm" fontWeight="800" color="blue.200">
-          ACC Computer College
-        </Text>
-        <Heading size={{ base: "2xl", md: "4xl" }} mt="3">
-          {title}
-        </Heading>
-        {description && (
-          <Text mt="4" maxW="720px" color="blue.100" fontSize={{ base: "md", md: "lg" }}>
-            {description}
+    <HeroSlideshow>
+      <Container maxW="1280px" width="100%">
+        <VStack
+          align="start"
+          gap={3}
+          maxW="800px"
+        >
+          <Text
+            textTransform="uppercase"
+            letterSpacing="widest"
+            fontSize="sm"
+            fontWeight="800"
+            color="whiteAlpha.900"
+          >
+            ACC Computer College
           </Text>
-        )}
+
+          <Heading
+            size={{ base: "2xl", md: "4xl" }}
+            color="white"
+            lineHeight="1.15"
+          >
+            {title}
+          </Heading>
+
+          {description && (
+            <Text
+              mt={2}
+              maxW="720px"
+              color="whiteAlpha.900"
+              fontSize={{ base: "md", md: "lg" }}
+              lineHeight="1.7"
+            >
+              {description}
+            </Text>
+          )}
+        </VStack>
       </Container>
-    </Box>
+    </HeroSlideshow>
   );
 }
