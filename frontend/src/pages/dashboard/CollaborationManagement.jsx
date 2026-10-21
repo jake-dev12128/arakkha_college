@@ -17,6 +17,7 @@ import {
 } from "@chakra-ui/react";
 import DOMPurify from "dompurify";
 
+import ManagementToolbar from "../../components/dashboard/ManagementToolbar.jsx";
 import RichTextEditor from "../../components/dashboard/about/RichTextEditor.jsx";
 import { collaborationPartnerService } from "../../services/collaborationPartner.service.js";
 
@@ -87,6 +88,7 @@ export default function CollaborationManagement() {
   const [formOpen, setFormOpen] = useState(false);
   const [viewPartner, setViewPartner] = useState(null);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -284,6 +286,8 @@ export default function CollaborationManagement() {
   };
 
   const filteredPartners = partners.filter((partner) => {
+    if (statusFilter === "active" && partner.isActive !== true) return false;
+    if (statusFilter === "inactive" && partner.isActive !== false) return false;
     const query = search.trim().toLowerCase();
 
     return [partner.name, partner.type].some((value) =>
@@ -377,24 +381,22 @@ export default function CollaborationManagement() {
               </Text>
             </Box>
 
-            <Flex gap="2" wrap="wrap">
-              <Input
-                placeholder="Search partners..."
-                value={search}
-                onChange={(event) =>
-                  setSearch(event.target.value)
-                }
-                maxW="260px"
-              />
-
-              <Button
-                variant="outline"
-                disabled={busy}
-                onClick={loadPartners}
-              >
-                Refresh
-              </Button>
-            </Flex>
+            <ManagementToolbar
+              search={search}
+              onSearchChange={setSearch}
+              searchPlaceholder="Search partners..."
+              filters={[{
+                key: "status",
+                label: "Status filter",
+                value: statusFilter,
+                onChange: setStatusFilter,
+                options: [
+                  { label: "All Status", value: "all" },
+                  { label: "Active", value: "active" },
+                  { label: "Inactive", value: "inactive" },
+                ],
+              }]}
+            />
           </Flex>
 
           <Box overflowX="auto">

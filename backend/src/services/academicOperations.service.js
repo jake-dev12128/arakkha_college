@@ -83,6 +83,7 @@ const checkReferences = async ({
   return { p, c, y };
 };
 
+
 const listRecords = async (Model, query = {}) => {
   const {
     page = 1,
@@ -91,13 +92,29 @@ const listRecords = async (Model, query = {}) => {
     status,
   } = query;
 
+  const allowedStatuses =
+    Model.modelName === AcademicYear.modelName
+      ? ["planned", "active", "completed"]
+      : ["draft", "active", "completed", "cancelled"];
+
   const filter = {};
 
-  if (search) {
-    const escaped = search.replace(
-      /[.*+?^${}()|[\]\\]/g,
-      "\\$&",
-    );
+  if (status && status !== "all") {
+    if (!allowedStatuses.includes(status)) {
+      fail(
+        "Invalid status filter.",
+        400,
+        "INVALID_STATUS_FILTER"
+      );
+    }
+
+    filter.status = status;
+  }
+
+  if (typeof search === "string" && search.trim()) {
+    const escaped = search
+      .trim()
+      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
     filter.$or = [
       { code: { $regex: escaped, $options: "i" } },
@@ -105,29 +122,37 @@ const listRecords = async (Model, query = {}) => {
     ];
   }
 
-  if (status) {
-    filter.status = status;
-  }
+  const safePage = Math.max(
+    1,
+    Number.parseInt(page, 10) || 1
+  );
+
+  const safeLimit = Math.min(
+    100,
+    Math.max(1, Number.parseInt(limit, 10) || 20)
+  );
 
   const [data, total] = await Promise.all([
     Model.find(filter)
       .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
+      .skip((safePage - 1) * safeLimit)
+      .limit(safeLimit)
       .lean(),
+
     Model.countDocuments(filter),
   ]);
 
   return {
     data,
     pagination: {
-      page,
-      limit,
+      page: safePage,
+      limit: safeLimit,
       total,
-      totalPages: Math.ceil(total / limit),
+      totalPages: Math.ceil(total / safeLimit),
     },
   };
 };
+
 
 // ACADEMIC YEAR
 export const createAcademicYear = async (data) => {

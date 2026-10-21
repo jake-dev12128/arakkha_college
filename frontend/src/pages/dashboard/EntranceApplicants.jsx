@@ -1,3 +1,4 @@
+import ManagementToolbar from "../../components/dashboard/ManagementToolbar.jsx";
 
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -55,6 +56,9 @@ export default function EntranceApplicants({ list, onBack }) {
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm());
+
+  const [toolbarSearch, setToolbarSearch] = useState("");
+  const [toolbarStatus, setToolbarStatus] = useState("all");
 
   const limit = 20;
   const totalPages = Math.max(1, Math.ceil(total / limit));
@@ -230,6 +234,14 @@ export default function EntranceApplicants({ list, onBack }) {
     }
   };
 
+  const visibleRows = items.filter((applicant) => {
+    const matchesStatus = toolbarStatus === "all" || applicant.admissionStatus === toolbarStatus;
+    const matchesSearch = [applicant.applicantNumber, applicant.firstName, applicant.lastName, applicant.nationalId, applicant.fatherName].some((value) =>
+      String(value ?? "").toLowerCase().includes(toolbarSearch.trim().toLowerCase())
+    );
+    return matchesStatus && matchesSearch;
+  });
+
   return (
     <VStack align="stretch" gap={5}>
       <Flex justify="space-between" align="center" gap={3} wrap="wrap">
@@ -262,16 +274,21 @@ export default function EntranceApplicants({ list, onBack }) {
               Add Applicant
             </Button>
           )}
-
-          <Button
-            variant="outline"
-            disabled={busy || loading}
-            onClick={loadApplicants}
-          >
-            Refresh
-          </Button>
         </HStack>
       </Flex>
+
+        <ManagementToolbar
+          search={toolbarSearch}
+          onSearchChange={setToolbarSearch}
+          searchPlaceholder="Search applicants..."
+          filters={[{
+            key: "status",
+            label: "Status",
+            value: toolbarStatus,
+            onChange: setToolbarStatus,
+            options: [{ label: "All Status", value: "all" }, ...["pending", "admitted", "rejected", "waitlisted"].map((status) => ({ label: status[0].toUpperCase() + status.slice(1), value: status }))],
+          }]}
+        />
 
       {!editable && (
         <Box borderWidth="1px" borderRadius="md" p={3}>
@@ -409,7 +426,7 @@ export default function EntranceApplicants({ list, onBack }) {
             </Table.Header>
 
             <Table.Body>
-              {items.map((applicant, index) => (
+              {visibleRows.map((applicant, index) => (
                 <Table.Row key={applicant._id}>
                   <Table.Cell>
                     {(page - 1) * limit + index + 1}

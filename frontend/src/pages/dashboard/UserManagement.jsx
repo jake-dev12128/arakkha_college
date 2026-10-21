@@ -1,3 +1,4 @@
+import ManagementToolbar from "../../components/dashboard/ManagementToolbar.jsx";
 
 import { useEffect, useState } from "react";
 
@@ -347,64 +348,27 @@ export default function UserManagement() {
         p={4}
         {...cardStyles}
       >
-        <Box
-          as="form"
-          onSubmit={handleSearch}
-          display="flex"
-          gap={2}
-          flex="1"
-          minW={{ base: "100%", md: "260px" }}
-        >
-          <Input
-            placeholder="Search name, email, student ID..."
-            value={searchInput}
-            onChange={(event) =>
-              setSearchInput(event.target.value)
-            }
-            maxLength={100}
-            minH="42px"
-            {...inputStyles}
-          />
-
-          <Button
-            type="submit"
-            minH="42px"
-            px={5}
-            bg="var(--mg-surface-alt)"
-            color="var(--mg-accent)"
-            border="1px solid var(--mg-border)"
-            _hover={{
-              bg: "var(--mg-bg)",
+        <Box flex="1" minW={{ base: "100%", md: "260px" }}>
+          <ManagementToolbar
+            search={searchInput}
+            onSearchChange={(value) => {
+              setSearchInput(value);
+              setPage(1);
+              setSearch(value.trim());
             }}
-          >
-            Search
-          </Button>
-        </Box>
-
-        <Box w={{ base: "100%", md: "200px" }}>
-          <NativeSelect.Root>
-            <NativeSelect.Field
-              value={role}
-              onChange={(event) => {
-                setRole(event.target.value);
-                setPage(1);
-              }}
-              minH="42px"
-              {...inputStyles}
-            >
-              <option value="">All Roles</option>
-              <option value="super_admin">
-                Super Admin
-              </option>
-              <option value="admin">Admin</option>
-              <option value="teacher">Teacher</option>
-              <option value="student">Student</option>
-            </NativeSelect.Field>
-
-            <NativeSelect.Indicator
-              color="var(--mg-muted)"
-            />
-          </NativeSelect.Root>
+            searchPlaceholder="Search name, email, student ID..."
+            filters={[
+              { key: "role", label: "User role", value: role,
+                onChange: (value) => { setRole(value); setPage(1); },
+                options: [
+                  { label: "All Roles", value: "" },
+                  { label: "Super Admin", value: "super_admin" },
+                  { label: "Admin", value: "admin" },
+                  { label: "Teacher", value: "teacher" },
+                  { label: "Student", value: "student" },
+                ] },
+            ]}
+          />
         </Box>
       </Flex>
 

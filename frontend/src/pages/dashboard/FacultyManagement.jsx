@@ -17,6 +17,7 @@ import {
 } from "@chakra-ui/react";
 import DOMPurify from "dompurify";
 
+import ManagementToolbar from "../../components/dashboard/ManagementToolbar.jsx";
 import RichTextEditor from "../../components/dashboard/about/RichTextEditor.jsx";
 import { facultyMemberService } from "../../services/facultyMember.service.js";
 
@@ -91,6 +92,7 @@ export default function FacultyManagement() {
   const [formOpen, setFormOpen] = useState(false);
   const [viewMember, setViewMember] = useState(null);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -294,6 +296,8 @@ export default function FacultyManagement() {
   };
 
   const filteredMembers = members.filter((member) => {
+    if (statusFilter === "active" && member.isActive !== true) return false;
+    if (statusFilter === "inactive" && member.isActive !== false) return false;
     const query = search.trim().toLowerCase();
 
     return [
@@ -388,24 +392,22 @@ export default function FacultyManagement() {
               </Text>
             </Box>
 
-            <Flex gap="2" wrap="wrap">
-              <Input
-                placeholder="Search faculty..."
-                value={search}
-                onChange={(event) =>
-                  setSearch(event.target.value)
-                }
-                maxW="260px"
-              />
-
-              <Button
-                variant="outline"
-                disabled={busy}
-                onClick={loadMembers}
-              >
-                Refresh
-              </Button>
-            </Flex>
+            <ManagementToolbar
+              search={search}
+              onSearchChange={setSearch}
+              searchPlaceholder="Search faculty..."
+              filters={[{
+                key: "status",
+                label: "Status filter",
+                value: statusFilter,
+                onChange: setStatusFilter,
+                options: [
+                  { label: "All Status", value: "all" },
+                  { label: "Active", value: "active" },
+                  { label: "Inactive", value: "inactive" },
+                ],
+              }]}
+            />
           </Flex>
 
           <Box overflowX="auto">

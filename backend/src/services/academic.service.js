@@ -30,44 +30,168 @@ const getRecord = async (Model, id) => {
   return record;
 };
 
+
 export const listAcademicRecords = async (
-  type, { page = 1, limit = 20, search, status }
+  type,
+  {
+    page = 1,
+    limit = 20,
+    search,
+    status,
+  }
 ) => {
   const Model = getModel(type);
+
+  if (!Model) {
+    fail(
+      "Unsupported academic resource.",
+      400,
+      "INVALID_RESOURCE_TYPE"
+    );
+  }
+
   const filter = {};
 
-  if (type === "curricula" && status) {
-    filter.status = status;
+  // ==========================================
+  // STATUS FILTER
+  // ==========================================
+
+  const allowedStatuses = {
+    curricula: [
+      "draft",
+      "published",
+      "archived",
+    ],
+  };
+
+  if (status && status !== "all") {
+    if (
+      type === "courses" ||
+      type === "programs"
+    ) {
+      if (
+        !["active", "inactive"].includes(status)
+      ) {
+        fail(
+          "Invalid status filter.",
+          400,
+          "INVALID_STATUS_FILTER"
+        );
+      }
+
+      filter.isActive =
+        status === "active";
+    } else {
+      const allowed =
+        allowedStatuses[type];
+
+      if (
+        !allowed ||
+        !allowed.includes(status)
+      ) {
+        fail(
+          "Invalid status filter.",
+          400,
+          "INVALID_STATUS_FILTER"
+        );
+      }
+
+      filter.status = status;
+    }
   }
 
-  if (search && type !== "curricula") {
-    const safe = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const fields = type === "programs"
-      ? ["name", "code", "slug"]
-      : ["title", "code"];
+  // ==========================================
+  // SEARCH FILTER
+  // ==========================================
 
-    filter.$or = fields.map(field => ({
-      [field]: { $regex: safe, $options: "i" },
-    }));
+  if (
+    typeof search === "string" &&
+    search.trim()
+  ) {
+    const safeSearch = search
+      .trim()
+      .replace(
+        /[.*+?^${}()|[\]\\]/g,
+        "\\$&"
+      );
+
+    const searchFields = {
+      programs: [
+        "name",
+        "code",
+        "slug",
+      ],
+      courses: [
+        "title",
+        "code",
+      ],
+      curricula: [
+        "version",
+      ],
+    };
+
+    const fields =
+      searchFields[type] || [];
+
+    if (fields.length > 0) {
+      filter.$or = fields.map(
+        (field) => ({
+          [field]: {
+            $regex: safeSearch,
+            $options: "i",
+          },
+        })
+      );
+    }
   }
 
-  const [data, total] = await Promise.all([
-    Model.find(filter)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .lean(),
-    Model.countDocuments(filter),
-  ]);
+  // ==========================================
+  // PAGINATION
+  // ==========================================
+
+  const safePage = Math.max(
+    1,
+    Number.parseInt(page, 10) || 1
+  );
+
+  const safeLimit = Math.min(
+    100,
+    Math.max(
+      1,
+      Number.parseInt(limit, 10) || 20
+    )
+  );
+
+  const skip =
+    (safePage - 1) * safeLimit;
+
+  // ==========================================
+  // DATABASE QUERY
+  // ==========================================
+
+  const [data, total] =
+    await Promise.all([
+      Model.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(safeLimit)
+        .lean(),
+
+      Model.countDocuments(filter),
+    ]);
 
   return {
     data,
     pagination: {
-      page, limit, total,
-      totalPages: Math.ceil(total / limit),
+      page: safePage,
+      limit: safeLimit,
+      total,
+      totalPages:
+        Math.ceil(total / safeLimit),
     },
   };
 };
+
 
 export const getAcademicRecord = async (type, id) => {
   return getRecord(getModel(type), id);
@@ -523,3 +647,4 @@ export const unpublishProgram = async (id) => {
 
   return program.save();
 };
+

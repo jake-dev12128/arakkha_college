@@ -29,6 +29,8 @@ import {
   getAcademicApiErrorMessage,
 } from "../../services/academic.service.js";
 
+import ManagementToolbar from "../../components/dashboard/ManagementToolbar.jsx";
+
 import CurriculumSemesterEditor, {
   validateCurriculumSemesters,
 } from "../../components/dashboard/academic/CurriculumSemesterEditor.jsx";
@@ -46,11 +48,22 @@ const RESOURCE_LABELS = {
   "program-enrollments": "Program Enrollments",
 };
 
+const STATUS_FILTER_OPTIONS = {
+  programs: ["all", "active", "inactive"],
+  courses: ["all", "active", "inactive"],
+  curricula: ["all", "draft", "published", "archived"],
+  "academic-years": ["all", "planned", "active", "completed"],
+  cohorts: ["all", "planned", "active", "completed", "cancelled"],
+  "program-enrollments": ["all", "active", "suspended", "completed", "withdrawn"],
+};
+
 const SEARCHABLE = new Set([
   "programs",
   "courses",
+  "curricula",
   "academic-years",
   "cohorts",
+  "program-enrollments",
 ]);
 
 const ARCHIVABLE = new Set([
@@ -841,7 +854,23 @@ export default function AcademicManagement({
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
-  const [yearStatusFilter, setYearStatusFilter] = useState("all");
+
+  // Search automatically after typing stops; cancel pending requests on changes.
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const nextQuery = search.trim();
+      setPage(1);
+      setQuery(nextQuery);
+    }, 350);
+
+    return () => clearTimeout(timeoutId);
+  }, [search]);
+  const [statusFilters, setStatusFilters] = useState({});
+  const selectedStatus = statusFilters[resource] ?? "all";
+  const changeStatus = (value) => {
+    setPage(1);
+    setStatusFilters((previous) => ({ ...previous, [resource]: value }));
+  };
   const [yearSummary, setYearSummary] = useState(null);
 
   const [loading, setLoading] = useState(false);
@@ -966,8 +995,8 @@ const [cloneError, setCloneError] = useState("");
 
           const normalizedQuery = query.trim().toLowerCase();
           const filtered = all.filter((item) => {
-            const matchesStatus = yearStatusFilter === "all" ||
-              item.status === yearStatusFilter;
+            const matchesStatus = selectedStatus === "all" ||
+              item.status === selectedStatus;
             const matchesSearch = !normalizedQuery ||
               [item.code, item.name].some((value) =>
                 String(value ?? "").toLowerCase().includes(normalizedQuery)
@@ -994,7 +1023,12 @@ const [cloneError, setCloneError] = useState("");
         }
 
         const params = { page, limit: 20 };
-        if (query && SEARCHABLE.has(resource)) params.search = query;
+        if (query.trim() && SEARCHABLE.has(resource)) {
+          params.search = query.trim();
+        }
+        if (selectedStatus !== "all") {
+          params.status = selectedStatus;
+        }
         const result = await academicService.list(resource, params, signal);
         if (signal?.aborted) return;
         setYearSummary(null);
@@ -1008,7 +1042,7 @@ const [cloneError, setCloneError] = useState("");
         if (!signal?.aborted) setLoading(false);
       }
     },
-    [resource, page, query, yearStatusFilter],
+[resource, page, query, selectedStatus],
   );
 
   useEffect(() => {
@@ -2355,71 +2389,33 @@ if (
               Data integrity warning: multiple active academic years were returned.
             </Text>
           )}
-          <Flex align="center" gap={3} wrap="wrap">
-            <Text fontSize="sm" fontWeight="medium">Status</Text>
-            <NativeSelect.Root maxW="230px">
-              <NativeSelect.Field
-                aria-label="Filter academic years by status"
-                value={yearStatusFilter}
-                onChange={(event) => {
-                  setPage(1);
-                  setYearStatusFilter(event.target.value);
-                }}
-              >
-                <option value="all">All statuses</option>
-                <option value="planned">Planned</option>
-                <option value="active">Active</option>
-                <option value="completed">Completed</option>
-              </NativeSelect.Field>
-              <NativeSelect.Indicator />
-            </NativeSelect.Root>
-          </Flex>
+
         </>
       )}
 
-      {/* SEARCH */}
-
-      {SEARCHABLE.has(
-        resource,
-      ) && (
-        <Flex gap={2}>
-          <Input
-            placeholder={`Search ${title.toLowerCase()}...`}
-            value={search}
-            onChange={(
-              event,
-            ) =>
-              setSearch(
-                event.target.value,
-              )
-            }
-            onKeyDown={(
-              event,
-            ) => {
-              if (
-                event.key ===
-                "Enter"
-              ) {
-                setPage(1);
-                setQuery(
-                  search.trim(),
-                );
-              }
-            }}
-          />
-
-          <Button
-            variant="outline"
-            onClick={() => {
-              setPage(1);
-              setQuery(
-                search.trim(),
-              );
-            }}
-          >
-            Search
-          </Button>
-        </Flex>
+      {/* Unified automatic search and status filter */}
+      {SEARCHABLE.has(resource) && (
+        <ManagementToolbar
+          search={search}
+          onSearchChange={setSearch}
+          searchPlaceholder={`Search ${title.toLowerCase()}...`}
+          filters={[
+            {
+              key: "status",
+              label: `${title} status`,
+              value: selectedStatus,
+              onChange: changeStatus,
+              options: (STATUS_FILTER_OPTIONS[resource] ?? ["all"]).map(
+                (value) => ({
+                  value,
+                  label: value === "all"
+                    ? "All Status"
+                    : value.charAt(0).toUpperCase() + value.slice(1),
+                }),
+              ),
+            },
+          ]}
+        />
       )}
 
       {/* RECORD TABLE */}

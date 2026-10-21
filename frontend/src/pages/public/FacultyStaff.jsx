@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import {
   Box,
@@ -84,26 +83,17 @@ export default function FacultyStaff() {
               Meet Our Professional Team
             </Heading>
 
-            <Text
-              color="var(--public-muted)"
-              maxW="650px"
-              lineHeight="1.8"
-            >
-              Our dedicated educators and staff work together
-              to provide quality education, practical knowledge
-              and a supportive learning environment.
+            <Text color="var(--public-muted)" maxW="650px" lineHeight="1.8">
+              Our dedicated educators and staff work together to provide quality
+              education, practical knowledge and a supportive learning
+              environment.
             </Text>
           </VStack>
 
           {loading && (
             <HStack justify="center" py={12}>
-              <Spinner
-                color="var(--public-accent)"
-                size="lg"
-              />
-              <Text color="var(--public-muted)">
-                Loading faculty...
-              </Text>
+              <Spinner color="var(--public-accent)" size="lg" />
+              <Text color="var(--public-muted)">Loading faculty...</Text>
             </HStack>
           )}
 
@@ -114,20 +104,13 @@ export default function FacultyStaff() {
           )}
 
           {!loading && !error && members.length === 0 && (
-            <Text
-              textAlign="center"
-              color="var(--public-muted)"
-              py={10}
-            >
+            <Text textAlign="center" color="var(--public-muted)" py={10}>
               No faculty profiles are currently available.
             </Text>
           )}
 
           {!loading && !error && (
-            <SimpleGrid
-              columns={{ base: 1, sm: 2, lg: 4 }}
-              gap={6}
-            >
+            <SimpleGrid columns={{ base: 1, sm: 1, md: 2, lg: 4 }} gap={6}>
               {members.map((person) => (
                 <Box
                   key={person._id}
@@ -181,11 +164,7 @@ export default function FacultyStaff() {
 
                   <VStack align="stretch" gap={4} p={5}>
                     <Box>
-                      <Heading
-                        size="md"
-                        color="var(--public-text)"
-                        mb={3}
-                      >
+                      <Heading size="md" color="var(--public-text)" mb={3}>
                         {person.name}
                       </Heading>
 
@@ -203,15 +182,8 @@ export default function FacultyStaff() {
                       </Box>
                     </Box>
 
-                    <HStack
-                      align="start"
-                      gap={3}
-                      color="var(--public-muted)"
-                    >
-                      <FaGraduationCap
-                        color="var(--public-accent)"
-                        size={16}
-                      />
+                    <HStack align="start" gap={3} color="var(--public-muted)">
+                      <FaGraduationCap color="var(--public-accent)" size={16} />
 
                       <Text fontSize="sm" fontWeight="medium">
                         {person.department}

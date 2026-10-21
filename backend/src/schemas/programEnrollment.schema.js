@@ -88,25 +88,24 @@ export const programEnrollmentIdSchema = z
 // LIST ENROLLMENTS
 // ==================================================
 
+
+
 export const listProgramEnrollmentsSchema = z
   .object({
-    page: z.coerce
-      .number()
-      .int()
-      .min(1)
-      .default(1),
-
-    limit: z.coerce
-      .number()
-      .int()
-      .min(1)
-      .max(100)
-      .default(20),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
 
     cohort: objectId.optional(),
-
     student: objectId.optional(),
 
-    status: enrollmentStatus.optional(),
+    search: z.string().trim().max(100).optional(),
+
+    status: z.enum([
+      "all",
+      "active",
+      "suspended",
+      "completed",
+      "withdrawn",
+    ]).optional(),
   })
   .strict();

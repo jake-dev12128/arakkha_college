@@ -185,18 +185,96 @@ export const createProgramEnrollment = async data => {
   }
 };
 
+
+
 export const listProgramEnrollments = async ({
   page = 1,
   limit = 20,
   cohort,
   student,
   status,
+  search,
 } = {}) => {
   const filter = {};
 
-  if (cohort) filter.cohort = cohort;
-  if (student) filter.student = student;
-  if (status) filter.status = status;
+  if (cohort) {
+    if (!mongoose.isValidObjectId(cohort)) {
+      fail("Invalid cohort ID.", 400, "INVALID_COHORT_ID");
+    }
+    filter.cohort = cohort;
+  }
+
+  if (student) {
+    if (!mongoose.isValidObjectId(student)) {
+      fail("Invalid student ID.", 400, "INVALID_STUDENT_ID");
+    }
+    filter.student = student;
+  }
+
+  if (status && status !== "all") {
+    const allowed = [
+      "active",
+      "suspended",
+      "completed",
+      "withdrawn",
+    ];
+
+    if (!allowed.includes(status)) {
+      fail("Invalid status.", 400, "INVALID_STATUS_FILTER");
+    }
+
+    filter.status = status;
+  }
+
+  if (typeof search === "string" && search.trim()) {
+    const escaped = search.trim().replace(
+      /[.*+?^${}()|[\]\\]/g,
+      "\\$&"
+    );
+
+    const matchingStudents = await Student.find({
+      $or: [
+        { studentId: { $regex: escaped, $options: "i" } },
+        { firstName: { $regex: escaped, $options: "i" } },
+        { lastName: { $regex: escaped, $options: "i" } },
+        {
+          $expr: {
+            $regexMatch: {
+              input: {
+                $concat: ["$firstName", " ", "$lastName"],
+              },
+              regex: escaped,
+              options: "i",
+            },
+          },
+        },
+      ],
+    })
+      .select("_id")
+      .lean();
+
+    const matchingIds = matchingStudents.map(
+      (item) => item._id
+    );
+
+    if (filter.student) {
+      if (!matchingIds.some(
+        (id) => String(id) === String(filter.student)
+      )) {
+        return {
+          records: [],
+          pagination: {
+            page,
+            limit,
+            total: 0,
+            totalPages: 0,
+          },
+        };
+      }
+    } else {
+      filter.student = { $in: matchingIds };
+    }
+  }
 
   const [records, total] = await Promise.all([
     ProgramEnrollment.find(filter)
@@ -207,6 +285,7 @@ export const listProgramEnrollments = async ({
       .skip((page - 1) * limit)
       .limit(limit)
       .lean(),
+
     ProgramEnrollment.countDocuments(filter),
   ]);
 
@@ -220,6 +299,8 @@ export const listProgramEnrollments = async ({
     },
   };
 };
+
+
 
 // ==================================================
 // GET PROGRAM ENROLLMENT DETAILS

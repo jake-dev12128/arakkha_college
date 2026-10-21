@@ -1,3 +1,4 @@
+import ManagementToolbar from "../../components/dashboard/ManagementToolbar.jsx";
 
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -115,6 +116,9 @@ export default function EntranceManagement({
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm());
+
+  const [toolbarSearch, setToolbarSearch] = useState("");
+  const [toolbarStatus, setToolbarStatus] = useState("all");
 
   // ==================================================
   // LOAD DATA
@@ -555,7 +559,7 @@ const loadAcademicYears = useCallback(async () => {
         </Table.Header>
 
         <Table.Body>
-          {records.map((record) => (
+          {visibleRows.map((record) => (
             <Table.Row key={record._id}>
               <Table.Cell>
                 {record.title || "Untitled"}
@@ -1019,6 +1023,14 @@ const loadAcademicYears = useCallback(async () => {
   // RENDER
   // ==================================================
 
+  const visibleRows = records.filter((record) => {
+    const matchesStatus = toolbarStatus === "all" || record.status === toolbarStatus;
+    const matchesSearch = [record.title, record.description, record.academicYear?.name, record.academicYear?.code].some((value) =>
+      String(value ?? "").toLowerCase().includes(toolbarSearch.trim().toLowerCase())
+    );
+    return matchesStatus && matchesSearch;
+  });
+
   return (
     <Box p={{ base: 4, md: 6 }}>
       <VStack align="stretch" gap={6}>
@@ -1052,16 +1064,21 @@ const loadAcademicYears = useCallback(async () => {
                 Create Information
               </Button>
             )}
-
-            <Button
-              variant="outline"
-              disabled={loading || busy}
-              onClick={loadRecords}
-            >
-              Refresh
-            </Button>
           </HStack>
         </Flex>
+
+        <ManagementToolbar
+          search={toolbarSearch}
+          onSearchChange={setToolbarSearch}
+          searchPlaceholder="Search entrance records..."
+          filters={[{
+            key: "status",
+            label: "Status",
+            value: toolbarStatus,
+            onChange: setToolbarStatus,
+            options: [{ label: "All Status", value: "all" }, ...["draft", "published", "archived"].map((status) => ({ label: status[0].toUpperCase() + status.slice(1), value: status }))],
+          }]}
+        />
 
         {message && (
           <Box

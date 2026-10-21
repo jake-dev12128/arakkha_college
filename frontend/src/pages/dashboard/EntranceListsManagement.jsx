@@ -1,3 +1,4 @@
+import ManagementToolbar from "../../components/dashboard/ManagementToolbar.jsx";
 
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -66,6 +67,9 @@ export default function EntranceListsManagement() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(initialForm());
+
+  const [toolbarSearch, setToolbarSearch] = useState("");
+  const [toolbarStatus, setToolbarStatus] = useState("all");
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
@@ -262,6 +266,14 @@ export default function EntranceListsManagement() {
     );
   }
 
+  const visibleRows = lists.filter((record) => {
+    const matchesStatus = toolbarStatus === "all" || record.status === toolbarStatus;
+    const matchesSearch = [record.title, record.description, record.academicYear?.name, record.academicYear?.code].some((value) =>
+      String(value ?? "").toLowerCase().includes(toolbarSearch.trim().toLowerCase())
+    );
+    return matchesStatus && matchesSearch;
+  });
+
   return (
     <Box p={{ base: 4, md: 6 }}>
       <VStack align="stretch" gap={6}>
@@ -290,16 +302,21 @@ export default function EntranceListsManagement() {
                 Create Entrance List
               </Button>
             )}
-
-            <Button
-              variant="outline"
-              disabled={loading || busy}
-              onClick={loadLists}
-            >
-              Refresh
-            </Button>
           </HStack>
         </Flex>
+
+        <ManagementToolbar
+          search={toolbarSearch}
+          onSearchChange={setToolbarSearch}
+          searchPlaceholder="Search entrance records..."
+          filters={[{
+            key: "status",
+            label: "Status",
+            value: toolbarStatus,
+            onChange: setToolbarStatus,
+            options: [{ label: "All Status", value: "all" }, ...["draft", "published", "archived"].map((status) => ({ label: status[0].toUpperCase() + status.slice(1), value: status }))],
+          }]}
+        />
 
         {message && <Text color="green.600">{message}</Text>}
         {error && <Text color="red.500">{error}</Text>}
@@ -425,7 +442,7 @@ export default function EntranceListsManagement() {
               </Table.Header>
 
               <Table.Body>
-                {lists.map((record) => (
+                {visibleRows.map((record) => (
                   <Table.Row key={record._id}>
                     <Table.Cell>{record.title}</Table.Cell>
 

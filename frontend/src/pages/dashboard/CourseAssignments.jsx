@@ -652,14 +652,6 @@ const [cohorts, setCohorts] = useState([]);
             Manage teachers, students and course access.
           </Text>
         </Box>
-
-        <Button
-          variant="outline"
-          onClick={refreshAll}
-          disabled={loading || saving || lookupsLoading}
-        >
-          Refresh
-        </Button>
       </Flex>
 
       {/* ========================================== */}

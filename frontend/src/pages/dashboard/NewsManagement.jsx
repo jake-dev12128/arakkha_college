@@ -1,3 +1,4 @@
+import ManagementToolbar from "../../components/dashboard/ManagementToolbar.jsx";
 
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -411,53 +412,26 @@ export default function NewsManagement() {
               </Text>
             </Box>
 
-            <Flex gap="2" wrap="wrap">
-              <Input
-                placeholder="Search news..."
-                value={search}
-                onChange={(event) =>
-                  setSearch(event.target.value)
-                }
-                maxW="220px"
+            <Box flex="1" maxW="650px">
+              <ManagementToolbar
+                search={search}
+                onSearchChange={setSearch}
+                searchPlaceholder="Search news..."
+                filters={[
+                  { key: "category", label: "News category", value: categoryFilter,
+                    onChange: setCategoryFilter,
+                    options: [{ label: "All Categories", value: "All" },
+                      ...CATEGORIES.map((category) => ({ label: category, value: category }))] },
+                  { key: "status", label: "News status", value: statusFilter,
+                    onChange: setStatusFilter,
+                    options: [
+                      { label: "All Status", value: "All" },
+                      { label: "Published", value: "Published" },
+                      { label: "Draft", value: "Draft" },
+                    ] },
+                ]}
               />
-
-              <NativeSelect.Root maxW="160px">
-                <NativeSelect.Field
-                  value={categoryFilter}
-                  onChange={(event) =>
-                    setCategoryFilter(event.target.value)
-                  }
-                >
-                  <option value="All">All Categories</option>
-                  {CATEGORIES.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </NativeSelect.Field>
-              </NativeSelect.Root>
-
-              <NativeSelect.Root maxW="140px">
-                <NativeSelect.Field
-                  value={statusFilter}
-                  onChange={(event) =>
-                    setStatusFilter(event.target.value)
-                  }
-                >
-                  <option value="All">All Status</option>
-                  <option value="Published">Published</option>
-                  <option value="Draft">Draft</option>
-                </NativeSelect.Field>
-              </NativeSelect.Root>
-
-              <Button
-                variant="outline"
-                disabled={busy}
-                onClick={loadNews}
-              >
-                Refresh
-              </Button>
-            </Flex>
+            </Box>
           </Flex>
 
           <Box overflowX="auto">

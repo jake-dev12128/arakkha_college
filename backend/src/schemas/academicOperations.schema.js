@@ -101,10 +101,37 @@ export const operationsIdSchema = z.object({
   id: objectId,
 }).strict();
 
-export const operationsListSchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100)
-    .default(20),
-  search: z.string().trim().max(100).optional(),
-  status: z.string().trim().optional(),
-}).strict();
+
+export const operationsListSchema = z
+  .object({
+    page: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .default(1),
+
+    limit: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(100)
+      .default(20),
+
+    search: z
+      .string()
+      .trim()
+      .max(100)
+      .optional(),
+
+    status: z
+      .enum([
+        "all",
+        "planned",
+        "active",
+        "completed",
+        "cancelled",
+      ])
+      .optional(),
+  })
+  .strict();
+
