@@ -5,7 +5,8 @@ import { ClerkProvider } from "@clerk/react";
 
 import { ChakraProvider, defaultSystem } from "@chakra-ui/react";
 import "./styles/management.css";
-import "./styles/public-theme.css";
+import "./styles/public-theme.css";import "./styles/auth-theme.css";
+
 import App from "./App.jsx";
 import { ThemeProvider } from "./context/ThemeContext.jsx";
 

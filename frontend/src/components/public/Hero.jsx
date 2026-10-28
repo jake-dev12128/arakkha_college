@@ -1,4 +1,3 @@
-
 import {
   Box,
   Button,
@@ -25,8 +24,7 @@ export default function Hero() {
         >
           <VStack align="start" gap="6">
             <Text
-               color="#CBD5E1"
-
+              color="#CBD5E1"
               fontWeight="900"
               letterSpacing="widest"
               textTransform="uppercase"
@@ -39,8 +37,7 @@ export default function Hero() {
               lineHeight="1.05"
               color="#F1F5F9"
             >
-              Building the next generation of
-              technology professionals.
+              Building the next generation of technology professionals.
             </Heading>
 
             <Text
@@ -49,10 +46,9 @@ export default function Hero() {
               maxW="680px"
               lineHeight="1.8"
             >
-              Explore our academic programs,
-              student information, entrance
-              announcements, faculty and staff,
-              partnerships and the latest college news.
+              Explore our academic programs, student information, entrance
+              announcements, faculty and staff, partnerships and the latest
+              college news.
             </Text>
 
             <Flex gap="4" wrap="wrap">
@@ -81,14 +77,11 @@ export default function Hero() {
             </Flex>
           </VStack>
 
-          <Flex
-            display={{ base: "none", lg: "flex" }}
-            justify="center"
-          >
+          <Flex display={{ base: "none", lg: "flex" }} justify="center">
             <Box
-              w="420px"
+              w="400px"
               maxW="100%"
-              h="420px"
+              h="400px"
               borderRadius="3xl"
               bg="rgba(255,255,255,0.10)"
               borderWidth="1px"
@@ -96,14 +89,11 @@ export default function Hero() {
               p="10"
               backdropFilter="blur(12px)"
             >
-              <VStack
-                h="100%"
-                justify="center"
-                gap="6"
-              >
+              <VStack h="100%" justify="center" gap="6">
                 <Box
-                  w="110px"
-                  h="110px"
+                  w="120px"
+                  h="120px"
+                  mt="-20px"
                   display="flex"
                   alignItems="center"
                   justifyContent="center"
@@ -111,24 +101,18 @@ export default function Hero() {
                   <Box
                     as="img"
                     src="/logo.png"
+                    alt="ACC Computer College Logo"
                     w="100%"
                     h="100%"
                     objectFit="contain"
                   />
                 </Box>
 
-                <Heading
-                  size="lg"
-                  textAlign="center"
-                  color="white"
-                >
+                <Heading size="lg" textAlign="center" color="white">
                   Arakkha Computer College
                 </Heading>
 
-                <Text
-                  textAlign="center"
-                  color="whiteAlpha.900"
-                >
+                <Text textAlign="center" color="whiteAlpha.900">
                   Knowledge · Technology · Innovation
                 </Text>
               </VStack>

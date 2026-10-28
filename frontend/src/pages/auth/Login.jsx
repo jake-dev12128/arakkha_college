@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import {
   useNavigate,
@@ -7,6 +8,7 @@ import {
 import {
   getSafeReturnUrl,
 } from "../../utils/courseReturnUrl.js";
+
 import {
   Box,
   Button,
@@ -26,18 +28,16 @@ import useAuthStore from "../../store/authStore.js";
 
 function Login() {
   const navigate = useNavigate();
-const location = useLocation();
+  const location = useLocation();
 
-const returnUrl = getSafeReturnUrl(
-  location.search
-);
+  const returnUrl = getSafeReturnUrl(location.search);
+
   const { signIn, errors, fetchStatus } = useSignIn();
 
   const setLoginAttempt = useAuthStore(
     (state) => state.setLoginAttempt,
   );
 
-  // Login type: staff or student
   const [loginType, setLoginType] = useState("staff");
 
   const [email, setEmail] = useState("");
@@ -67,7 +67,6 @@ const returnUrl = getSafeReturnUrl(
         ? studentId.trim().toLowerCase()
         : email.trim().toLowerCase();
 
-    // Validate identifier
     if (!identifier) {
       setError(
         loginType === "student"
@@ -77,7 +76,6 @@ const returnUrl = getSafeReturnUrl(
       return;
     }
 
-    // Expected format: ACC20260001
     if (
       loginType === "student" &&
       !/^acc\d{8}$/i.test(identifier)
@@ -96,24 +94,14 @@ const returnUrl = getSafeReturnUrl(
     try {
       setLoading(true);
 
-      // ==============================================
       // CLERK PASSWORD LOGIN
-      // ==============================================
-      //
-      // Staff:
-      //   emailAddress + password
-      //
-      // Student:
-      //   username + password
-      //
-      // Student username is created in Clerk when
-      // the account is created by authorized staff.
-      // ==============================================
+      // Staff: email + password
+      // Student: username + password
 
       const signInResult = await signIn.password({
-  identifier,
-  password,
-});
+        identifier,
+        password,
+      });
 
       const clerkError = signInResult?.error;
 
@@ -126,9 +114,7 @@ const returnUrl = getSafeReturnUrl(
         return;
       }
 
-      // ==============================================
       // LOGIN COMPLETE
-      // ==============================================
 
       if (signIn.status === "complete") {
         if (!signIn.createdSessionId) {
@@ -138,107 +124,124 @@ const returnUrl = getSafeReturnUrl(
           return;
         }
 
-        const { error: finalizeError } = await signIn.finalize({
-          navigate: ({ session, decorateUrl }) => {
-            if (session?.currentTask) {
-              setError("Complete the required Clerk session task before continuing.");
-              return;
-            }
-const url = decorateUrl(returnUrl);            if (url.startsWith("http")) {
-              window.location.assign(url);
-            } else {
-              navigate(url, { replace: true });
-            }
-          },
-        });
+        const { error: finalizeError } =
+          await signIn.finalize({
+            navigate: ({ session, decorateUrl }) => {
+              if (session?.currentTask) {
+                setError(
+                  "Complete the required Clerk session task before continuing.",
+                );
+                return;
+              }
+
+              const url = decorateUrl(returnUrl);
+
+              if (url.startsWith("http")) {
+                window.location.assign(url);
+              } else {
+                navigate(url, { replace: true });
+              }
+            },
+          });
+
         if (finalizeError) {
-          setError(finalizeError.longMessage || finalizeError.message || "Unable to activate your session.");
+          setError(
+            finalizeError.longMessage ||
+              finalizeError.message ||
+              "Unable to activate your session.",
+          );
         }
+
         return;
       }
 
-      // ==============================================
       // DEVICE TRUST VERIFICATION
-      // ==============================================
 
-    if (signIn.status === "needs_client_trust") {
-  const emailCodeFactor =
-    signIn.supportedSecondFactors?.find(
-      (factor) => factor.strategy === "email_code",
-    );
+      if (signIn.status === "needs_client_trust") {
+        const emailCodeFactor =
+          signIn.supportedSecondFactors?.find(
+            (factor) =>
+              factor.strategy === "email_code",
+          );
 
-  if (!emailCodeFactor) {
-    setError(
-      "Email verification is not available for this account.",
-    );
-    return;
-  }
+        if (!emailCodeFactor) {
+          setError(
+            "Email verification is not available for this account.",
+          );
+          return;
+        }
 
-  setLoginAttempt({
-    email: loginType === "staff" ? identifier : "",
-    identifier,
-    loginType,
-    signInAttempt: null,
-  });
+        setLoginAttempt({
+          email:
+            loginType === "staff" ? identifier : "",
+          identifier,
+          loginType,
+          signInAttempt: null,
+        });
 
-  const { error: sendCodeError } =
-    await signIn.mfa.sendEmailCode();
+        const { error: sendCodeError } =
+          await signIn.mfa.sendEmailCode();
 
-  if (sendCodeError) {
-    setError(
-      sendCodeError.longMessage ||
-        sendCodeError.message ||
-        "Unable to send verification code.",
-    );
-    return;
-  }
+        if (sendCodeError) {
+          setError(
+            sendCodeError.longMessage ||
+              sendCodeError.message ||
+              "Unable to send verification code.",
+          );
+          return;
+        }
 
-navigate(
-  `/acc/auth/verify-2fa?returnTo=${encodeURIComponent(returnUrl)}`,
-  { replace: true }
-);
+        navigate(
+          `/acc/auth/verify-2fa?returnTo=${encodeURIComponent(returnUrl)}`,
+          { replace: true },
+        );
 
-  return;
-}
-      // ==============================================
+        return;
+      }
+
       // NORMAL MFA
-      // ==============================================
 
-    if (signIn.status === "needs_second_factor") {
-  const emailCodeFactor =
-    signIn.supportedSecondFactors?.find(
-      (factor) => factor.strategy === "email_code",
-    );
+      if (signIn.status === "needs_second_factor") {
+        const emailCodeFactor =
+          signIn.supportedSecondFactors?.find(
+            (factor) =>
+              factor.strategy === "email_code",
+          );
 
-  if (!emailCodeFactor) {
-    setError(
-      "Email verification is not available for this account.",
-    );
-    return;
-  }
+        if (!emailCodeFactor) {
+          setError(
+            "Email verification is not available for this account.",
+          );
+          return;
+        }
 
-  setLoginAttempt({
-    email: loginType === "staff" ? identifier : "",
-    identifier,
-    loginType,
-    signInAttempt: null,
-  });
+        setLoginAttempt({
+          email:
+            loginType === "staff" ? identifier : "",
+          identifier,
+          loginType,
+          signInAttempt: null,
+        });
 
-  const { error: sendCodeError } = await signIn.mfa.sendEmailCode();
-  if (sendCodeError) {
-    setError(sendCodeError.longMessage || sendCodeError.message || "Unable to send MFA code.");
-    return;
-  }
+        const { error: sendCodeError } =
+          await signIn.mfa.sendEmailCode();
 
-navigate(
-  `/acc/auth/verify-2fa?returnTo=${encodeURIComponent(returnUrl)}`,
-  { replace: true }
-);  return;
-}
+        if (sendCodeError) {
+          setError(
+            sendCodeError.longMessage ||
+              sendCodeError.message ||
+              "Unable to send MFA code.",
+          );
+          return;
+        }
 
-      // ==============================================
-      // OTHER CLERK STATUS
-      // ==============================================
+        navigate(
+          `/acc/auth/verify-2fa?returnTo=${encodeURIComponent(returnUrl)}`,
+          { replace: true },
+        );
+
+        return;
+      }
 
       setError(
         `Login is not complete. Clerk status: ${signIn.status}`,
@@ -258,13 +261,14 @@ navigate(
   };
 
   // ==================================================
-  // UI
+  // LOGIN UI
   // ==================================================
 
   return (
     <Box
+      className="acc-auth"
       minH="100vh"
-      bg="gray.50"
+      bg="var(--auth-page)"
       display="flex"
       alignItems="center"
       justifyContent="center"
@@ -281,12 +285,13 @@ navigate(
         {/* LOGIN CARD */}
 
         <Card.Root
+          className="acc-auth-card"
           w="full"
-          bg="white"
+          bg="var(--auth-card)"
           border="1px solid"
-          borderColor="gray.100"
+          borderColor="var(--auth-border)"
           borderRadius="20px"
-          boxShadow="0 12px 40px rgba(0, 0, 0, 0.08)"
+          boxShadow="0 12px 40px rgba(0,0,0,0.08)"
         >
           <Card.Body p={{ base: 6, md: 8 }}>
             <form onSubmit={handleLogin}>
@@ -294,11 +299,20 @@ navigate(
                 {/* TITLE */}
 
                 <Box textAlign="center" mb={2}>
-                  <Heading size="xl" fontWeight="700">
+                  <Heading
+                    className="acc-auth-title"
+                    size="xl"
+                    fontWeight="700"
+                  >
                     Welcome Back
                   </Heading>
 
-                  <Text mt={2} color="gray.500" fontSize="sm">
+                  <Text
+                    mt={2}
+                    className="acc-auth-muted"
+                    color="var(--auth-muted)"
+                    fontSize="sm"
+                  >
                     Sign in to continue to your account
                   </Text>
                 </Box>
@@ -307,6 +321,7 @@ navigate(
 
                 <Box w="full">
                   <Text
+                    className="acc-auth-label"
                     fontSize="sm"
                     fontWeight="600"
                     mb={2}
@@ -323,11 +338,15 @@ navigate(
                       type="button"
                       size="lg"
                       borderRadius="12px"
-                      colorPalette={
-                        loginType === "staff" ? "blue" : "gray"
+                      className={
+                        loginType === "staff"
+                          ? "acc-auth-primary"
+                          : "acc-auth-inactive"
                       }
                       variant={
-                        loginType === "staff" ? "solid" : "outline"
+                        loginType === "staff"
+                          ? "solid"
+                          : "outline"
                       }
                       onClick={() => {
                         setLoginType("staff");
@@ -342,11 +361,15 @@ navigate(
                       type="button"
                       size="lg"
                       borderRadius="12px"
-                      colorPalette={
-                        loginType === "student" ? "blue" : "gray"
+                      className={
+                        loginType === "student"
+                          ? "acc-auth-primary"
+                          : "acc-auth-inactive"
                       }
                       variant={
-                        loginType === "student" ? "solid" : "outline"
+                        loginType === "student"
+                          ? "solid"
+                          : "outline"
                       }
                       onClick={() => {
                         setLoginType("student");
@@ -358,20 +381,26 @@ navigate(
                     </Button>
                   </Box>
 
-                  <Text mt={2} fontSize="xs" color="gray.500">
+                  <Text
+                    mt={2}
+                    fontSize="xs"
+                    className="acc-auth-muted"
+                    color="var(--auth-muted)"
+                  >
                     {loginType === "staff"
                       ? "Super Admin, Admin and Teacher sign in with email."
                       : "Students sign in with their assigned Student ID."}
                   </Text>
                 </Box>
 
-                {/* ERROR */}
+                {/* ERROR MESSAGE */}
 
                 {error && (
                   <Box
                     w="full"
-                    bg="red.50"
-                    color="red.600"
+                    className="acc-auth-error"
+                    bg="var(--auth-error-bg)"
+                    color="var(--auth-error-text)"
                     borderRadius="10px"
                     px={4}
                     py={3}
@@ -386,12 +415,16 @@ navigate(
 
                 {loginType === "staff" && (
                   <Field.Root required>
-                    <Field.Label fontWeight="600">
+                    <Field.Label
+                      className="acc-auth-label"
+                      fontWeight="600"
+                    >
                       Email
                       <Field.RequiredIndicator />
                     </Field.Label>
 
                     <Input
+                      className="acc-auth-input"
                       type="email"
                       size="lg"
                       borderRadius="12px"
@@ -410,12 +443,16 @@ navigate(
 
                 {loginType === "student" && (
                   <Field.Root required>
-                    <Field.Label fontWeight="600">
+                    <Field.Label
+                      className="acc-auth-label"
+                      fontWeight="600"
+                    >
                       Student ID
                       <Field.RequiredIndicator />
                     </Field.Label>
 
                     <Input
+                      className="acc-auth-input"
                       type="text"
                       size="lg"
                       borderRadius="12px"
@@ -431,7 +468,11 @@ navigate(
                       disabled={loading}
                     />
 
-                    <Text fontSize="xs" color="gray.500">
+                    <Text
+                      fontSize="xs"
+                      className="acc-auth-muted"
+                      color="var(--auth-muted)"
+                    >
                       Enter the Student ID assigned by ACC.
                     </Text>
                   </Field.Root>
@@ -440,12 +481,16 @@ navigate(
                 {/* PASSWORD */}
 
                 <Field.Root required>
-                  <Field.Label fontWeight="600">
+                  <Field.Label
+                    className="acc-auth-label"
+                    fontWeight="600"
+                  >
                     Password
                     <Field.RequiredIndicator />
                   </Field.Label>
 
                   <Input
+                    className="acc-auth-input"
                     type="password"
                     size="lg"
                     borderRadius="12px"
@@ -462,13 +507,20 @@ navigate(
                 {/* FORGOT PASSWORD */}
 
                 {loginType === "staff" && (
-                  <Box w="full" textAlign="right" mt="-2">
+                  <Box
+                    w="full"
+                    textAlign="right"
+                    mt="-2"
+                  >
                     <Link
-                      color="blue.500"
+                      className="acc-auth-link"
+                      color="var(--auth-accent)"
                       fontSize="sm"
                       fontWeight="600"
                       onClick={() =>
-                        navigate("/acc/auth/forgot-password")
+                        navigate(
+                          "/acc/auth/forgot-password",
+                        )
                       }
                       cursor="pointer"
                     >
@@ -484,11 +536,15 @@ navigate(
                   w="full"
                   size="lg"
                   borderRadius="12px"
-                  colorPalette="blue"
-                  loading={loading || fetchStatus === "fetching"}
+                  className="acc-auth-primary"
+                  loading={
+                    loading ||
+                    fetchStatus === "fetching"
+                  }
                   loadingText="Logging in..."
                   disabled={
-                    loading || fetchStatus === "fetching"
+                    loading ||
+                    fetchStatus === "fetching"
                   }
                 >
                   Login
@@ -498,7 +554,8 @@ navigate(
 
                 <Text
                   fontSize="sm"
-                  color="gray.500"
+                  className="acc-auth-muted"
+                  color="var(--auth-muted)"
                   textAlign="center"
                 >
                   {loginType === "student"

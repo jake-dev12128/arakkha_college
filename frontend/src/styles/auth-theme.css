@@ -1,0 +1,120 @@
+
+/* ACC Authentication Theme */
+
+.acc-auth {
+  --auth-page: #f5f7fb;
+  --auth-card: #ffffff;
+  --auth-text: #172b45;
+  --auth-muted: #64748b;
+  --auth-border: #dce5ef;
+  --auth-input: #ffffff;
+  --auth-accent: #2563eb;
+  --auth-error-bg: #fef2f2;
+  --auth-error-text: #b91c1c;
+
+  background: var(--auth-page);
+  color: var(--auth-text);
+  transition: background-color .2s ease, color .2s ease;
+}
+
+/* Dark Mode */
+
+:root[data-theme="dark"] .acc-auth {
+  --auth-page: #26384e;
+  --auth-card: #344a63;
+  --auth-text: #f3f7ff;
+  --auth-muted: #b9cbe0;
+  --auth-border: #526984;
+  --auth-input: #26384e;
+  --auth-accent: #93c5fd;
+  --auth-error-bg: #542d39;
+  --auth-error-text: #fecaca;
+}
+
+/* Cards */
+
+.acc-auth .acc-auth-card {
+  background: var(--auth-card);
+  color: var(--auth-text);
+  border: 1px solid var(--auth-border);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .10);
+}
+
+/* Typography */
+
+.acc-auth .acc-auth-muted {
+  color: var(--auth-muted);
+}
+
+.acc-auth .acc-auth-title,
+.acc-auth .acc-auth-label {
+  color: var(--auth-text);
+}
+
+/* Inputs */
+
+.acc-auth .acc-auth-input {
+  background: var(--auth-input);
+  color: var(--auth-text);
+  border-color: var(--auth-border);
+  caret-color: var(--auth-accent);
+}
+
+.acc-auth .acc-auth-input::placeholder {
+  color: var(--auth-muted);
+  opacity: 1;
+}
+
+.acc-auth .acc-auth-input:focus-visible {
+  border-color: var(--auth-accent);
+  outline: 2px solid var(--auth-accent);
+  outline-offset: 1px;
+}
+
+.acc-auth .acc-auth-input:disabled {
+  opacity: .65;
+}
+
+/* Error Messages */
+
+.acc-auth .acc-auth-error {
+  background: var(--auth-error-bg);
+  color: var(--auth-error-text);
+}
+
+/* Links */
+
+.acc-auth .acc-auth-link {
+  color: var(--auth-accent);
+}
+
+/* Inactive Buttons */
+
+.acc-auth .acc-auth-inactive {
+  background: transparent;
+  color: var(--auth-text);
+  border: 1px solid var(--auth-border);
+}
+
+.acc-auth .acc-auth-inactive:hover {
+  background: var(--auth-input);
+}
+
+/* Primary Buttons */
+
+.acc-auth .acc-auth-primary {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.acc-auth .acc-auth-primary:hover {
+  background: #1d4ed8;
+}
+
+:root[data-theme="dark"] .acc-auth .acc-auth-primary {
+  background: #3b82f6;
+}
+
+:root[data-theme="dark"] .acc-auth .acc-auth-primary:hover {
+  background: #2563eb;
+}

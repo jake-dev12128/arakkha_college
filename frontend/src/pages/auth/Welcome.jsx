@@ -1,3 +1,4 @@
+
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -16,8 +17,9 @@ export default function Welcome() {
 
   return (
     <Box
+      className="acc-auth"
       minH="100vh"
-      bg="gray.50"
+      bg="var(--auth-page)"
       display="flex"
       alignItems="center"
       justifyContent="center"
@@ -28,21 +30,31 @@ export default function Welcome() {
         <AppLogo size="100px" />
 
         <Card.Root
+          className="acc-auth-card"
           w="full"
-          bg="white"
+          bg="var(--auth-card)"
           border="1px solid"
-          borderColor="gray.100"
+          borderColor="var(--auth-border)"
           borderRadius="20px"
           boxShadow="0 12px 40px rgba(0,0,0,0.08)"
         >
           <Card.Body p={{ base: 6, md: 8 }}>
             <VStack gap={6}>
               <Box textAlign="center">
-                <Heading size="xl" fontWeight="700">
+                <Heading
+                  className="acc-auth-title"
+                  size="xl"
+                  fontWeight="700"
+                >
                   ACC Computer College
                 </Heading>
 
-                <Text mt={2} color="gray.500" fontSize="sm">
+                <Text
+                  mt={2}
+                  className="acc-auth-muted"
+                  color="var(--auth-muted)"
+                  fontSize="sm"
+                >
                   College Management System
                 </Text>
               </Box>
@@ -51,14 +63,15 @@ export default function Welcome() {
                 w="full"
                 size="lg"
                 borderRadius="12px"
-                colorPalette="blue"
+                className="acc-auth-primary"
                 onClick={() => navigate("/acc/auth/login")}
               >
                 Login
               </Button>
 
               <Text
-                color="gray.500"
+                className="acc-auth-muted"
+                color="var(--auth-muted)"
                 fontSize="sm"
                 textAlign="center"
               >

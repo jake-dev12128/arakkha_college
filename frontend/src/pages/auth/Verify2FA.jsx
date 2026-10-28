@@ -8,6 +8,7 @@ import {
 import {
   getSafeReturnUrl,
 } from "../../utils/courseReturnUrl.js";
+
 import {
   Alert,
   Box,
@@ -26,23 +27,24 @@ import useAuthStore from "../../store/authStore.js";
 
 function Verify2FA() {
   const navigate = useNavigate();
-const location = useLocation();
+  const location = useLocation();
 
-const returnUrl = getSafeReturnUrl(
-  location.search
-);
+  const returnUrl = getSafeReturnUrl(
+    location.search
+  );
+
   const { signIn, errors, fetchStatus } = useSignIn();
 
   const loginIdentifier = useAuthStore(
-    (state) => state.loginIdentifier,
+    (state) => state.loginIdentifier
   );
 
   const loginType = useAuthStore(
-    (state) => state.loginType,
+    (state) => state.loginType
   );
 
   const clearLoginAttempt = useAuthStore(
-    (state) => state.clearLoginAttempt,
+    (state) => state.clearLoginAttempt
   );
 
   const [otp, setOtp] = useState("");
@@ -53,7 +55,9 @@ const returnUrl = getSafeReturnUrl(
 
   const handleOtpChange = (event) => {
     setOtp(
-      event.target.value.replace(/\D/g, "").slice(0, 6),
+      event.target.value
+        .replace(/\D/g, "")
+        .slice(0, 6)
     );
 
     setError("");
@@ -77,12 +81,16 @@ const returnUrl = getSafeReturnUrl(
     setMessage("");
 
     if (otp.length !== 6) {
-      setError("Please enter the 6-digit verification code.");
+      setError(
+        "Please enter the 6-digit verification code."
+      );
       return;
     }
 
     if (!signIn) {
-      setError("Authentication service is not ready yet.");
+      setError(
+        "Authentication service is not ready yet."
+      );
       return;
     }
 
@@ -91,7 +99,7 @@ const returnUrl = getSafeReturnUrl(
       signIn.status !== "needs_second_factor"
     ) {
       setError(
-        "There is no active email verification attempt. Please sign in again.",
+        "There is no active email verification attempt. Please sign in again."
       );
       return;
     }
@@ -99,36 +107,58 @@ const returnUrl = getSafeReturnUrl(
     try {
       setLoading(true);
 
-
       const { error: verifyError } =
-        await signIn.mfa.verifyEmailCode({ code: otp });
+        await signIn.mfa.verifyEmailCode({
+          code: otp,
+        });
 
       if (verifyError) {
-        setError(getErrorMessage(verifyError, "Invalid verification code."));
+        setError(
+          getErrorMessage(
+            verifyError,
+            "Invalid verification code."
+          )
+        );
         return;
       }
 
       if (signIn.status !== "complete") {
-        setError(`Verification is not complete: ${signIn.status}`);
+        setError(
+          `Verification is not complete: ${signIn.status}`
+        );
         return;
       }
 
-      const { error: finalizeError } = await signIn.finalize({
-        navigate: ({ session, decorateUrl }) => {
-          if (session?.currentTask) {
-            setError("Complete the required Clerk session task before continuing.");
-            return;
-          }
-const url = decorateUrl(returnUrl);          if (url.startsWith("http")) {
-            window.location.assign(url);
-          } else {
-            navigate(url, { replace: true });
-          }
-        },
-      });
+      const { error: finalizeError } =
+        await signIn.finalize({
+          navigate: ({
+            session,
+            decorateUrl,
+          }) => {
+            if (session?.currentTask) {
+              setError(
+                "Complete the required Clerk session task before continuing."
+              );
+              return;
+            }
+
+            const url = decorateUrl(returnUrl);
+
+            if (url.startsWith("http")) {
+              window.location.assign(url);
+            } else {
+              navigate(url, { replace: true });
+            }
+          },
+        });
 
       if (finalizeError) {
-        setError(getErrorMessage(finalizeError, "Unable to activate your session."));
+        setError(
+          getErrorMessage(
+            finalizeError,
+            "Unable to activate your session."
+          )
+        );
         return;
       }
 
@@ -137,8 +167,9 @@ const url = decorateUrl(returnUrl);          if (url.startsWith("http")) {
       setError(
         getErrorMessage(
           verificationError,
-          errors?.[0]?.message || "Verification failed.",
-        ),
+          errors?.[0]?.message ||
+            "Verification failed."
+        )
       );
     } finally {
       setLoading(false);
@@ -150,7 +181,9 @@ const url = decorateUrl(returnUrl);          if (url.startsWith("http")) {
     setMessage("");
 
     if (!signIn) {
-      setError("Authentication service is not ready yet.");
+      setError(
+        "Authentication service is not ready yet."
+      );
       return;
     }
 
@@ -159,7 +192,7 @@ const url = decorateUrl(returnUrl);          if (url.startsWith("http")) {
       signIn.status !== "needs_second_factor"
     ) {
       setError(
-        "No active verification attempt. Please sign in again.",
+        "No active verification attempt. Please sign in again."
       );
       return;
     }
@@ -174,21 +207,21 @@ const url = decorateUrl(returnUrl);          if (url.startsWith("http")) {
         setError(
           getErrorMessage(
             resendError,
-            "Unable to resend verification code.",
-          ),
+            "Unable to resend verification code."
+          )
         );
         return;
       }
 
       setMessage(
-        "A new verification code has been sent to your registered email.",
+        "A new verification code has been sent to your registered email."
       );
     } catch (resendError) {
       setError(
         getErrorMessage(
           resendError,
-          "Unable to resend verification code.",
-        ),
+          "Unable to resend verification code."
+        )
       );
     } finally {
       setResending(false);
@@ -199,46 +232,68 @@ const url = decorateUrl(returnUrl);          if (url.startsWith("http")) {
     clearLoginAttempt();
 
     navigate(
-  `/acc/auth/login?returnTo=${encodeURIComponent(returnUrl)}`,
-  { replace: true }
-);
+      `/acc/auth/login?returnTo=${encodeURIComponent(returnUrl)}`,
+      { replace: true }
+    );
   };
 
   return (
     <Box
+      className="acc-auth"
       minH="100vh"
-      bg="gray.50"
+      bg="var(--auth-page)"
+      color="var(--auth-text)"
       display="flex"
       alignItems="center"
       justifyContent="center"
       px={4}
       py={8}
     >
-      <VStack w="full" maxW="430px" gap={5}>
+      <VStack
+        w="full"
+        maxW="430px"
+        gap={5}
+      >
         <AppLogo size="100px" />
 
         <Card.Root
+          className="acc-auth-card"
           w="full"
-          bg="white"
+          bg="var(--auth-card)"
+          color="var(--auth-text)"
           border="1px solid"
-          borderColor="gray.100"
+          borderColor="var(--auth-border)"
           borderRadius="20px"
-          boxShadow="0 12px 40px rgba(0, 0, 0, 0.08)"
+          boxShadow="0 12px 40px rgba(0,0,0,0.08)"
         >
           <Card.Body p={{ base: 6, md: 8 }}>
             <VStack gap={5}>
               <Box textAlign="center">
-                <Heading size="xl" fontWeight="700">
+                <Heading
+                  className="acc-auth-title"
+                  size="xl"
+                  fontWeight="700"
+                >
                   Verify Login
                 </Heading>
 
-                <Text mt={2} color="gray.500" fontSize="sm">
-                  Enter the verification code sent to
-                  your registered email.
+                <Text
+                  className="acc-auth-muted"
+                  mt={2}
+                  color="var(--auth-muted)"
+                  fontSize="sm"
+                >
+                  Enter the verification code sent
+                  to your registered email.
                 </Text>
 
                 {loginIdentifier && (
-                  <Text mt={2} fontWeight="600">
+                  <Text
+                    mt={2}
+                    fontWeight="600"
+                    color="var(--auth-text)"
+                    overflowWrap="anywhere"
+                  >
                     {loginType === "student"
                       ? `Student ID: ${loginIdentifier.toUpperCase()}`
                       : loginIdentifier}
@@ -249,6 +304,9 @@ const url = decorateUrl(returnUrl);          if (url.startsWith("http")) {
               {error && (
                 <Alert.Root
                   status="error"
+                  className="acc-auth-error"
+                  bg="var(--auth-error-bg)"
+                  color="var(--auth-error-text)"
                   w="full"
                   borderRadius="10px"
                 >
@@ -264,6 +322,7 @@ const url = decorateUrl(returnUrl);          if (url.startsWith("http")) {
               {message && (
                 <Alert.Root
                   status="success"
+                  colorPalette="green"
                   w="full"
                   borderRadius="10px"
                 >
@@ -282,6 +341,7 @@ const url = decorateUrl(returnUrl);          if (url.startsWith("http")) {
               >
                 <VStack gap={4}>
                   <Input
+                    className="acc-auth-input"
                     size="lg"
                     value={otp}
                     onChange={handleOtpChange}
@@ -293,16 +353,17 @@ const url = decorateUrl(returnUrl);          if (url.startsWith("http")) {
                     borderRadius="12px"
                     inputMode="numeric"
                     autoComplete="one-time-code"
+                    aria-label="Six-digit login verification code"
                     autoFocus
                     disabled={loading || resending}
                   />
 
                   <Button
                     type="submit"
+                    className="acc-auth-primary"
                     w="full"
                     size="lg"
                     borderRadius="12px"
-                    colorPalette="blue"
                     loading={loading}
                     loadingText="Verifying..."
                     disabled={
@@ -317,8 +378,10 @@ const url = decorateUrl(returnUrl);          if (url.startsWith("http")) {
 
                   <Button
                     type="button"
-                    variant="ghost"
+                    className="acc-auth-inactive"
+                    variant="outline"
                     w="full"
+                    borderRadius="12px"
                     onClick={handleResendCode}
                     loading={resending}
                     disabled={loading || resending}
@@ -328,8 +391,10 @@ const url = decorateUrl(returnUrl);          if (url.startsWith("http")) {
 
                   <Button
                     type="button"
-                    variant="plain"
+                    className="acc-auth-inactive"
+                    variant="outline"
                     w="full"
+                    borderRadius="12px"
                     onClick={handleBackToLogin}
                     disabled={loading || resending}
                   >
