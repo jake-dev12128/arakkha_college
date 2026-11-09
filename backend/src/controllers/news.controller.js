@@ -56,22 +56,34 @@ export const adminNewsDetail = async (req, res) =>
   send(res, {
     news: await service.getAdminNews(getId(req)),
   });
-
 export const adminCreateNews = async (req, res) => {
-  const payload = validate(createNewsSchema, req.body);
+  const payload = validate(
+    createNewsSchema,
+    req.body
+  );
 
-  return send(res, {
-    news: await service.createNews(payload),
-  }, 201);
+  return send(
+    res,
+    {
+      news: await service.createNews(
+        payload,
+        req.user._id
+      ),
+    },
+    201
+  );
 };
-
 export const adminUpdateNews = async (req, res) => {
-  const payload = validate(updateNewsSchema, req.body);
+  const payload = validate(
+    updateNewsSchema,
+    req.body
+  );
 
   return send(res, {
     news: await service.updateNews(
       getId(req),
-      payload
+      payload,
+      req.user._id
     ),
   });
 };

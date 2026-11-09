@@ -29,7 +29,11 @@ export const getRecord = type =>
 
 export const createProgram = asyncHandler(
   async (req, res) => {
-    const result = await academic.createProgram(req.body);
+    const result = await academic.createProgram(
+      req.body,
+      req.user?._id
+    );
+
     return send(res, result, 201);
   }
 );
@@ -37,8 +41,11 @@ export const createProgram = asyncHandler(
 export const updateProgram = asyncHandler(
   async (req, res) => {
     const result = await academic.updateProgram(
-      req.params.id, req.body
+      req.params.id,
+      req.body,
+      req.user?._id
     );
+
     return send(res, result);
   }
 );
@@ -54,7 +61,11 @@ export const archiveProgram = asyncHandler(
 
 export const createCourse = asyncHandler(
   async (req, res) => {
-    const result = await academic.createCourse(req.body);
+    const result = await academic.createCourse(
+      req.body,
+      req.user?._id
+    );
+
     return send(res, result, 201);
   }
 );
@@ -62,11 +73,15 @@ export const createCourse = asyncHandler(
 export const updateCourse = asyncHandler(
   async (req, res) => {
     const result = await academic.updateCourse(
-      req.params.id, req.body
+      req.params.id,
+      req.body,
+      req.user?._id
     );
+
     return send(res, result);
   }
 );
+
 
 export const archiveCourse = asyncHandler(
   async (req, res) => {

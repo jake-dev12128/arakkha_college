@@ -4,7 +4,8 @@ import express from "express";
 import {
   forgotPasswordController,
   verifyForgotPasswordOtpController,
-  resetPasswordController,
+  resetPasswordController,  updateMyProfileImageController,
+
   getMe,
   logout,
 } from "../controllers/auth.controller.js";
@@ -77,7 +78,15 @@ router.get(
   requireClerkAuthentication,
   getMe,
 );
+// ==========================================
+// UPDATE MY PROFILE IMAGE
+// ==========================================
 
+router.patch(
+  "/me/profile-image",
+  requireClerkAuthentication,
+  updateMyProfileImageController
+);
 // ==================================================
 // LOGOUT
 // ==================================================

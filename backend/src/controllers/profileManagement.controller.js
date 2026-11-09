@@ -4,7 +4,9 @@ import mongoose from "mongoose";
 import User from "../models/user.model.js";
 import Student from "../models/student.model.js";
 import Teacher from "../models/teacher.model.js";
-
+import {
+  updateManagedProfileImage,
+} from "../services/user.service.js";
 import AppError from "../utils/AppError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import {
@@ -15,8 +17,7 @@ import {
 // ==================================================
 
 const USER_PUBLIC_FIELDS =
-  "_id firstName lastName email studentId role isActive createdAt";
-
+"_id firstName lastName email studentId role isActive createdAt profileImage profileImageMediaId";
 const PROFILE_ROLES = new Set([
   "student",
   "teacher",
@@ -487,6 +488,67 @@ export const deactivateProfile = (role) =>
         result.reconciliationRequired
           ? "Account disabled. Session reconciliation is still required."
           : "Account deactivated successfully.",
+      data: result,
+    });
+  });
+/**
+ * PATCH /api/v1/admin/users/:userId/profile-image
+ *
+ * Attach / Replace: { mediaId: "..." }
+ * Remove:           { mediaId: null }
+ */
+export const updateManagedProfileImageController =
+  asyncHandler(async (req, res) => {
+    const { userId } = req.params;
+
+    ensureId(userId);
+
+    const body = req.body;
+
+    if (
+      !body ||
+      typeof body !== "object" ||
+      Array.isArray(body) ||
+      !Object.prototype.hasOwnProperty.call(
+        body,
+        "mediaId"
+      )
+    ) {
+      throw new AppError(
+        "mediaId is required. Use null to remove the image.",
+        400,
+        "MEDIA_ID_REQUIRED"
+      );
+    }
+
+    const { mediaId } = body;
+
+    if (
+      mediaId !== null &&
+      (
+        typeof mediaId !== "string" ||
+        !mongoose.isObjectIdOrHexString(mediaId)
+      )
+    ) {
+      throw new AppError(
+        "Invalid media ID.",
+        400,
+        "INVALID_MEDIA_ID"
+      );
+    }
+
+    const result = await updateManagedProfileImage({
+      actor: req.user,
+      userId,
+      mediaId,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message:
+        mediaId === null
+          ? "Profile image removed successfully."
+          : "Profile image updated successfully.",
       data: result,
     });
   });

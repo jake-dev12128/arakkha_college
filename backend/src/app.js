@@ -7,7 +7,7 @@ import { clerkMiddleware } from "@clerk/express";
 import { env } from "./config/env.js";
 import { getDependencyHealth } from "./config/health.js";
 import { isShuttingDown } from "./utils/runtime.js";
-
+import imageUploadRoutes from "./routes/imageUpload.routes.js";
 // ==================================================
 // MIDDLEWARE
 // ==================================================
@@ -31,7 +31,7 @@ import webhookRoutes from "./routes/webhook.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 
 import adminRoutes from "./routes/admin.routes.js";
-
+import courseLessonRoutes,{coursePlaybackRouter} from "./routes/courseLesson.routes.js";
 import userSessionRoutes from "./routes/userSession.routes.js";
 
 import courseAccessRoutes from "./routes/courseAccess.routes.js";
@@ -169,7 +169,13 @@ app.use("/api/v1/admin", academicAdminRoutes);
 
 // Academic Safe Delete
 app.use("/api/v1/admin/academic-delete", academicSafeDeleteRoutes);
-
+app.use(
+  "/api/v1/admin/courses",
+  courseLessonRoutes
+);app.use(
+  "/api/v1/my/courses",
+  coursePlaybackRouter
+);
 // General Admin
 app.use("/api/v1/admin", adminRoutes);
 
@@ -180,6 +186,7 @@ app.use("/api/v1/admin", adminEntranceRouter);
 app.use("/api/v1/admin/faculty-members", adminFacultyRoutes);
 app.use("/api/v1/admin/collaborations", adminCollaborationRoutes);
 app.use("/api/v1/admin/news", adminNewsRoutes);
+app.use("/api/v1/admin/images", imageUploadRoutes);
 // ==================================================
 // COURSE ACCESS
 // ==================================================

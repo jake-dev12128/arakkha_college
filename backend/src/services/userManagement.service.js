@@ -14,9 +14,8 @@ import {
 // ==================================================
 // CONSTANTS
 // ==================================================
-
 const PUBLIC_USER_FIELDS =
-  "_id firstName lastName email role studentId isActive createdAt";
+  "_id firstName lastName email role studentId isActive createdAt profileImage profileImageMediaId";
 
 const MANAGEMENT_ROLES = new Set([
   "super_admin",

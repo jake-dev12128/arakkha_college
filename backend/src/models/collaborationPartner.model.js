@@ -22,6 +22,15 @@ const collaborationPartnerSchema = new mongoose.Schema(
       trim: true,
       maxlength: 2048,
     },
+
+    // Cloudinary MediaAsset reference.
+    // Existing logo URLs remain supported.
+    logoMediaId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "MediaAsset",
+      default: null,
+    },
+
     shortDescription: {
       type: String,
       default: "",

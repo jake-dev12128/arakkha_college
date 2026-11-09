@@ -51,6 +51,19 @@ const courseSchema = new Schema(
       },
     ],
 
+    // NEW: Course cover image.
+    coverImage: {
+      type: String,
+      default: "",
+    },
+
+    // NEW: Cloudinary MediaAsset reference.
+    coverImageMediaId: {
+      type: Schema.Types.ObjectId,
+      ref: "MediaAsset",
+      default: null,
+    },
+
     isActive: {
       type: Boolean,
       default: true,

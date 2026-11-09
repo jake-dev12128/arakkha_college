@@ -19,7 +19,7 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import DOMPurify from "dompurify";
-
+import ImageUploader from "../../components/common/ImageUploader.jsx";
 import RichTextEditor from "../../components/dashboard/about/RichTextEditor.jsx";
 import { newsService } from "../../services/news.service.js";
 
@@ -39,10 +39,10 @@ const emptyForm = () => ({
   summary: "",
   content: "",
   coverImage: "",
+  coverImageMediaId: null,
   category: "General",
   isFeatured: false,
 });
-
 const getError = (error) => {
   const data = error?.response?.data;
 
@@ -63,9 +63,7 @@ const formatDate = (value) => {
 
   const date = new Date(value);
 
-  return Number.isNaN(date.getTime())
-    ? "—"
-    : date.toLocaleDateString();
+  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString();
 };
 
 function Drawer({ title, children, onClose, disabled }) {
@@ -78,8 +76,7 @@ function Drawer({ title, children, onClose, disabled }) {
 
     document.addEventListener("keydown", onKeyDown);
 
-    return () =>
-      document.removeEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
   }, [onClose, disabled]);
 
   return (
@@ -124,10 +121,11 @@ export default function NewsManagement() {
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
 
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+ const [loading, setLoading] = useState(true);
+const [busy, setBusy] = useState(false);
+const [imageUploading, setImageUploading] = useState(false);
+const [error, setError] = useState("");
+const [success, setSuccess] = useState("");
 
   const loadNews = useCallback(async () => {
     try {
@@ -163,31 +161,32 @@ export default function NewsManagement() {
     setEditingId(article._id);
 
     setForm({
-      title: article.title || "",
-      summary: article.summary || "",
-      content: article.content || "",
-      coverImage: article.coverImage || "",
-      category: article.category || "General",
-      isFeatured: Boolean(article.isFeatured),
-    });
+  title: article.title || "",
+  summary: article.summary || "",
+  content: article.content || "",
+  coverImage: article.coverImage || "",
+  coverImageMediaId: article.coverImageMediaId || null,
+  category: article.category || "General",
+  isFeatured: Boolean(article.isFeatured),
+});
 
     setError("");
     setSuccess("");
     setFormOpen(true);
   };
+const closeForm = () => {
+  if (busy || imageUploading) return;
 
-  const closeForm = () => {
-    if (busy) return;
-
-    setFormOpen(false);
-    setEditingId(null);
-    setError("");
-  };
-
+  setFormOpen(false);
+  setEditingId(null);
+  setError("");
+};
   const handleSave = async (event) => {
     event.preventDefault();
-    setError("");
-    setSuccess("");
+  if (busy || imageUploading) return;
+
+  setError("");
+  setSuccess("");
 
     if (form.title.trim().length < 3) {
       setError("Title must contain at least 3 characters.");
@@ -205,13 +204,15 @@ export default function NewsManagement() {
     }
 
     const payload = {
-      title: form.title.trim(),
-      summary: form.summary.trim(),
-      content: form.content,
-      coverImage: form.coverImage.trim(),
-      category: form.category,
-      isFeatured: form.isFeatured,
-    };
+  title: form.title.trim(),
+  summary: form.summary.trim(),
+  content: form.content,
+  coverImage: form.coverImage.trim(),
+  coverImageMediaId:
+    form.coverImageMediaId || null,
+  category: form.category,
+  isFeatured: form.isFeatured,
+};
 
     setBusy(true);
 
@@ -223,9 +224,7 @@ export default function NewsManagement() {
       }
 
       setSuccess(
-        editingId
-          ? "News updated successfully."
-          : "News created successfully."
+        editingId ? "News updated successfully." : "News created successfully.",
       );
 
       setFormOpen(false);
@@ -244,9 +243,7 @@ export default function NewsManagement() {
     const next = !article.isPublished;
 
     if (
-      !window.confirm(
-        `${next ? "Publish" : "Unpublish"} "${article.title}"?`
-      )
+      !window.confirm(`${next ? "Publish" : "Unpublish"} "${article.title}"?`)
     ) {
       return;
     }
@@ -261,7 +258,7 @@ export default function NewsManagement() {
       setSuccess(
         next
           ? "News published successfully."
-          : "News unpublished successfully."
+          : "News unpublished successfully.",
       );
 
       await loadNews();
@@ -275,7 +272,7 @@ export default function NewsManagement() {
   const handleDelete = async (article) => {
     if (
       !window.confirm(
-        `Permanently delete "${article.title}"? This cannot be undone.`
+        `Permanently delete "${article.title}"? This cannot be undone.`,
       )
     ) {
       return;
@@ -321,12 +318,13 @@ export default function NewsManagement() {
       article.summary,
       article.category,
     ].some((value) =>
-      String(value || "").toLowerCase().includes(query)
+      String(value || "")
+        .toLowerCase()
+        .includes(query),
     );
 
     const matchesCategory =
-      categoryFilter === "All" ||
-      article.category === categoryFilter;
+      categoryFilter === "All" || article.category === categoryFilter;
 
     const matchesStatus =
       statusFilter === "All" ||
@@ -348,12 +346,7 @@ export default function NewsManagement() {
   return (
     <Box w="100%" py="6">
       <VStack align="stretch" gap="6">
-        <Flex
-          align="center"
-          justify="space-between"
-          gap="4"
-          wrap="wrap"
-        >
+        <Flex align="center" justify="space-between" gap="4" wrap="wrap">
           <Box>
             <Heading size="xl">News Management</Heading>
 
@@ -362,11 +355,7 @@ export default function NewsManagement() {
             </Text>
           </Box>
 
-          <Button
-            colorPalette="blue"
-            onClick={openCreate}
-            disabled={busy}
-          >
+          <Button colorPalette="blue" onClick={openCreate} disabled={busy}>
             + Add News
           </Button>
         </Flex>
@@ -418,17 +407,30 @@ export default function NewsManagement() {
                 onSearchChange={setSearch}
                 searchPlaceholder="Search news..."
                 filters={[
-                  { key: "category", label: "News category", value: categoryFilter,
+                  {
+                    key: "category",
+                    label: "News category",
+                    value: categoryFilter,
                     onChange: setCategoryFilter,
-                    options: [{ label: "All Categories", value: "All" },
-                      ...CATEGORIES.map((category) => ({ label: category, value: category }))] },
-                  { key: "status", label: "News status", value: statusFilter,
+                    options: [
+                      { label: "All Categories", value: "All" },
+                      ...CATEGORIES.map((category) => ({
+                        label: category,
+                        value: category,
+                      })),
+                    ],
+                  },
+                  {
+                    key: "status",
+                    label: "News status",
+                    value: statusFilter,
                     onChange: setStatusFilter,
                     options: [
                       { label: "All Status", value: "All" },
                       { label: "Published", value: "Published" },
                       { label: "Draft", value: "Draft" },
-                    ] },
+                    ],
+                  },
                 ]}
               />
             </Box>
@@ -452,11 +454,7 @@ export default function NewsManagement() {
                 {filtered.length === 0 ? (
                   <Table.Row>
                     <Table.Cell colSpan={5}>
-                      <Text
-                        textAlign="center"
-                        py="8"
-                        color="fg.muted"
-                      >
+                      <Text textAlign="center" py="8" color="fg.muted">
                         No news articles found.
                       </Text>
                     </Table.Cell>
@@ -465,11 +463,7 @@ export default function NewsManagement() {
                   filtered.map((article) => (
                     <Table.Row key={article._id}>
                       <Table.Cell>
-                        <Flex
-                          align="center"
-                          gap="3"
-                          minW="240px"
-                        >
+                        <Flex align="center" gap="3" minW="240px">
                           {article.coverImage ? (
                             <Image
                               src={article.coverImage}
@@ -493,15 +487,10 @@ export default function NewsManagement() {
                           )}
 
                           <Box>
-                            <Text fontWeight="semibold">
-                              {article.title}
-                            </Text>
+                            <Text fontWeight="semibold">{article.title}</Text>
 
                             {article.isFeatured && (
-                              <Badge
-                                mt="1"
-                                colorPalette="purple"
-                              >
+                              <Badge mt="1" colorPalette="purple">
                                 Featured
                               </Badge>
                             )}
@@ -509,34 +498,20 @@ export default function NewsManagement() {
                         </Flex>
                       </Table.Cell>
 
-                      <Table.Cell>
-                        {article.category}
-                      </Table.Cell>
+                      <Table.Cell>{article.category}</Table.Cell>
 
                       <Table.Cell>
                         <Badge
-                          colorPalette={
-                            article.isPublished
-                              ? "green"
-                              : "gray"
-                          }
+                          colorPalette={article.isPublished ? "green" : "gray"}
                         >
-                          {article.isPublished
-                            ? "Published"
-                            : "Draft"}
+                          {article.isPublished ? "Published" : "Draft"}
                         </Badge>
                       </Table.Cell>
 
-                      <Table.Cell>
-                        {formatDate(article.publishedAt)}
-                      </Table.Cell>
+                      <Table.Cell>{formatDate(article.publishedAt)}</Table.Cell>
 
                       <Table.Cell textAlign="end">
-                        <Flex
-                          justify="flex-end"
-                          gap="2"
-                          wrap="wrap"
-                        >
+                        <Flex justify="flex-end" gap="2" wrap="wrap">
                           {article.isPublished && (
                             <Button
                               size="xs"
@@ -562,13 +537,9 @@ export default function NewsManagement() {
                             variant="outline"
                             colorPalette="blue"
                             disabled={busy}
-                            onClick={() =>
-                              handlePublication(article)
-                            }
+                            onClick={() => handlePublication(article)}
                           >
-                            {article.isPublished
-                              ? "Unpublish"
-                              : "Publish"}
+                            {article.isPublished ? "Unpublish" : "Publish"}
                           </Button>
 
                           <Button
@@ -594,11 +565,11 @@ export default function NewsManagement() {
       {/* CREATE / EDIT DRAWER */}
 
       {formOpen && (
-        <Drawer
-          title={editingId ? "Edit News" : "Create News"}
-          onClose={closeForm}
-          disabled={busy}
-        >
+       <Drawer
+  title={editingId ? "Edit News" : "Create News"}
+  onClose={closeForm}
+  disabled={busy || imageUploading}
+>
           <Flex
             p="5"
             align="center"
@@ -609,11 +580,7 @@ export default function NewsManagement() {
               {editingId ? "Edit News" : "Create News"}
             </Heading>
 
-            <Button
-              variant="ghost"
-              disabled={busy}
-              onClick={closeForm}
-            >
+            <Button variant="ghost" disabled={busy} onClick={closeForm}>
               Close
             </Button>
           </Flex>
@@ -662,30 +629,42 @@ export default function NewsManagement() {
                 </Field.Root>
 
                 <Field.Root>
-                  <Field.Label>Cover Image URL / Path</Field.Label>
-                  <Input
-                    value={form.coverImage}
-                    disabled={busy}
-                    placeholder="/img/news1.jpg"
-                    onChange={(event) =>
-                      updateField(
-                        "coverImage",
-                        event.target.value
-                      )
-                    }
-                  />
-                </Field.Root>
+  <Field.Label>News Image</Field.Label>
 
-                {form.coverImage && (
-                  <Image
-                    src={form.coverImage}
-                    alt="Cover preview"
-                    maxH="180px"
-                    objectFit="contain"
-                    borderRadius="lg"
-                  />
-                )}
+  <ImageUploader
+    category="news"
+    value={form.coverImage}
+    onUploaded={(image) => {
+      setForm((prev) => ({
+        ...prev,
+        coverImage: image.url,
+        coverImageMediaId: image.mediaId,
+      }));
+    }}
+    onUploadingChange={setImageUploading}
+  />
 
+  {form.coverImage && (
+    <Button
+      type="button"
+      size="sm"
+      variant="outline"
+      colorPalette="red"
+      disabled={busy || imageUploading}
+      onClick={() => {
+        setForm((prev) => ({
+          ...prev,
+          coverImage: "",
+          coverImageMediaId: null,
+        }));
+      }}
+    >
+      Remove Image
+    </Button>
+  )}
+</Field.Root>
+
+                
                 <Field.Root>
                   <Field.Label>Category</Field.Label>
 
@@ -694,10 +673,7 @@ export default function NewsManagement() {
                       value={form.category}
                       disabled={busy}
                       onChange={(event) =>
-                        updateField(
-                          "category",
-                          event.target.value
-                        )
+                        updateField("category", event.target.value)
                       }
                     >
                       {CATEGORIES.map((category) => (
@@ -715,9 +691,7 @@ export default function NewsManagement() {
                   <Box width="100%" minW="0">
                     <RichTextEditor
                       value={form.content}
-                      onChange={(value) =>
-                        updateField("content", value)
-                      }
+                      onChange={(value) => updateField("content", value)}
                       minHeight="240px"
                       disabled={busy}
                     />
@@ -728,50 +702,40 @@ export default function NewsManagement() {
                   checked={form.isFeatured}
                   disabled={busy}
                   onCheckedChange={(details) =>
-                    updateField(
-                      "isFeatured",
-                      details.checked === true
-                    )
+                    updateField("isFeatured", details.checked === true)
                   }
                 >
                   <Checkbox.HiddenInput />
                   <Checkbox.Control />
-                  <Checkbox.Label>
-                    Mark as Featured News
-                  </Checkbox.Label>
+                  <Checkbox.Label>Mark as Featured News</Checkbox.Label>
                 </Checkbox.Root>
 
                 <Text fontSize="sm" color="fg.muted">
-                  New articles are saved as drafts. Publish
-                  them from the table when ready.
+                  New articles are saved as drafts. Publish them from the table
+                  when ready.
                 </Text>
               </VStack>
             </form>
           </Box>
 
-          <Flex
-            p="5"
-            gap="3"
-            justify="flex-end"
-            borderTopWidth="1px"
-          >
-            <Button
-              variant="outline"
-              disabled={busy}
-              onClick={closeForm}
-            >
+          <Flex p="5" gap="3" justify="flex-end" borderTopWidth="1px">
+            <Button variant="outline" disabled={busy} onClick={closeForm}>
               Cancel
             </Button>
 
-            <Button
-              type="submit"
-              form="news-form"
-              colorPalette="blue"
-              loading={busy}
-              disabled={busy}
-            >
-              {editingId ? "Save Changes" : "Create News"}
-            </Button>
+           <Button
+  type="submit"
+  form="news-form"
+  colorPalette="blue"
+  loading={busy}
+  disabled={busy || imageUploading}
+>
+  {imageUploading
+    ? "Uploading Image..."
+    : editingId
+      ? "Save Changes"
+      : "Create News"}
+</Button>
           </Flex>
         </Drawer>
       )}
@@ -779,10 +743,7 @@ export default function NewsManagement() {
       {/* PUBLISHED NEWS PREVIEW */}
 
       {preview && (
-        <Drawer
-          title="News Preview"
-          onClose={() => setPreview(null)}
-        >
+        <Drawer title="News Preview" onClose={() => setPreview(null)}>
           <Flex
             p="5"
             align="center"
@@ -791,10 +752,7 @@ export default function NewsManagement() {
           >
             <Heading size="lg">News Preview</Heading>
 
-            <Button
-              variant="outline"
-              onClick={() => setPreview(null)}
-            >
+            <Button variant="outline" onClick={() => setPreview(null)}>
               Close
             </Button>
           </Flex>
@@ -813,19 +771,13 @@ export default function NewsManagement() {
               )}
 
               <Flex gap="2" wrap="wrap">
-                <Badge colorPalette="blue">
-                  {preview.category}
-                </Badge>
+                <Badge colorPalette="blue">{preview.category}</Badge>
 
                 {preview.isFeatured && (
-                  <Badge colorPalette="purple">
-                    Featured
-                  </Badge>
+                  <Badge colorPalette="purple">Featured</Badge>
                 )}
 
-                <Badge colorPalette="green">
-                  Published
-                </Badge>
+                <Badge colorPalette="green">Published</Badge>
               </Flex>
 
               <Heading size="xl">{preview.title}</Heading>
@@ -834,10 +786,7 @@ export default function NewsManagement() {
                 Published: {formatDate(preview.publishedAt)}
               </Text>
 
-              <Text
-                fontWeight="medium"
-                whiteSpace="pre-wrap"
-              >
+              <Text fontWeight="medium" whiteSpace="pre-wrap">
                 {preview.summary}
               </Text>
 
@@ -864,9 +813,7 @@ export default function NewsManagement() {
                   },
                 }}
                 dangerouslySetInnerHTML={{
-                  __html: DOMPurify.sanitize(
-                    preview.content || ""
-                  ),
+                  __html: DOMPurify.sanitize(preview.content || ""),
                 }}
               />
             </VStack>

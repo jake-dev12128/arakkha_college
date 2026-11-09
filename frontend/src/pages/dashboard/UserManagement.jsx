@@ -493,13 +493,45 @@ export default function UserManagement() {
                       py={4}
                       borderColor="var(--mg-border)"
                     >
-                      <Text
-                        fontWeight="650"
-                        color="var(--mg-text)"
-                      >
-                        {user.firstName}{" "}
-                        {user.lastName}
-                      </Text>
+                      <HStack gap={3}>
+                        <Flex
+                          flexShrink={0}
+                          w="38px"
+                          h="38px"
+                          borderRadius="full"
+                          overflow="hidden"
+                          align="center"
+                          justify="center"
+                          bg="var(--mg-surface-alt)"
+                          color="var(--mg-accent)"
+                          fontWeight="700"
+                          fontSize="xs"
+                          aria-label={`${user.firstName || ""} ${user.lastName || ""} profile image`}
+                        >
+                          {user.profileImage ? (
+                            <Box
+                              as="img"
+                              src={user.profileImage}
+                              alt=""
+                              w="100%"
+                              h="100%"
+                              objectFit="cover"
+                              onError={(event) => {
+                                event.currentTarget.style.display = "none";
+                              }}
+                            />
+                          ) : (
+                            `${(user.firstName || "").charAt(0)}${(user.lastName || "").charAt(0)}`.toUpperCase() || "?"
+                          )}
+                        </Flex>
+                        <Text
+                          fontWeight="650"
+                          color="var(--mg-text)"
+                        >
+                          {user.firstName}{" "}
+                          {user.lastName}
+                        </Text>
+                      </HStack>
                     </Table.Cell>
 
                     <Table.Cell

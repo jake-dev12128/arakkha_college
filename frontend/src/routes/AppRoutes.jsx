@@ -21,6 +21,7 @@ import Home from "../pages/public/Home.jsx";
 import About from "../pages/public/About.jsx";
 import Organization from "../pages/public/Organization.jsx";
 import Courses from "../pages/public/Courses.jsx";
+import CourseDetail from "../pages/public/CourseDetail.jsx";
 import Students from "../pages/public/Students.jsx";
 import EntranceInformation from "../pages/public/EntranceInformation.jsx";
 
@@ -158,6 +159,7 @@ export default function AppRoutes() {
 
           <Route element={<RequireCourseAccess />}>
             <Route path="/academic/courses/:programId" element={<Courses />} />
+            <Route path="/academic/courses/:programId/:courseId" element={<CourseDetail />} />
           </Route>
           <Route
             path="/academic/entrance-information"

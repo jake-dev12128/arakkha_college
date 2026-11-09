@@ -36,19 +36,30 @@ const optionalLogo = z.union([
   localLogoPath,
 ]).default("");
 
-const optionalEmail = z.union([
-  z.literal(""),
-  z.email().max(254),
-]).default("");
+// MongoDB ObjectId used to reference a MediaAsset.
+// null means no managed image is selected.
+const mediaId = z.union([
+  z.string().regex(
+    /^[0-9a-fA-F]{24}$/,
+    "Invalid media ID."
+  ),
+  z.null(),
+]);
 
 export const createCollaborationSchema = z.object({
   name: requiredText(150),
   type: requiredText(100),
   logo: optionalLogo,
+
+  logoMediaId: mediaId.optional(),
+
   shortDescription: optionalText(5000),
   description: optionalText(30000),
   websiteUrl: optionalUrl,
-  email: optionalEmail,
+  email: z.union([
+    z.literal(""),
+    z.email().max(254),
+  ]).default(""),
   displayOrder: z.number().int().min(0).default(0),
 }).strict();
 

@@ -1,8 +1,24 @@
 import logger from "../utils/logger.js";
 
 export const errorMiddleware = (err, req, res, next) => {
-  const statusCode =
-    Number.isInteger(err?.statusCode) ? err.statusCode : 500;
+  if (err?.code === "LIMIT_FILE_SIZE") {
+    return res.status(413).json({
+      success: false,
+      message: "Maximum image size is 5 MB.",
+      code: "IMAGE_TOO_LARGE",
+      requestId: req.requestId,
+    });
+  }
+
+  if (err?.code?.startsWith?.("LIMIT_")) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid upload request.",
+      code: "INVALID_UPLOAD_REQUEST",
+      requestId: req.requestId,
+    });
+  }
+  const statusCode = Number.isInteger(err?.statusCode) ? err.statusCode : 500;
 
   const isOperational = err?.isOperational === true;
 

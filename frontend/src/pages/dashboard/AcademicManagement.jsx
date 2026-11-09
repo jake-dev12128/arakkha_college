@@ -23,13 +23,16 @@ import {
   Textarea,
   VStack,
 } from "@chakra-ui/react";
-
 import {
   academicService,
   getAcademicApiErrorMessage,
 } from "../../services/academic.service.js";
 
 import ManagementToolbar from "../../components/dashboard/ManagementToolbar.jsx";
+import ImageUploader from "../../components/common/ImageUploader.jsx";
+import CourseVideoUploader from "../../components/dashboard/academic/CourseVideoUploader.jsx";
+import { courseLessonService } from "../../services/courseLesson.service.js";
+import { coursePlaybackService } from "../../services/coursePlayback.service.js";
 
 import CurriculumSemesterEditor, {
   validateCurriculumSemesters,
@@ -187,8 +190,9 @@ const FIELD_CONFIG = {
       type: "textarea",
     },
     {
-      name: "imageUrl",
-      label: "Image URL",
+      name: "imageMediaId",
+      label: "Program Image",
+      type: "image-uploader",
     },
   ],
 
@@ -225,6 +229,11 @@ const FIELD_CONFIG = {
       label: "Prerequisites",
       type: "multi-reference",
       resource: "courses",
+    },
+    {
+      name: "coverImageMediaId",
+      label: "Course Cover Image",
+      type: "image-uploader",
     },
   ],
 
@@ -380,7 +389,7 @@ const EDITABLE_FIELDS = {
     "type",
     "durationYears",
     "semestersPerYear",
-    "imageUrl",
+    "imageMediaId",
   ],
   courses: [
     "title",
@@ -389,6 +398,7 @@ const EDITABLE_FIELDS = {
     "lectureHours",
     "practicalHours",
     "prerequisites",
+    "coverImageMediaId",
   ],
   curricula: [
     "effectiveFrom",
@@ -426,6 +436,7 @@ const DEFAULT_VALUES = {
     semestersPerYear: 2,
     description: "",
     imageUrl: "",
+    imageMediaId: null,
   },
 
   courses: {
@@ -436,6 +447,8 @@ const DEFAULT_VALUES = {
     practicalHours: 0,
     description: "",
     prerequisites: [],
+    coverImage: "",
+    coverImageMediaId: null,
   },
 
   curricula: {
@@ -836,6 +849,78 @@ const DETAIL_GROUPS = {
     { title: "Enrollment Information", fields: ["status", "enrolledAt", "createdAt", "notes"] },
   ],
 };
+function AdminLessonVideo({ courseId, lesson }) {
+  const [playback, setPlayback] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [expanded, setExpanded] = useState(false);
+  const lessonId = lesson._id ?? lesson.id;
+  const hasVideo = Boolean(lesson.videoMediaId);
+
+  const loadPlayback = useCallback(async () => {
+    if (!courseId || !lessonId || !hasVideo) return;
+    setLoading(true);
+    setError("");
+    setPlayback(null);
+    try {
+      const result = await coursePlaybackService.getPlayback(courseId, lessonId);
+      setPlayback(result);
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || "Unable to load video.");
+    } finally {
+      setLoading(false);
+    }
+  }, [courseId, lessonId, hasVideo]);
+
+  if (!hasVideo) {
+    return <Text fontSize="xs" color="fg.muted">No video</Text>;
+  }
+
+  if (!expanded) {
+    return (
+      <Button size="xs" variant="outline" onClick={() => {
+        setExpanded(true);
+        loadPlayback();
+      }}>
+        ▶ Preview video
+      </Button>
+    );
+  }
+
+  return (
+    <VStack align="stretch" gap={2} width="180px" maxW="100%">
+      {loading ? (
+        <Flex justify="center" align="center" h="102px" bg="bg.muted" borderRadius="md"><Spinner size="sm" /></Flex>
+      ) : error ? (
+        <Text role="alert" color="red.500" fontSize="xs">{error}</Text>
+      ) : playback?.playbackUrl ? (
+        <Box
+          as="video"
+          key={playback.playbackUrl}
+          src={playback.playbackUrl}
+          controls
+          playsInline
+          preload="metadata"
+          controlsList="nodownload"
+          width="180px"
+          height="102px"
+          maxW="100%"
+          objectFit="contain"
+          bg="black"
+          borderRadius="md"
+        />
+      ) : null}
+      <Flex gap={1} wrap="wrap">
+        <Button size="xs" variant="ghost" onClick={loadPlayback} disabled={loading}>Refresh</Button>
+        <Button size="xs" variant="ghost" onClick={() => {
+          setExpanded(false);
+          setPlayback(null);
+        }}>Close</Button>
+      </Flex>
+    </VStack>
+  );
+}
+
 
 // ==================================================
 // COMPONENT
@@ -875,6 +960,7 @@ export default function AcademicManagement({
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
 
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -940,6 +1026,22 @@ const [cloneEffectiveFrom, setCloneEffectiveFrom] =
 
 const [cloneSaving, setCloneSaving] = useState(false);
 const [cloneError, setCloneError] = useState("");
+  // Course lessons: isolated from the existing academic record CRUD.
+  const [lessonsOpen, setLessonsOpen] = useState(false);
+  const [lessonEditorOpen, setLessonEditorOpen] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [lessons, setLessons] = useState([]);
+  const [lessonsLoading, setLessonsLoading] = useState(false);
+  const [lessonSaving, setLessonSaving] = useState(false);
+  const [lessonError, setLessonError] = useState("");
+  const [lessonNotice, setLessonNotice] = useState("");
+  const [selectedLessonId, setSelectedLessonId] = useState(null);
+  const [previewLessonId, setPreviewLessonId] = useState(null);
+  const [previewData, setPreviewData] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState("");
+  const [lessonForm, setLessonForm] = useState({ title: "", description: "", order: 0 });
+
   const fields = useMemo(
     () => FIELD_CONFIG[resource] ?? [],
     [resource],
@@ -1240,6 +1342,7 @@ const [cloneError, setCloneError] = useState("");
   // ==================================================
 
   const startCreate = () => {
+    setImageUploading(false);
     setEditingId(null);
 
     setForm({
@@ -1252,6 +1355,7 @@ const [cloneError, setCloneError] = useState("");
   };
 
   const startEdit = async (record) => {
+    setImageUploading(false);
   if (!canEditRecord(resource, record)) {
     setError(
       resource === "curricula"
@@ -1291,6 +1395,14 @@ const [cloneError, setCloneError] = useState("");
             ]),
         );
 
+      if (resource === "programs") {
+        values.imageUrl = latest.imageUrl ?? "";
+        values.imageMediaId = latest.imageMediaId ?? null;
+      }
+      if (resource === "courses") {
+        values.coverImage = latest.coverImage ?? "";
+        values.coverImageMediaId = latest.coverImageMediaId ?? null;
+      }
       setEditingId(record._id);
       setForm(values);
       setFormOpen(true);
@@ -1413,6 +1525,12 @@ const [cloneError, setCloneError] = useState("");
       payload[name] = value;
     }
 
+    if (resource === "programs" && form.imageMediaId) {
+      payload.imageUrl = form.imageUrl || "";
+    }
+    if (resource === "courses" && form.coverImageMediaId) {
+      payload.coverImage = form.coverImage || "";
+    }
     return payload;
   };
 
@@ -1421,6 +1539,10 @@ const [cloneError, setCloneError] = useState("");
   // ==================================================
 
   const saveRecord = async () => {
+    if (imageUploading) {
+      setError("Wait for the image upload to finish before saving.");
+      return;
+    }
     setSaving(true);
     setError("");
 
@@ -1787,6 +1909,165 @@ const performAction = async (record, action) => {
   };
 
   // ==================================================
+  // COURSE LESSON MANAGEMENT
+  // ==================================================
+
+  const loadLessons = async (courseId) => {
+    if (!courseId) return;
+    setLessonsLoading(true);
+    setLessonError("");
+    try {
+      const result = await courseLessonService.list(courseId, { page: 1, limit: 100 });
+      const items = result?.lessons ?? result?.data?.lessons ?? result?.data ?? result;
+      setLessons(Array.isArray(items) ? items : []);
+    } catch (err) {
+      setLessonError(getError(err));
+    } finally {
+      setLessonsLoading(false);
+    }
+  };
+
+  const resetLessonForm = () => {
+    setSelectedLessonId(null);
+    setLessonForm({ title: "", description: "", order: 0 });
+    setLessonError("");
+  };
+
+  const previewLesson = async (lesson) => {
+    const courseId = getId(selectedCourse);
+    const lessonId = getId(lesson);
+    if (!courseId || !lessonId) return;
+    setPreviewLessonId(lessonId);
+    setPreviewData(null);
+    if (!lesson.videoMediaId) {
+      setPreviewLoading(false);
+      setPreviewError("");
+      return;
+    }
+    setPreviewError("");
+    setPreviewLoading(true);
+    try {
+      const data = await coursePlaybackService.getPlayback(courseId, lessonId);
+      setPreviewData(data);
+    } catch (err) {
+      setPreviewError(getError(err));
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const openLessons = async (course) => {
+    setSelectedCourse(course);
+    setLessonEditorOpen(false);
+    setPreviewLessonId(null);
+    setPreviewData(null);
+    setPreviewError("");
+    setSelectedLessonId(null);
+    setLessonForm({ title: "", description: "", order: 0 });
+    setLessonError("");
+    setLessonNotice("");
+    setLessons([]);
+    setLessonsOpen(true);
+    await loadLessons(getId(course));
+  };
+
+  const selectLesson = (lesson) => {
+    setLessonEditorOpen(true);
+    setSelectedLessonId(getId(lesson));
+    setLessonForm({
+      title: lesson.title ?? "",
+      description: lesson.description ?? "",
+      order: lesson.order ?? 0,
+    });
+    setLessonError("");
+    setLessonNotice("");
+  };
+
+  const saveLesson = async () => {
+    const courseId = getId(selectedCourse);
+    if (!courseId || lessonSaving) return;
+    setLessonSaving(true);
+    setLessonError("");
+    setLessonNotice("");
+    try {
+      const payload = {
+        title: lessonForm.title.trim(),
+        description: lessonForm.description.trim(),
+        order: Number(lessonForm.order),
+      };
+      if (payload.title.length < 2) throw new Error("Lesson title must contain at least 2 characters.");
+      if (!Number.isInteger(payload.order) || payload.order < 0) {
+        throw new Error("Lesson order must be a non-negative integer.");
+      }
+      if (selectedLessonId) {
+        await courseLessonService.update(courseId, selectedLessonId, payload);
+      } else {
+        await courseLessonService.create(courseId, payload);
+      }
+      resetLessonForm();
+      setLessonEditorOpen(false);
+      await loadLessons(courseId);
+      setLessonNotice("Lesson saved successfully.");
+    } catch (err) {
+      setLessonError(getError(err));
+    } finally {
+      setLessonSaving(false);
+    }
+  };
+
+  const toggleLessonPublication = async (lesson) => {
+    const courseId = getId(selectedCourse);
+    if (!courseId || lessonSaving) return;
+    setLessonSaving(true);
+    setLessonError("");
+    setLessonNotice("");
+    try {
+      await courseLessonService.setPublication(courseId, getId(lesson), !lesson.isPublished);
+      await loadLessons(courseId);
+      setLessonNotice(lesson.isPublished ? "Lesson unpublished successfully." : "Lesson published successfully.");
+    } catch (err) {
+      setLessonError(getError(err));
+    } finally {
+      setLessonSaving(false);
+    }
+  };
+
+  const detachLessonVideo = async (lesson) => {
+    const courseId = getId(selectedCourse);
+    if (!courseId || lessonSaving || !window.confirm(`Detach video from "${lesson.title}"?`)) return;
+    setLessonSaving(true);
+    setLessonError("");
+    setLessonNotice("");
+    try {
+      await courseLessonService.detachVideo(courseId, getId(lesson));
+      await loadLessons(courseId);
+      setLessonNotice("Video detached successfully.");
+    } catch (err) {
+      setLessonError(getError(err));
+    } finally {
+      setLessonSaving(false);
+    }
+  };
+
+  const deleteCourseLesson = async (lesson) => {
+    const courseId = getId(selectedCourse);
+    if (!courseId || lessonSaving || !window.confirm(`Permanently delete lesson "${lesson.title}"?`)) return;
+    setLessonSaving(true);
+    setLessonError("");
+    setLessonNotice("");
+    try {
+      await courseLessonService.remove(courseId, getId(lesson));
+      if (selectedLessonId === getId(lesson)) resetLessonForm();
+      await loadLessons(courseId);
+      setLessonNotice("Lesson deleted successfully.");
+    } catch (err) {
+      setLessonError(getError(err));
+    } finally {
+      setLessonSaving(false);
+    }
+  };
+
+  // ==================================================
   // FORM FIELD RENDERER
   // ==================================================
 
@@ -1820,6 +2101,51 @@ const performAction = async (record, action) => {
 
     const value =
       form[name] ?? "";
+
+    // Cloudinary image uploader (program / course)
+    if (type === "image-uploader") {
+      const isProgram = resource === "programs";
+      const urlField = isProgram ? "imageUrl" : "coverImage";
+      const currentUrl = form[urlField] ?? "";
+      return (
+        <Field.Root key={name}>
+          <Field.Label>{label}</Field.Label>
+          <ImageUploader
+            category={isProgram ? "programs" : "thumbnails"}
+            value={currentUrl}
+            onUploadingChange={setImageUploading}
+            onUploaded={(uploaded) => {
+              if (!uploaded?.mediaId || !uploaded?.url) {
+                setError("Image upload returned incomplete data.");
+                return;
+              }
+              setForm((previous) => ({
+                ...previous,
+                [name]: uploaded.mediaId,
+                [urlField]: uploaded.url,
+              }));
+            }}
+          />
+          {currentUrl && (
+            <Button
+              size="xs"
+              variant="outline"
+              colorPalette="red"
+              disabled={saving || imageUploading}
+              onClick={() => {
+                setForm((previous) => ({
+                  ...previous,
+                  [name]: null,
+                  [urlField]: "",
+                }));
+              }}
+            >
+              Remove image
+            </Button>
+          )}
+        </Field.Root>
+      );
+    }
 
     // TEXTAREA
     if (
@@ -2284,6 +2610,8 @@ if (
       align="stretch"
       gap={5}
     >
+      {!lessonsOpen && (
+      <Box w="full" minW={0}>
       {/* PAGE HEADER */}
 
       <Flex
@@ -2477,6 +2805,12 @@ if (
                       >
                         Details
                       </Button>
+
+                      {resource === "courses" && (
+                        <Button size="xs" variant="outline" colorPalette="blue" onClick={() => openLessons(record)}>
+                          Lessons
+                        </Button>
+                      )}
 
                      {canEditRecord(resource, record) && (
   <Button
@@ -2680,6 +3014,250 @@ if (
         </Flex>
       </Flex>
 
+      </Box>
+      )}
+
+      {/* COURSE LESSON MANAGEMENT — MASTER / DETAIL */}
+      {lessonsOpen && (
+      <Box w="full" minW={0}>
+        <Box borderBottomWidth="1px" pb={4} mb={4}>
+              <Flex justify="space-between" align="center" gap={3} wrap="wrap" w="full">
+                <Box>
+                  <Flex align="center" gap={3} wrap="wrap">
+                    <Button size="sm" variant="outline" disabled={lessonSaving} onClick={() => { setLessonsOpen(false); setPreviewLessonId(null); setPreviewData(null); }}>← Back to Courses</Button>
+                    <Heading size="lg">Course Lesson Management</Heading>
+                  </Flex>
+                  <Text fontSize="sm" color="fg.muted">
+                    {selectedCourse?.code ?? ""} · {selectedCourse?.title ?? "Course"}
+                  </Text>
+                </Box>
+                <Flex gap={2} align="center">
+                  <Badge colorPalette="blue">{lessons.length} lessons</Badge>
+                  <Button
+                    size="sm"
+                    colorPalette="blue"
+                    disabled={lessonSaving}
+                    onClick={() => {
+                      resetLessonForm();
+                      setLessonEditorOpen(true);
+                    }}
+                  >
+                    + Create Lesson
+                  </Button>
+                </Flex>
+              </Flex>
+        </Box>
+        <Box py={2}>
+              <VStack align="stretch" gap={4} maxW="1440px" mx="auto" w="full">
+                {lessonError && <Text color="red.500" role="alert">{lessonError}</Text>}
+                {lessonNotice && <Text color="green.600" role="status">{lessonNotice}</Text>}
+
+                <Flex direction={{ base: "column", lg: "row" }} align="start" gap={5}>
+                  {/* Left: compact lesson playlist */}
+                  <Box
+                    w={{ base: "full", lg: "38%" }}
+                    minW={0}
+                    borderWidth="1px"
+                    borderRadius="xl"
+                    overflow="hidden"
+                    bg="bg.panel"
+                  >
+                    <Flex px={4} py={3} justify="space-between" align="center" borderBottomWidth="1px">
+                      <Heading size="sm">Lesson Playlist</Heading>
+                      <Text fontSize="xs" color="fg.muted">Select a lesson</Text>
+                    </Flex>
+                    {lessonsLoading ? (
+                      <Flex justify="center" py={8}><Spinner size="sm" /></Flex>
+                    ) : lessons.length === 0 ? (
+                      <Text p={4} fontSize="sm" color="fg.muted">No lessons created yet. Select Create Lesson to begin.</Text>
+                    ) : (
+                      <VStack align="stretch" gap={0} maxH={{ lg: "65vh" }} overflowY="auto">
+                        {[...lessons].sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0)).map((lesson, index) => {
+                          const id = getId(lesson);
+                          const active = String(previewLessonId) === String(id);
+                          return (
+                            <Box key={id} borderBottomWidth="1px" bg={active ? "bg.muted" : "transparent"}>
+                              <Flex gap={3} align="center" px={3} py={3}>
+                                <Button
+                                  size="sm"
+                                  variant={active ? "solid" : "outline"}
+                                  colorPalette={active ? "blue" : "gray"}
+                                  minW="42px"
+                                  px={2}
+                                  onClick={() => previewLesson(lesson)}
+                                  aria-label={`Preview ${lesson.title}`}
+                                >
+                                  {lesson.videoMediaId ? "▶" : "•"}
+                                </Button>
+                                <Box flex="1" minW={0}>
+                                  <Text fontSize="xs" color="fg.muted">Lesson {lesson.order ?? index + 1}</Text>
+                                  <Text fontSize="sm" fontWeight="semibold" lineClamp={2}>{lesson.title}</Text>
+                                  <Text fontSize="xs" color="fg.muted" lineClamp={1}>
+                                    {lesson.description || "No description"}
+                                  </Text>
+                                  <Flex gap={2} mt={1} align="center" wrap="wrap">
+                                    <Badge size="sm" colorPalette={lesson.isPublished ? "green" : "gray"}>
+                                      {lesson.isPublished ? "Published" : "Draft"}
+                                    </Badge>
+                                    {!lesson.videoMediaId && <Text fontSize="xs" color="fg.muted">No video</Text>}
+                                  </Flex>
+                                </Box>
+                                <Button
+                                  size="xs"
+                                  variant="ghost"
+                                  disabled={lessonSaving}
+                                  onClick={() => selectLesson(lesson)}
+                                >
+                                  Edit
+                                </Button>
+                              </Flex>
+                            </Box>
+                          );
+                        })}
+                      </VStack>
+                    )}
+                  </Box>
+
+                  {/* Right: one selected video and its management actions */}
+                  <Box w={{ base: "full", lg: "62%" }} minW={0}>
+                    {(() => {
+                      const activeLesson = lessons.find(
+                        (lesson) => String(getId(lesson)) === String(previewLessonId)
+                      );
+                      if (!activeLesson) {
+                        return (
+                          <Box borderWidth="1px" borderRadius="xl" p={8} textAlign="center" bg="bg.panel">
+                            <Heading size="sm" mb={2}>Lesson Preview</Heading>
+                            <Text color="fg.muted" fontSize="sm">
+                              Choose a lesson with a video from the playlist to preview it here.
+                            </Text>
+                          </Box>
+                        );
+                      }
+                      return (
+                        <Box borderWidth="1px" borderRadius="xl" p={{ base: 3, md: 4 }} bg="bg.panel">
+                          <Box bg="black" borderRadius="lg" overflow="hidden" maxW="760px" mx="auto">
+                            {previewLoading ? (
+                              <Flex h={{ base: "180px", md: "300px" }} align="center" justify="center"><Spinner color="white" /></Flex>
+                            ) : previewError ? (
+                              <Box p={5}><Text color="red.300" role="alert">{previewError}</Text></Box>
+                            ) : previewData?.playbackUrl ? (
+                              <Box
+                                as="video"
+                                key={previewData.playbackUrl}
+                                src={previewData.playbackUrl}
+                                controls
+                                playsInline
+                                preload="metadata"
+                                controlsList="nodownload"
+                                w="full"
+                                maxH="360px"
+                                aspectRatio="16 / 9"
+                                objectFit="contain"
+                              />
+                            ) : (
+                              <Flex h="180px" justify="center" align="center"><Text color="white">No video attached</Text></Flex>
+                            )}
+                          </Box>
+                          <Flex mt={3} justify="space-between" align="start" gap={3} wrap="wrap">
+                            <Box flex="1" minW="180px">
+                              <Heading size="sm">{activeLesson.order}. {activeLesson.title}</Heading>
+                              <Text mt={1} fontSize="sm" color="fg.muted" whiteSpace="pre-wrap">
+                                {activeLesson.description || "No description"}
+                              </Text>
+                              <Badge mt={2} colorPalette={activeLesson.isPublished ? "green" : "gray"}>
+                                {activeLesson.isPublished ? "Published" : "Draft"}
+                              </Badge>
+                            </Box>
+                            <Button size="xs" variant="outline" disabled={previewLoading} onClick={() => previewLesson(activeLesson)}>
+                              Refresh Video
+                            </Button>
+                          </Flex>
+                          <Flex gap={2} wrap="wrap" mt={4} pt={3} borderTopWidth="1px">
+                            <Button size="sm" variant="outline" disabled={lessonSaving} onClick={() => selectLesson(activeLesson)}>
+                              Edit / Video
+                            </Button>
+                            <Button size="sm" variant="outline" colorPalette={activeLesson.isPublished ? "orange" : "green"}
+                              disabled={lessonSaving} onClick={() => toggleLessonPublication(activeLesson)}>
+                              {activeLesson.isPublished ? "Unpublish" : "Publish"}
+                            </Button>
+                            {activeLesson.videoMediaId && (
+                              <Button size="sm" variant="outline" colorPalette="orange" disabled={lessonSaving}
+                                onClick={() => detachLessonVideo(activeLesson)}>Detach Video</Button>
+                            )}
+                            <Button size="sm" variant="outline" colorPalette="red" disabled={lessonSaving}
+                              onClick={() => deleteCourseLesson(activeLesson)}>Delete</Button>
+                          </Flex>
+                        </Box>
+                      );
+                    })()}
+                  </Box>
+                </Flex>
+              </VStack>
+        </Box>
+        <Flex justify="flex-end" mt={4} pt={3} borderTopWidth="1px">
+              <Button variant="outline" disabled={lessonSaving} onClick={() => setLessonsOpen(false)}>Close</Button>
+        </Flex>
+      </Box>
+      )}
+
+      {/* Lesson create/edit and video upload; existing handlers preserved */}
+      <Dialog.Root open={lessonEditorOpen} onOpenChange={(details) => {
+        if (!lessonSaving) setLessonEditorOpen(details.open);
+      }} size="lg" scrollBehavior="inside">
+        <Dialog.Backdrop />
+        <Dialog.Positioner>
+          <Dialog.Content>
+            <Dialog.Header>
+              <Dialog.Title>{selectedLessonId ? "Edit Lesson / Video" : "Create Lesson"}</Dialog.Title>
+            </Dialog.Header>
+            <Dialog.Body>
+              <VStack align="stretch" gap={4}>
+                <Field.Root required>
+                  <Field.Label>Lesson Title</Field.Label>
+                  <Input value={lessonForm.title} disabled={lessonSaving}
+                    onChange={(event) => setLessonForm((previous) => ({ ...previous, title: event.target.value }))} />
+                </Field.Root>
+                <Field.Root>
+                  <Field.Label>Description</Field.Label>
+                  <Textarea rows={3} value={lessonForm.description} disabled={lessonSaving}
+                    onChange={(event) => setLessonForm((previous) => ({ ...previous, description: event.target.value }))} />
+                </Field.Root>
+                <Field.Root required>
+                  <Field.Label>Lesson Order</Field.Label>
+                  <Input type="number" min={0} value={lessonForm.order} disabled={lessonSaving}
+                    onChange={(event) => setLessonForm((previous) => ({ ...previous, order: event.target.value }))} />
+                </Field.Root>
+                <Flex gap={2} wrap="wrap">
+                  <Button colorPalette="blue" loading={lessonSaving} onClick={saveLesson}>
+                    {selectedLessonId ? "Update Lesson" : "Create Lesson"}
+                  </Button>
+                  {selectedLessonId && <Button variant="outline" disabled={lessonSaving} onClick={resetLessonForm}>Cancel Edit</Button>}
+                </Flex>
+                {selectedLessonId && (
+                  <Box pt={4} borderTopWidth="1px">
+                    <Heading size="sm" mb={3}>Lesson Video Upload</Heading>
+                    <CourseVideoUploader
+                      key={selectedLessonId}
+                      courseId={getId(selectedCourse)}
+                      lessonId={selectedLessonId}
+                      disabled={lessonSaving}
+                      onUploaded={async () => {
+                        await loadLessons(getId(selectedCourse));
+                        setLessonNotice("Video uploaded successfully.");
+                      }}
+                    />
+                  </Box>
+                )}
+              </VStack>
+            </Dialog.Body>
+            <Dialog.Footer>
+              <Button variant="outline" disabled={lessonSaving} onClick={() => setLessonEditorOpen(false)}>Close</Button>
+            </Dialog.Footer>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Dialog.Root>
+
       {/* CREATE / EDIT DRAWER */}
 
       <Drawer.Root
@@ -2733,7 +3311,7 @@ if (
               <Button
                 variant="outline"
                 disabled={
-                  saving
+                  saving || imageUploading
                 }
                 onClick={() =>
                   setFormOpen(
@@ -2746,7 +3324,7 @@ if (
 
               <Button
                 loading={
-                  saving
+                  saving || imageUploading
                 }
                 onClick={
                   saveRecord

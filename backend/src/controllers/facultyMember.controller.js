@@ -8,17 +8,42 @@ import {
   facultyPublicationSchema,
 } from "../schemas/facultyMember.schema.js";
 
-const sendSuccess = (res, data, statusCode = 200) => {
-  return res.status(statusCode).json({
+const sendSuccess = (res, data, statusCode = 200) =>
+  res.status(statusCode).json({
     success: true,
     data,
   });
+
+const validate = (schema, value) => {
+  const result = schema.safeParse(value);
+
+  if (!result.success) {
+    const error = new Error("Validation failed.");
+    error.statusCode = 400;
+    error.code = "VALIDATION_ERROR";
+    error.isOperational = true;
+    error.details = result.error.issues;
+    throw error;
+  }
+
+  return result.data;
 };
 
-const validateId = (req) => {
-  return facultyIdSchema.parse({
+const validateId = (req) =>
+  validate(facultyIdSchema, {
     id: req.params.id,
   }).id;
+
+const getActorId = (req) => {
+  if (!req.user?._id) {
+    const error = new Error("Authentication required.");
+    error.statusCode = 401;
+    error.code = "AUTHENTICATION_REQUIRED";
+    error.isOperational = true;
+    throw error;
+  }
+
+  return req.user._id;
 };
 
 // ==================================================
@@ -26,8 +51,7 @@ const validateId = (req) => {
 // ==================================================
 
 export const listPublicFaculty = async (req, res) => {
-  const members =
-    await facultyService.getPublicFacultyMembers();
+  const members = await facultyService.getPublicFacultyMembers();
 
   return sendSuccess(res, { members });
 };
@@ -35,8 +59,7 @@ export const listPublicFaculty = async (req, res) => {
 export const getPublicFaculty = async (req, res) => {
   const id = validateId(req);
 
-  const member =
-    await facultyService.getPublicFacultyMemberById(id);
+  const member = await facultyService.getPublicFacultyMemberById(id);
 
   return sendSuccess(res, { member });
 };
@@ -46,8 +69,7 @@ export const getPublicFaculty = async (req, res) => {
 // ==================================================
 
 export const listAdminFaculty = async (req, res) => {
-  const members =
-    await facultyService.getAllFacultyMembers();
+  const members = await facultyService.getAllFacultyMembers();
 
   return sendSuccess(res, { members });
 };
@@ -55,45 +77,76 @@ export const listAdminFaculty = async (req, res) => {
 export const getAdminFaculty = async (req, res) => {
   const id = validateId(req);
 
-  const member =
-    await facultyService.getAdminFacultyMemberById(id);
+  const member = await facultyService.getAdminFacultyMemberById(id);
 
   return sendSuccess(res, { member });
 };
 
-export const createFaculty = async (req, res) => {
-  const payload = createFacultySchema.parse(req.body);
+// ==================================================
+// CREATE
+// ==================================================
 
-  const member =
-    await facultyService.createFacultyMember(payload);
+export const createFaculty = async (req, res) => {
+  const actorId = getActorId(req);
+
+  const payload = validate(
+    createFacultySchema,
+    req.body
+  );
+
+  const member = await facultyService.createFacultyMember(
+    payload,
+    actorId
+  );
 
   return sendSuccess(res, { member }, 201);
 };
 
-export const updateFaculty = async (req, res) => {
-  const id = validateId(req);
-  const payload = updateFacultySchema.parse(req.body);
+// ==================================================
+// UPDATE / REPLACE / REMOVE IMAGE
+// ==================================================
 
-  const member =
-    await facultyService.updateFacultyMember(id, payload);
+export const updateFaculty = async (req, res) => {
+  const actorId = getActorId(req);
+  const id = validateId(req);
+
+  const payload = validate(
+    updateFacultySchema,
+    req.body
+  );
+
+  const member = await facultyService.updateFacultyMember(
+    id,
+    payload,
+    actorId
+  );
 
   return sendSuccess(res, { member });
 };
+
+// ==================================================
+// PUBLISH / UNPUBLISH
+// ==================================================
 
 export const publishFaculty = async (req, res) => {
   const id = validateId(req);
 
-  const { isPublished } =
-    facultyPublicationSchema.parse(req.body);
+  const { isPublished } = validate(
+    facultyPublicationSchema,
+    req.body
+  );
 
-  const member =
-    await facultyService.setFacultyPublication(
-      id,
-      isPublished
-    );
+  const member = await facultyService.setFacultyPublication(
+    id,
+    isPublished
+  );
 
   return sendSuccess(res, { member });
 };
+
+// ==================================================
+// DELETE
+// ==================================================
 
 export const deleteFaculty = async (req, res) => {
   const id = validateId(req);

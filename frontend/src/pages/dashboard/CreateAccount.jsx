@@ -14,6 +14,8 @@ import {
 } from "@chakra-ui/react";
 
 import { dashboardService } from "../../services/dashboard.service.js";
+import { mediaService } from "../../services/media.service.js";
+import ImageUploader from "../../components/common/ImageUploader.jsx";
 
 const creatableRoles = {
   super_admin: ["super_admin", "admin", "teacher", "student"],
@@ -21,38 +23,101 @@ const creatableRoles = {
   teacher: ["student"],
 };
 
+const initialForm = (roles) => ({
+  firstName: "",
+  lastName: "",
+  email: "",
+  password: "",
+  role: roles[0] ?? "",
+});
+
 export default function CreateAccount() {
   const { user } = useOutletContext();
   const navigate = useNavigate();
 
   const roles = creatableRoles[user.role] ?? [];
 
-  const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    password: "",
-    role: roles[0] ?? "",
-  });
-
+  const [form, setForm] = useState(() => initialForm(roles));
   const [loading, setLoading] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
+
+  const [uploadedImage, setUploadedImage] = useState(null);
   const [error, setError] = useState("");
+  const [warning, setWarning] = useState("");
   const [created, setCreated] = useState(null);
+  const [pendingImage, setPendingImage] = useState(null);
+
+  const canManageImage =
+    ["super_admin", "admin"].includes(user.role);
+
+  const supportsImage =
+    ["student", "teacher"].includes(form.role);
 
   const update = (field, value) => {
     setForm((current) => ({
       ...current,
       [field]: value,
     }));
+
+    if (field === "role") {
+      setUploadedImage(null);
+    }
+  };
+
+  const attachImage = async (targetUserId, mediaId) => {
+    return mediaService.updateManagedProfileImage(
+      targetUserId,
+      mediaId
+    );
+  };
+
+  const retryImageAttachment = async () => {
+    if (!pendingImage) return;
+
+    setLoading(true);
+    setError("");
+    setWarning("");
+
+    try {
+      await attachImage(
+        pendingImage.userId,
+        pendingImage.mediaId
+      );
+
+      setPendingImage(null);
+      setUploadedImage(null);
+      setWarning("");
+    } catch (err) {
+      setWarning(
+        err?.response?.data?.message ||
+          "Image attachment failed. You can retry."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const submit = async (event) => {
     event.preventDefault();
+
     setError("");
+    setWarning("");
     setCreated(null);
+
+    if (pendingImage) {
+      setError(
+        "Resolve the previous image attachment before creating another account."
+      );
+      return;
+    }
 
     if (!roles.includes(form.role)) {
       setError("Role not permitted.");
+      return;
+    }
+
+    if (imageUploading) {
+      setError("Please wait for the image upload.");
       return;
     }
 
@@ -69,17 +134,45 @@ export default function CreateAccount() {
 
       setCreated(result);
 
-      setForm({
-        firstName: "",
-        lastName: "",
-        email: "",
-        password: "",
-        role: roles[0],
-      });
+      const image = uploadedImage;
+
+      if (
+        image &&
+        supportsImage &&
+        canManageImage
+      ) {
+        const targetUserId = result?._id || result?.id;
+        const mediaId = image?._id || image?.id;
+
+        if (!targetUserId || !mediaId) {
+          setWarning(
+            "Account created, but image attachment could not start because an ID is missing."
+          );
+        } else {
+          try {
+            await attachImage(targetUserId, mediaId);
+            setUploadedImage(null);
+          } catch (attachError) {
+            setPendingImage({
+              userId: targetUserId,
+              mediaId,
+            });
+
+            setWarning(
+              attachError?.response?.data?.message ||
+                "Account created, but profile image attachment failed. Retry below."
+            );
+          }
+        }
+      } else {
+        setUploadedImage(null);
+      }
+
+      setForm(initialForm(roles));
     } catch (err) {
       setError(
         err?.response?.data?.message ||
-          "Account creation failed.",
+          "Account creation failed."
       );
     } finally {
       setLoading(false);
@@ -110,6 +203,29 @@ export default function CreateAccount() {
         </Text>
       )}
 
+      {warning && (
+        <Box
+          bg="orange.subtle"
+          color="orange.fg"
+          p={4}
+          borderRadius="lg"
+          role="alert"
+        >
+          <Text>{warning}</Text>
+
+          {pendingImage && (
+            <Button
+              mt={3}
+              size="sm"
+              loading={loading}
+              onClick={retryImageAttachment}
+            >
+              Retry Image Attachment
+            </Button>
+          )}
+        </Box>
+      )}
+
       {created && (
         <Box
           bg="green.subtle"
@@ -125,6 +241,12 @@ export default function CreateAccount() {
           {created.studentId && (
             <Text mt={2}>
               Student ID: {created.studentId}
+            </Text>
+          )}
+
+          {(created._id || created.id) && (
+            <Text mt={2} fontSize="sm">
+              User ID: {created._id || created.id}
             </Text>
           )}
         </Box>
@@ -204,14 +326,56 @@ export default function CreateAccount() {
                   </option>
                 ))}
               </NativeSelect.Field>
+
               <NativeSelect.Indicator />
             </NativeSelect.Root>
           </Field.Root>
+
+          {supportsImage && canManageImage && (
+            <Box>
+              <Text fontWeight="600" mb={2}>
+                Profile Image (Optional)
+              </Text>
+
+              <ImageUploader
+                key={form.role}
+                category="users"
+                value={
+                  uploadedImage?.secureUrl ||
+                  uploadedImage?.url ||
+                  ""
+                }
+                onUploaded={(image) => {
+                  setUploadedImage(image);
+                  setError("");
+                }}
+                onUploadingChange={setImageUploading}
+              />
+
+              {uploadedImage && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  mt={3}
+                  disabled={loading || imageUploading}
+                  onClick={() => setUploadedImage(null)}
+                >
+                  Clear Selection
+                </Button>
+              )}
+
+              <Text color="fg.muted" fontSize="xs" mt={2}>
+                JPEG, PNG or WebP. Maximum 5 MB.
+              </Text>
+            </Box>
+          )}
 
           <Button
             type="submit"
             colorPalette="blue"
             loading={loading}
+            disabled={imageUploading || Boolean(pendingImage)}
           >
             Create Account
           </Button>
@@ -220,9 +384,7 @@ export default function CreateAccount() {
             <Button
               type="button"
               variant="outline"
-              onClick={() =>
-                navigate("/acc/auth/users")
-              }
+              onClick={() => navigate("/acc/auth/users")}
             >
               Back to User List
             </Button>

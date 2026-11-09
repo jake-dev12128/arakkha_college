@@ -31,7 +31,11 @@ const newsSchema = new mongoose.Schema(
       type: String,
       default: "",
       maxlength: 2048,
-    },
+    },coverImageMediaId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "MediaAsset",
+  default: null,
+},
     category: {
       type: String,
       required: true,

@@ -64,16 +64,33 @@ const programFields = {
     .min(1)
     .max(4),
 
+  // ==================================================
+  // EXISTING PROGRAM IMAGE URL
+  // ==================================================
+
   imageUrl: z
     .string()
     .trim()
     .max(2048)
     .default(""),
+
+  // ==================================================
+  // NEW: CLOUDINARY MEDIA ASSET REFERENCE
+  // ==================================================
+  // Optional for existing programs.
+  // null allows an existing image to be removed.
+  // Media ownership is verified in the service layer.
+  // ==================================================
+
+  imageMediaId: objectId
+    .nullable()
+    .optional(),
 };
 
 export const createProgramSchema = z
   .object(programFields)
   .strict();
+
 export const updateProgramSchema =
   createProgramSchema
     .omit({
@@ -121,6 +138,28 @@ const courseFields = {
     .array(objectId)
     .max(30)
     .default([]),
+
+  // ==================================================
+  // NEW: COURSE COVER IMAGE URL
+  // ==================================================
+
+  coverImage: z
+    .string()
+    .trim()
+    .max(2048)
+    .default(""),
+
+  // ==================================================
+  // NEW: COURSE COVER IMAGE MEDIA REFERENCE
+  // ==================================================
+  // One cover image per course.
+  // Video files remain managed separately
+  // through the existing CourseLesson structure.
+  // ==================================================
+
+  coverImageMediaId: objectId
+    .nullable()
+    .optional(),
 };
 
 export const createCourseSchema = z
@@ -214,6 +253,7 @@ export const updateCurriculumSchema =
       (value) => Object.keys(value).length > 0,
       "At least one field is required."
     );
+
 // ==================================================
 // CLONE CURRICULUM AS DRAFT
 // ==================================================
@@ -229,6 +269,7 @@ export const cloneCurriculumSchema = z
     effectiveFrom: z.coerce.date(),
   })
   .strict();
+
 // ==================================================
 // PARAMETER VALIDATION
 // ==================================================

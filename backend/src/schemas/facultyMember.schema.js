@@ -21,7 +21,17 @@ const optionalUrl = z.union([
 
 const imageUrl = z.union([
   optionalUrl,
-  z.string().regex(/^\/img\/[a-zA-Z0-9/_-]+\.(jpg|jpeg|png|webp)$/i),
+  z.string().regex(
+    /^\/img\/[a-zA-Z0-9/_-]+\.(jpg|jpeg|png|webp)$/i
+  ),
+]);
+
+const mediaId = z.union([
+  z.string().regex(
+    /^[0-9a-fA-F]{24}$/,
+    "Invalid media ID."
+  ),
+  z.null(),
 ]);
 
 export const createFacultySchema = z.object({
@@ -40,6 +50,8 @@ export const createFacultySchema = z.object({
   linkedinUrl: optionalUrl.default(""),
   websiteUrl: optionalUrl.default(""),
   image: imageUrl.default(""),
+
+  imageMediaId: mediaId.optional(),
 
   displayOrder: z.number().int().min(0).default(0),
 }).strict();

@@ -351,9 +351,40 @@ export default function RoleManagement({ role }) {
                 users.map((user) => (
                   <Table.Row key={user._id}>
                     <Table.Cell>
-                      <Text className="acc-person-name">
-                        {user.firstName} {user.lastName}
-                      </Text>
+                      <Flex align="center" gap={3}>
+                        <Box
+                          width="38px"
+                          height="38px"
+                          flexShrink={0}
+                          borderRadius="full"
+                          overflow="hidden"
+                          bg="bg.muted"
+                          display="flex"
+                          alignItems="center"
+                          justifyContent="center"
+                          borderWidth="1px"
+                          borderColor="border"
+                        >
+                          {user.profileImage ? (
+                            <Box
+                              as="img"
+                              src={user.profileImage}
+                              alt={`${user.firstName || ""} ${user.lastName || ""}`.trim()}
+                              width="100%"
+                              height="100%"
+                              objectFit="cover"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <Text fontSize="xs" fontWeight="bold" color="fg.muted">
+                              {`${(user.firstName || "").charAt(0)}${(user.lastName || "").charAt(0)}`.toUpperCase() || "?"}
+                            </Text>
+                          )}
+                        </Box>
+                        <Text className="acc-person-name">
+                          {user.firstName} {user.lastName}
+                        </Text>
+                      </Flex>
                     </Table.Cell>
 
                     <Table.Cell>

@@ -4,6 +4,7 @@ import {
   Button,
   Flex,
   Heading,
+  Image,
   Table,
   Text,
   VStack,
@@ -263,8 +264,17 @@ export default function ProfileDetails({ role }) {
               justifyContent="center"
               fontSize="2xl"
               fontWeight="bold"
+              overflow="hidden"
             >
-              {(
+              {user.profileImage ? (
+                <Image
+                  src={user.profileImage}
+                  alt={`${fullName} profile photo`}
+                  w="full"
+                  h="full"
+                  objectFit="cover"
+                />
+              ) : (
                 `${user.firstName?.[0] ?? ""}${
                   user.lastName?.[0] ?? ""
                 }`.toUpperCase() || "A"

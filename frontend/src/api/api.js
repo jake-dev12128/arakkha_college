@@ -7,9 +7,9 @@ if (!apiBaseUrl) {
   throw new Error("Missing VITE_API_URL");
 }
 
-// ==================================================
+// ==========================================
 // CLERK TOKEN PROVIDER
-// ==================================================
+// ==========================================
 
 let tokenProvider = null;
 
@@ -17,23 +17,18 @@ export const configureApiAuth = (getToken) => {
   tokenProvider = getToken;
 };
 
-// ==================================================
+// ==========================================
 // AXIOS INSTANCE
-// ==================================================
+// ==========================================
 
 const api = axios.create({
   baseURL: apiBaseUrl,
-
-  headers: {
-    "Content-Type": "application/json",
-  },
-
   timeout: 15000,
 });
 
-// ==================================================
+// ==========================================
 // REQUEST INTERCEPTOR
-// ==================================================
+// ==========================================
 
 api.interceptors.request.use(async (config) => {
   if (tokenProvider) {
@@ -57,18 +52,16 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-// ==================================================
+// ==========================================
 // RESPONSE INTERCEPTOR
-// ==================================================
+// ==========================================
 
 api.interceptors.response.use(
   (response) => response,
-
   (error) => {
-    // Never automatically sign out Clerk on HTTP 401.
-    // The calling component handles authentication errors.
+    // Do not automatically sign out on 401.
     return Promise.reject(error);
-  },
+  }
 );
 
 export default api;

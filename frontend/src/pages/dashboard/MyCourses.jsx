@@ -11,6 +11,7 @@ import {
   Box,
   Button,
   Card,
+  Drawer,
   Flex,
   Heading,
   HStack,
@@ -25,6 +26,10 @@ import { useOutletContext } from "react-router-dom";
 import {
   courseAccessService,
 } from "../../services/courseAccess.service.js";
+
+import { coursePlaybackService } from "../../services/coursePlayback.service.js";
+import SecureLessonVideoPlayer from "../../components/dashboard/academic/SecureLessonVideoPlayer.jsx";
+import CourseLessonPlaylist from "../../components/dashboard/academic/CourseLessonPlaylist.jsx";
 
 // ==================================================
 // HELPERS
@@ -71,6 +76,7 @@ function CourseCard({
   rosterLoading,
   rosterError,
   onToggleRoster,
+  onOpenLessons,
 }) {
   if (!course) return null;
 
@@ -125,6 +131,12 @@ function CourseCard({
               {course.description ||
                 "No course description available."}
             </Text>
+          )}
+
+          {!rosterOnly && (
+            <Button size="sm" colorPalette="blue" variant="outline" alignSelf="flex-start" onClick={() => onOpenLessons(course)}>
+              Watch Lessons
+            </Button>
           )}
 
           {isTeacher && assignmentId && (
@@ -269,6 +281,83 @@ export default function MyCourses({
 
   const [rosterErrors, setRosterErrors] =
     useState({});
+
+  // ==================================================
+  // SECURE COURSE LESSON PLAYBACK
+  // ==================================================
+
+  const [lessonCourse, setLessonCourse] = useState(null);
+  const [courseLessons, setCourseLessons] = useState([]);
+  const [lessonsLoading, setLessonsLoading] = useState(false);
+  const [lessonsError, setLessonsError] = useState("");
+  const [activeLessonId, setActiveLessonId] = useState(null);
+  const [playback, setPlayback] = useState(null);
+  const [playbackLoading, setPlaybackLoading] = useState(false);
+  const [playbackError, setPlaybackError] = useState("");
+  const [playbackRefreshKey, setPlaybackRefreshKey] = useState(0);
+
+  const closeLessonPlayer = () => {
+    setLessonCourse(null);
+    setCourseLessons([]);
+    setActiveLessonId(null);
+    setPlayback(null);
+    setLessonsError("");
+    setPlaybackError("");
+  };
+
+  useEffect(() => {
+    if (!lessonCourse?._id) return;
+    const controller = new AbortController();
+    setLessonsLoading(true);
+    setLessonsError("");
+    setCourseLessons([]);
+    setActiveLessonId(null);
+    setPlayback(null);
+
+    coursePlaybackService.listAccessible(lessonCourse._id, controller.signal)
+      .then((result) => {
+        if (controller.signal.aborted) return;
+        const list = Array.isArray(result)
+          ? result
+          : Array.isArray(result?.lessons)
+            ? result.lessons
+            : [];
+        setCourseLessons(list);
+      })
+      .catch((err) => {
+        if (!controller.signal.aborted && !isCanceledRequest(err)) {
+          setLessonsError(getErrorMessage(err));
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLessonsLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [lessonCourse?._id]);
+
+  useEffect(() => {
+    if (!lessonCourse?._id || !activeLessonId) return;
+    const controller = new AbortController();
+    setPlaybackLoading(true);
+    setPlayback(null);
+    setPlaybackError("");
+
+    coursePlaybackService.getPlayback(lessonCourse._id, activeLessonId, controller.signal)
+      .then((result) => {
+        if (!controller.signal.aborted) setPlayback(result);
+      })
+      .catch((err) => {
+        if (!controller.signal.aborted && !isCanceledRequest(err)) {
+          setPlaybackError(getErrorMessage(err));
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setPlaybackLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [lessonCourse?._id, activeLessonId, playbackRefreshKey]);
 
   // ==================================================
   // LOAD COURSES
@@ -677,11 +766,87 @@ export default function MyCourses({
                 onToggleRoster={
                   handleToggleRoster
                 }
+                onOpenLessons={setLessonCourse}
               />
             ),
           )}
         </Box>
       )}
+      {/* Secure lesson playback — URL is issued by backend after authorization. */}
+      <Drawer.Root
+        open={Boolean(lessonCourse)}
+        onOpenChange={(details) => {
+          if (!details.open) closeLessonPlayer();
+        }}
+        placement="end"
+        size="lg"
+      >
+        <Drawer.Backdrop />
+        <Drawer.Positioner>
+          <Drawer.Content>
+            <Drawer.Header>
+              <Drawer.Title>
+                {lessonCourse?.code ? `${lessonCourse.code} — ` : ""}
+                {lessonCourse?.title || "Course Lessons"}
+              </Drawer.Title>
+            </Drawer.Header>
+            <Drawer.Body>
+              <VStack align="stretch" gap={4}>
+                {lessonsLoading ? (
+                  <Flex gap={2} align="center" py={4}>
+                    <Spinner size="sm" />
+                    <Text>Loading lessons...</Text>
+                  </Flex>
+                ) : lessonsError ? (
+                  <Text color="red.500" role="alert">{lessonsError}</Text>
+                ) : courseLessons.length === 0 ? (
+                  <Text color="fg.muted">No published lessons with videos are available.</Text>
+                ) : (
+                  <CourseLessonPlaylist
+                    lessons={courseLessons}
+                    activeLessonId={activeLessonId}
+                    onSelect={(lesson) => {
+                      const id = String(lesson.id || lesson._id);
+                      if (String(activeLessonId) === id) {
+                        setActiveLessonId(null);
+                        setPlayback(null);
+                        setPlaybackError("");
+                        return;
+                      }
+                      setActiveLessonId(id);
+                    }}
+                    renderPlayer={() => (
+                      <Box borderWidth="1px" borderRadius="lg" p={3}>
+                        <SecureLessonVideoPlayer
+                          playback={playback}
+                          loading={playbackLoading}
+                          error={playbackError}
+                          onRetry={() => setPlaybackRefreshKey((key) => key + 1)}
+                        />
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          mt={3}
+                          onClick={() => {
+                            setActiveLessonId(null);
+                            setPlayback(null);
+                            setPlaybackError("");
+                          }}
+                        >
+                          Close Video
+                        </Button>
+                      </Box>
+                    )}
+                  />
+                )}
+              </VStack>
+            </Drawer.Body>
+            <Drawer.Footer>
+              <Button variant="outline" onClick={closeLessonPlayer}>Close</Button>
+            </Drawer.Footer>
+          </Drawer.Content>
+        </Drawer.Positioner>
+      </Drawer.Root>
     </VStack>
   );
 }

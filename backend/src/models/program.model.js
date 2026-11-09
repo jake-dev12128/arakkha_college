@@ -58,31 +58,39 @@ const programSchema = new Schema(
       min: 1,
     },
 
+    // Existing public image URL.
     imageUrl: {
       type: String,
       default: "",
     },
 
+    // NEW: Cloudinary MediaAsset reference.
+    imageMediaId: {
+      type: Schema.Types.ObjectId,
+      ref: "MediaAsset",
+      default: null,
+    },
+
     isPublished: {
-  type: Boolean,
-  default: false,
-  index: true,
-},
+      type: Boolean,
+      default: false,
+      index: true,
+    },
 
-publishedAt: {
-  type: Date,
-  default: null,
-},
+    publishedAt: {
+      type: Date,
+      default: null,
+    },
 
-lastPublishedAt: {
-  type: Date,
-  default: null,
-},
+    lastPublishedAt: {
+      type: Date,
+      default: null,
+    },
 
-isActive: {
-  type: Boolean,
-  default: true,
-},
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
   },
   {
     timestamps: true,

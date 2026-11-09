@@ -11,7 +11,9 @@ const httpUrl = z.url().max(2048).refine(
       return false;
     }
   },
-  { message: "Only HTTP/HTTPS URLs are allowed." }
+  {
+    message: "Only HTTP/HTTPS URLs are allowed.",
+  }
 );
 
 const localImage = z.string().regex(
@@ -24,11 +26,25 @@ const optionalImage = z.union([
   localImage,
 ]).default("");
 
+const optionalMediaId = z.union([
+  z.string().regex(/^[0-9a-fA-F]{24}$/, {
+    message: "Invalid media ID.",
+  }),
+  z.null(),
+]).default(null);
+
 export const createNewsSchema = z.object({
   title: z.string().trim().min(3).max(200),
+
   summary: z.string().trim().min(5).max(1000),
+
   content: z.string().trim().min(1).max(100000),
+
   coverImage: optionalImage,
+
+  // Cloudinary MediaAsset reference
+  coverImageMediaId: optionalMediaId,
+
   category: z.enum([
     "Announcement",
     "Event",
@@ -39,6 +55,7 @@ export const createNewsSchema = z.object({
     "Collaboration",
     "Student Life",
   ]).default("General"),
+
   isFeatured: z.boolean().default(false),
 }).strict();
 

@@ -17,10 +17,13 @@ import {
 
 import {
   useNavigate,
+  useOutletContext,
   useParams,
 } from "react-router-dom";
 
 import { dashboardService } from "../../services/dashboard.service.js";
+import { mediaService } from "../../services/media.service.js";
+import ImageUploader from "../../components/common/ImageUploader.jsx";
 
 // ==================================================
 // CONSTANTS
@@ -213,6 +216,8 @@ export default function ProfileForm({
 }) {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useOutletContext();
+  const canManageProfileImage = ["super_admin", "admin"].includes(user?.role);
 
   const isStudent = role === "student";
   const isEdit = mode === "edit";
@@ -244,6 +249,14 @@ export default function ProfileForm({
   const [success, setSuccess] =
     useState("");
 
+  const [profileImage, setProfileImage] = useState(null);
+  const [uploadedImage, setUploadedImage] = useState(null);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [removeImagePending, setRemoveImagePending] = useState(false);
+  const [imageError, setImageError] = useState("");
+  const [imageSuccess, setImageSuccess] = useState("");
+  const [createdUserId, setCreatedUserId] = useState(null);
+
   const originalRef = useRef(null);
 
   // ==================================================
@@ -251,6 +264,7 @@ export default function ProfileForm({
   // ==================================================
 
   const update = (field, value) => {
+    if (!isEdit && createdUserId) return;
     setForm((previous) => ({
       ...previous,
       [field]: value,
@@ -266,6 +280,11 @@ export default function ProfileForm({
       originalRef.current = null;
       setProfileId(null);
       setForm(createEmptyForm());
+      setProfileImage(null);
+      setUploadedImage(null);
+      setImageError("");
+      setImageSuccess("");
+      setCreatedUserId(null);
       setLoading(false);
       return;
     }
@@ -329,6 +348,10 @@ export default function ProfileForm({
 
         setProfileId(profile._id);
         setForm(loadedForm);
+        setProfileImage(user.profileImage || null);
+        setUploadedImage(null);
+        setImageError("");
+        setImageSuccess("");
 
         originalRef.current = structuredClone(
           loadedForm
@@ -398,21 +421,78 @@ export default function ProfileForm({
   };
 
   // ==================================================
+  // MANAGED PROFILE IMAGE (EDIT MODE)
+  // ==================================================
+
+  const savePendingProfileImage = async () => {
+    if (!canManageProfileImage || !isEdit || !id) return false;
+
+    if (removeImagePending) {
+      await mediaService.updateManagedProfileImage(id, null);
+      setProfileImage(null);
+      setUploadedImage(null);
+      setRemoveImagePending(false);
+      return true;
+    }
+
+    if (uploadedImage) {
+      // Image upload API returns { mediaId, url, ... }.
+      const mediaId = uploadedImage.mediaId || uploadedImage._id || uploadedImage.id;
+      if (!mediaId) {
+        throw new Error("Uploaded media ID is missing.");
+      }
+      const result = await mediaService.updateManagedProfileImage(id, mediaId);
+      setProfileImage(result?.user?.profileImage || uploadedImage.url || uploadedImage.secureUrl || null);
+      setUploadedImage(null);
+      return true;
+    }
+
+    return false;
+  };
+
+  // ==================================================
   // SUBMIT
   // ==================================================
 
   const submit = async (event) => {
     event.preventDefault();
 
-    if (saving) {
+    if (saving || imageUploading) {
       return;
     }
 
     setError("");
+    setImageError("");
     setSuccess("");
     setSaving(true);
 
     try {
+      // Retry only the attachment after a successful account creation.
+      // Never call createUser again, even if form data was changed.
+      if (!isEdit && createdUserId) {
+        if (!canManageProfileImage || !uploadedImage) {
+          throw new Error("No pending image to attach. The account already exists.");
+        }
+        const retryMediaId =
+          uploadedImage.mediaId || uploadedImage._id || uploadedImage.id;
+        if (!retryMediaId) {
+          throw new Error("Uploaded media ID is missing. Upload the image again before retrying.");
+        }
+        await mediaService.updateManagedProfileImage(createdUserId, retryMediaId);
+        setUploadedImage(null);
+        navigate(`/acc/auth/${resource}`, { replace: true });
+        return;
+      }
+
+      // Validate the uploaded asset before creating a new account.
+      if (!isEdit && uploadedImage && canManageProfileImage) {
+        const pendingMediaId =
+          uploadedImage.mediaId || uploadedImage._id || uploadedImage.id;
+        if (!pendingMediaId) {
+          throw new Error("Uploaded media ID is missing. Please upload the image again.");
+        }
+      }
+
       const firstName =
         form.firstName.trim();
 
@@ -477,7 +557,9 @@ export default function ProfileForm({
 
         if (
           !hasIdentityChanges &&
-          !hasPersonalChanges
+          !hasPersonalChanges &&
+          (!canManageProfileImage || !uploadedImage) &&
+          (!canManageProfileImage || !removeImagePending)
         ) {
           setSuccess(
             "No changes to save."
@@ -526,6 +608,16 @@ export default function ProfileForm({
           };
         }
 
+        // Save image last. If it fails, stay on the form so it can be retried.
+        // Profile/identity updates may already have succeeded independently.
+        try {
+          await savePendingProfileImage();
+        } catch (imageErr) {
+          setImageError(errorMessage(imageErr));
+          setError("Other changes may have saved, but the profile image did not. Retry Save Changes.");
+          return;
+        }
+
         navigate(
           `/acc/auth/${resource}`,
           { replace: true }
@@ -552,7 +644,9 @@ export default function ProfileForm({
         );
       }
 
-      await dashboardService.createUser({
+      const createdUser = createdUserId
+        ? { _id: createdUserId }
+        : await dashboardService.createUser({
         role,
         firstName,
         lastName,
@@ -561,6 +655,29 @@ export default function ProfileForm({
         password: form.password,
         ...personal,
       });
+
+      const newUserId = createdUser?._id || createdUser?.id;
+      if (!createdUserId && newUserId) {
+        setCreatedUserId(newUserId);
+      }
+
+      if (uploadedImage && canManageProfileImage) {
+        const mediaId = uploadedImage.mediaId || uploadedImage._id || uploadedImage.id;
+        if (!mediaId) {
+          throw new Error("Account was created, but uploaded media ID is missing. Do not create another account.");
+        }
+        if (!newUserId) {
+          throw new Error("Account was created, but the User ID is missing. Check the create response before retrying.");
+        }
+        try {
+          await mediaService.updateManagedProfileImage(newUserId, mediaId);
+          setUploadedImage(null);
+        } catch (attachError) {
+          throw new Error(
+            `Account was created, but image attachment failed: ${errorMessage(attachError)}. Retry Create to attach without creating another account.`
+          );
+        }
+      }
 
       navigate(
         `/acc/auth/${resource}`,
@@ -752,7 +869,7 @@ export default function ProfileForm({
                           event.target.value
                         )
                       }
-                      readOnly={readOnly}
+                      readOnly={readOnly || (!isEdit && Boolean(createdUserId))}
                       required
                       maxLength={
                         emailField
@@ -792,6 +909,7 @@ export default function ProfileForm({
                     )
                   }
                   required
+                  readOnly={Boolean(createdUserId)}
                   minLength={8}
                   maxLength={128}
                   autoComplete="new-password"
@@ -822,6 +940,68 @@ export default function ProfileForm({
             h="1px"
             bg="#E8ECF4"
           />
+
+          {!isEdit && createdUserId && (
+            <Text color="orange.600" fontSize="sm">
+              Account already created. Retry the image attachment without creating a duplicate account.
+            </Text>
+          )}
+
+          {/* PROFILE IMAGE — ADMIN / SUPER ADMIN ONLY */}
+          {canManageProfileImage && (
+            <Box>
+              <Heading size="md" color="#192968" mb={2}>
+                Profile Image
+              </Heading>
+              <Text fontSize="sm" color="#74809A" mb={4}>
+                {isEdit ? "Upload, replace or remove" : "Upload an optional"} {label.toLowerCase()} profile photo.
+              </Text>
+              {imageError && (
+                <Text color="red.600" mb={3} role="alert">{imageError}</Text>
+              )}
+              {imageSuccess && (
+                <Text color="green.600" mb={3} role="status">{imageSuccess}</Text>
+              )}
+              <ImageUploader
+                category="users"
+                value={removeImagePending ? "" : (uploadedImage?.url || uploadedImage?.secureUrl || profileImage || "")}
+                onUploaded={(image) => {
+                  if (createdUserId) return;
+                  setUploadedImage(image);
+                  setRemoveImagePending(false);
+                  setImageError("");
+                  setImageSuccess("");
+                }}
+                onUploadingChange={setImageUploading}
+              />
+              <Flex gap={3} mt={4} flexWrap="wrap" align="center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  colorPalette="red"
+                  disabled={Boolean(createdUserId) || (!profileImage && !uploadedImage) || imageUploading || saving}
+                  onClick={() => {
+                    setUploadedImage(null);
+                    setRemoveImagePending(Boolean(profileImage));
+                    setImageError("");
+                    setImageSuccess("");
+                  }}
+                >
+                  Remove Image
+                </Button>
+                {removeImagePending && (
+                  <Text fontSize="sm" color="orange.600">
+                    Image will be removed when you click Save Changes.
+                  </Text>
+                )}
+                {uploadedImage && !removeImagePending && (
+                  <Text fontSize="sm" color="fg.muted">
+                    New image will be saved when you {isEdit ? "Save Changes" : `Create ${label}`}.
+                  </Text>
+                )}
+              </Flex>
+            </Box>
+          )}
 
           {/* PERSONAL INFORMATION */}
 
@@ -1103,7 +1283,7 @@ export default function ProfileForm({
               color="white"
               loading={saving}
               disabled={
-                isEdit && !profileId
+                imageUploading || (isEdit && !profileId)
               }
               _hover={{
                 bg: "#30458F",
@@ -1111,7 +1291,7 @@ export default function ProfileForm({
             >
               {isEdit
                 ? "Save Changes"
-                : `Create ${label}`}
+                : createdUserId ? "Retry Image Attachment" : `Create ${label}`}
             </Button>
           </Flex>
         </VStack>

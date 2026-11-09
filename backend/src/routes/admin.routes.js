@@ -50,6 +50,7 @@ import {
   getProfileByUserId,
   updateProfile,
   deactivateProfile,
+  updateManagedProfileImageController,
 } from "../controllers/profileManagement.controller.js";
 
 const router = express.Router();
@@ -84,7 +85,15 @@ const validateQuery = (schema, localKey) => {
 // ==================================================
 
 router.use(requireAuthentication);
+// ==========================================
+// ADMIN-MANAGED PROFILE IMAGE
+// ==========================================
 
+router.patch(
+  "/users/:userId/profile-image",
+  requireRole("super_admin", "admin"),
+  updateManagedProfileImageController
+);
 // ==================================================
 // CREATE MANAGED USER
 //

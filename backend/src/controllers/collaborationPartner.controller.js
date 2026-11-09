@@ -34,6 +34,18 @@ const validateId = (req) =>
     id: req.params.id,
   }).id;
 
+const getActorId = (req) => {
+  if (!req.user?._id) {
+    const error = new Error("Authentication required.");
+    error.statusCode = 401;
+    error.code = "AUTHENTICATION_REQUIRED";
+    error.isOperational = true;
+    throw error;
+  }
+
+  return req.user._id;
+};
+
 // ==================================================
 // PUBLIC
 // ==================================================
@@ -47,8 +59,7 @@ export const listPublicCollaborations = async (req, res) => {
 export const getPublicCollaboration = async (req, res) => {
   const id = validateId(req);
 
-  const partner =
-    await service.getPublicPartnerById(id);
+  const partner = await service.getPublicPartnerById(id);
 
   return sendSuccess(res, { partner });
 };
@@ -66,24 +77,37 @@ export const listAdminCollaborations = async (req, res) => {
 export const getAdminCollaboration = async (req, res) => {
   const id = validateId(req);
 
-  const partner =
-    await service.getAdminPartnerById(id);
+  const partner = await service.getAdminPartnerById(id);
 
   return sendSuccess(res, { partner });
 };
 
+// ==================================================
+// CREATE
+// ==================================================
+
 export const createCollaboration = async (req, res) => {
+  const actorId = getActorId(req);
+
   const payload = validate(
     createCollaborationSchema,
     req.body
   );
 
-  const partner = await service.createPartner(payload);
+  const partner = await service.createPartner(
+    payload,
+    actorId
+  );
 
   return sendSuccess(res, { partner }, 201);
 };
 
+// ==================================================
+// UPDATE / REPLACE / REMOVE IMAGE
+// ==================================================
+
 export const updateCollaboration = async (req, res) => {
+  const actorId = getActorId(req);
   const id = validateId(req);
 
   const payload = validate(
@@ -91,11 +115,18 @@ export const updateCollaboration = async (req, res) => {
     req.body
   );
 
-  const partner =
-    await service.updatePartner(id, payload);
+  const partner = await service.updatePartner(
+    id,
+    payload,
+    actorId
+  );
 
   return sendSuccess(res, { partner });
 };
+
+// ==================================================
+// PUBLISH / UNPUBLISH
+// ==================================================
 
 export const publishCollaboration = async (req, res) => {
   const id = validateId(req);
@@ -105,14 +136,17 @@ export const publishCollaboration = async (req, res) => {
     req.body
   );
 
-  const partner =
-    await service.setPartnerPublication(
-      id,
-      isPublished
-    );
+  const partner = await service.setPartnerPublication(
+    id,
+    isPublished
+  );
 
   return sendSuccess(res, { partner });
 };
+
+// ==================================================
+// DELETE
+// ==================================================
 
 export const deleteCollaboration = async (req, res) => {
   const id = validateId(req);

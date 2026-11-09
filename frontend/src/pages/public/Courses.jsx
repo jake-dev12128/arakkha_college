@@ -262,6 +262,18 @@ export default function Courses() {
                             Hands-on exercises and practice
                           </Text>
                         </Box>
+
+                        <Button
+                          as={RouterLink}
+                          to={`/academic/courses/${encodeURIComponent(programId)}/${encodeURIComponent(course._id)}`}
+                          colorPalette="blue"
+                          variant="outline"
+                          size="sm"
+                          width="100%"
+                          mt={5}
+                        >
+                          View Course & Lessons
+                        </Button>
                       </Box>
                     ))}
                   </Flex>

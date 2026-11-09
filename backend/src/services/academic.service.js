@@ -1,10 +1,19 @@
-
 import mongoose from "mongoose";
 import Program from "../models/program.model.js";
 import Course from "../models/course.model.js";
 import Curriculum from "../models/curriculum.model.js";
 import AppError from "../utils/AppError.js";
 import Cohort from "../models/cohort.model.js";
+import {
+  attachProgramImage,
+  detachProgramImage,
+  verifyCurrentProgramImage,
+} from "./programMedia.service.js";
+import {
+  attachCourseImage,
+  detachCourseImage,
+  verifyCurrentCourseImage,
+} from "./courseMedia.service.js";
 const fail = (message, status = 400, code = "BAD_REQUEST") => {
   throw new AppError(message, status, code);
 };
@@ -30,24 +39,14 @@ const getRecord = async (Model, id) => {
   return record;
 };
 
-
 export const listAcademicRecords = async (
   type,
-  {
-    page = 1,
-    limit = 20,
-    search,
-    status,
-  }
+  { page = 1, limit = 20, search, status },
 ) => {
   const Model = getModel(type);
 
   if (!Model) {
-    fail(
-      "Unsupported academic resource.",
-      400,
-      "INVALID_RESOURCE_TYPE"
-    );
+    fail("Unsupported academic resource.", 400, "INVALID_RESOURCE_TYPE");
   }
 
   const filter = {};
@@ -57,43 +56,21 @@ export const listAcademicRecords = async (
   // ==========================================
 
   const allowedStatuses = {
-    curricula: [
-      "draft",
-      "published",
-      "archived",
-    ],
+    curricula: ["draft", "published", "archived"],
   };
 
   if (status && status !== "all") {
-    if (
-      type === "courses" ||
-      type === "programs"
-    ) {
-      if (
-        !["active", "inactive"].includes(status)
-      ) {
-        fail(
-          "Invalid status filter.",
-          400,
-          "INVALID_STATUS_FILTER"
-        );
+    if (type === "courses" || type === "programs") {
+      if (!["active", "inactive"].includes(status)) {
+        fail("Invalid status filter.", 400, "INVALID_STATUS_FILTER");
       }
 
-      filter.isActive =
-        status === "active";
+      filter.isActive = status === "active";
     } else {
-      const allowed =
-        allowedStatuses[type];
+      const allowed = allowedStatuses[type];
 
-      if (
-        !allowed ||
-        !allowed.includes(status)
-      ) {
-        fail(
-          "Invalid status filter.",
-          400,
-          "INVALID_STATUS_FILTER"
-        );
+      if (!allowed || !allowed.includes(status)) {
+        fail("Invalid status filter.", 400, "INVALID_STATUS_FILTER");
       }
 
       filter.status = status;
@@ -104,44 +81,24 @@ export const listAcademicRecords = async (
   // SEARCH FILTER
   // ==========================================
 
-  if (
-    typeof search === "string" &&
-    search.trim()
-  ) {
-    const safeSearch = search
-      .trim()
-      .replace(
-        /[.*+?^${}()|[\]\\]/g,
-        "\\$&"
-      );
+  if (typeof search === "string" && search.trim()) {
+    const safeSearch = search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
     const searchFields = {
-      programs: [
-        "name",
-        "code",
-        "slug",
-      ],
-      courses: [
-        "title",
-        "code",
-      ],
-      curricula: [
-        "version",
-      ],
+      programs: ["name", "code", "slug"],
+      courses: ["title", "code"],
+      curricula: ["version"],
     };
 
-    const fields =
-      searchFields[type] || [];
+    const fields = searchFields[type] || [];
 
     if (fields.length > 0) {
-      filter.$or = fields.map(
-        (field) => ({
-          [field]: {
-            $regex: safeSearch,
-            $options: "i",
-          },
-        })
-      );
+      filter.$or = fields.map((field) => ({
+        [field]: {
+          $regex: safeSearch,
+          $options: "i",
+        },
+      }));
     }
   }
 
@@ -149,36 +106,28 @@ export const listAcademicRecords = async (
   // PAGINATION
   // ==========================================
 
-  const safePage = Math.max(
-    1,
-    Number.parseInt(page, 10) || 1
-  );
+  const safePage = Math.max(1, Number.parseInt(page, 10) || 1);
 
   const safeLimit = Math.min(
     100,
-    Math.max(
-      1,
-      Number.parseInt(limit, 10) || 20
-    )
+    Math.max(1, Number.parseInt(limit, 10) || 20),
   );
 
-  const skip =
-    (safePage - 1) * safeLimit;
+  const skip = (safePage - 1) * safeLimit;
 
   // ==========================================
   // DATABASE QUERY
   // ==========================================
 
-  const [data, total] =
-    await Promise.all([
-      Model.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(safeLimit)
-        .lean(),
+  const [data, total] = await Promise.all([
+    Model.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(safeLimit)
+      .lean(),
 
-      Model.countDocuments(filter),
-    ]);
+    Model.countDocuments(filter),
+  ]);
 
   return {
     data,
@@ -186,12 +135,10 @@ export const listAcademicRecords = async (
       page: safePage,
       limit: safeLimit,
       total,
-      totalPages:
-        Math.ceil(total / safeLimit),
+      totalPages: Math.ceil(total / safeLimit),
     },
   };
 };
-
 
 export const getAcademicRecord = async (type, id) => {
   return getRecord(getModel(type), id);
@@ -209,17 +156,14 @@ const generateProgramSlug = (name) => {
     fail(
       "Program name cannot generate a valid slug.",
       400,
-      "INVALID_PROGRAM_SLUG"
+      "INVALID_PROGRAM_SLUG",
     );
   }
 
   return slug;
 };
-export const createProgram = async (data) => {
+export const createProgram = async (data, actorId) => {
   const baseSlug = generateProgramSlug(data.name);
-
-  // Program Code is already unique.
-  // Append it to avoid collisions between similar names.
   const slug = `${baseSlug}-${data.code.toLowerCase()}`;
 
   const existing = await Program.exists({ slug });
@@ -228,59 +172,252 @@ export const createProgram = async (data) => {
     fail(
       "A program with this slug already exists.",
       409,
-      "PROGRAM_SLUG_CONFLICT"
+      "PROGRAM_SLUG_CONFLICT",
     );
   }
 
-  return Program.create({
-    ...data,
-    slug,
-  });
-};
-export const updateProgram = async (id, data) => {
-  const program = await getRecord(Program, id);
+  const payload = { ...data };
+  const mediaId = payload.imageMediaId;
 
-  if (program.isActive === false) {
-    fail("Archived program cannot be edited.", 409);
+  delete payload.imageMediaId;
+
+  let created;
+
+  await mongoose.connection.transaction(async (session) => {
+    const program = new Program({
+      ...payload,
+      slug,
+    });
+
+    if (mediaId) {
+      const url = await attachProgramImage(
+        mediaId,
+        program._id,
+        actorId,
+        session,
+      );
+
+      if (payload.imageUrl && payload.imageUrl !== url) {
+        fail(
+          "Program image URL and media ID do not match.",
+          409,
+          "PROGRAM_MEDIA_URL_MISMATCH",
+        );
+      }
+
+      program.imageUrl = url;
+      program.imageMediaId = mediaId;
+    }
+
+    await program.save({ session });
+    created = program;
+  });
+
+  return created;
+};
+
+export const updateProgram = async (id, data, actorId) => {
+  if (!mongoose.isValidObjectId(id)) {
+    fail("Invalid resource ID.", 400, "INVALID_ID");
   }
 
-  const hasCurricula = await Curriculum.exists({
-    program: id,
-    status: { $ne: "archived" },
+  const payload = { ...data };
+
+  const hasMediaId = Object.prototype.hasOwnProperty.call(
+    payload,
+    "imageMediaId",
+  );
+
+  const requestedMediaId = payload.imageMediaId;
+  delete payload.imageMediaId;
+
+  let updated;
+
+  await mongoose.connection.transaction(async (session) => {
+    const program = await Program.findById(id).session(session);
+
+    if (!program) {
+      fail("Resource not found.", 404, "NOT_FOUND");
+    }
+
+    if (program.isActive === false) {
+      fail("Archived program cannot be edited.", 409);
+    }
+
+    const hasCurricula = await Curriculum.exists({
+      program: id,
+      status: { $ne: "archived" },
+    }).session(session);
+
+    if (
+      hasCurricula &&
+      (payload.durationYears !== undefined ||
+        payload.semestersPerYear !== undefined)
+    ) {
+      fail("Cannot change program duration with existing curricula.", 409);
+    }
+
+    const previousMediaId = program.imageMediaId;
+
+    if (hasMediaId) {
+      if (
+        requestedMediaId &&
+        String(requestedMediaId) === String(previousMediaId || "")
+      ) {
+        await verifyCurrentProgramImage(
+          requestedMediaId,
+          program._id,
+          program.imageUrl,
+          session,
+        );
+
+        if (
+          payload.imageUrl !== undefined &&
+          payload.imageUrl !== program.imageUrl
+        ) {
+          fail(
+            "Program image URL and media ID do not match.",
+            409,
+            "PROGRAM_MEDIA_URL_MISMATCH",
+          );
+        }
+      } else {
+        let nextUrl = "";
+
+        if (requestedMediaId) {
+          nextUrl = await attachProgramImage(
+            requestedMediaId,
+            program._id,
+            actorId,
+            session,
+          );
+
+          if (payload.imageUrl && payload.imageUrl !== nextUrl) {
+            fail(
+              "Program image URL and media ID do not match.",
+              409,
+              "PROGRAM_MEDIA_URL_MISMATCH",
+            );
+          }
+        }
+
+        if (previousMediaId) {
+          await detachProgramImage(previousMediaId, program._id, session);
+        }
+
+        program.imageUrl = nextUrl;
+        program.imageMediaId = requestedMediaId || null;
+      }
+
+      delete payload.imageUrl;
+    } else if (payload.imageUrl !== undefined && previousMediaId) {
+      if (payload.imageUrl !== program.imageUrl) {
+        fail(
+          "Use imageMediaId to replace or remove a managed image.",
+          409,
+          "PROGRAM_MEDIA_ID_REQUIRED",
+        );
+      }
+
+      delete payload.imageUrl;
+    }
+
+    Object.assign(program, payload);
+
+    await program.save({ session });
+    updated = program;
   });
 
-  if (hasCurricula && (
-    data.durationYears !== undefined ||
-    data.semestersPerYear !== undefined
-  )) {
-    fail("Cannot change program duration with existing curricula.", 409);
-  }
-
-  Object.assign(program, data);
-  return program.save();
+  return updated;
 };
 
-export const archiveProgram = async id => {
-  const program = await getRecord(Program, id);
+export const archiveProgram = async (id) => {
+  let archived;
 
-  const activeCurriculum = await Curriculum.exists({
-    program: id,
-    status: { $ne: "archived" },
+  await mongoose.connection.transaction(async (session) => {
+    if (!mongoose.isValidObjectId(id)) {
+      fail("Invalid resource ID.", 400, "INVALID_ID");
+    }
+
+    const program = await Program.findById(id).session(session);
+
+    if (!program) {
+      fail("Resource not found.", 404, "NOT_FOUND");
+    }
+
+    const activeCurriculum = await Curriculum.exists({
+      program: id,
+      status: { $ne: "archived" },
+    }).session(session);
+
+    if (activeCurriculum) {
+      fail("Archive active curricula first.", 409);
+    }
+
+    program.isActive = false;
+    program.isPublished = false;
+
+    await program.save({ session });
+    archived = program;
   });
 
-  if (activeCurriculum) {
-    fail("Archive active curricula first.", 409);
-  }
-
-  program.isActive = false;
-  program.isPublished = false;
-  return program.save();
+  return archived;
 };
 
-export const createCourse = async data => {
-  await validatePrerequisites(data.prerequisites ?? []);
-  return Course.create(data);
+export const createCourse = async (data, actorId) => {
+  await validatePrerequisites(
+    data.prerequisites ?? []
+  );
+
+  const payload = { ...data };
+  const mediaId = payload.coverImageMediaId;
+
+  delete payload.coverImageMediaId;
+
+  let created;
+
+  await mongoose.connection.transaction(
+    async (session) => {
+      const course = new Course(payload);
+
+      if (mediaId) {
+        const url = await attachCourseImage(
+          mediaId,
+          course._id,
+          actorId,
+          session
+        );
+
+        if (
+          payload.coverImage &&
+          payload.coverImage !== url
+        ) {
+          fail(
+            "Course cover image URL and media ID do not match.",
+            409,
+            "COURSE_MEDIA_URL_MISMATCH"
+          );
+        }
+
+        course.coverImage = url;
+        course.coverImageMediaId = mediaId;
+      } else if (payload.coverImage) {
+        fail(
+          "A managed course cover image requires coverImageMediaId.",
+          400,
+          "COURSE_MEDIA_ID_REQUIRED"
+        );
+      }
+
+      await course.save({ session });
+
+      created = course;
+    }
+  );
+
+  return created;
 };
+
 
 const validatePrerequisites = async (ids, currentId = null) => {
   const unique = [...new Set(ids.map(String))];
@@ -305,22 +442,176 @@ const validatePrerequisites = async (ids, currentId = null) => {
   }
 };
 
-export const updateCourse = async (id, data) => {
-  const course = await getRecord(Course, id);
-
-  if (!course.isActive) {
-    fail("Archived course cannot be edited.", 409);
+export const updateCourse = async (
+  id,
+  data,
+  actorId
+) => {
+  if (!mongoose.isValidObjectId(id)) {
+    fail(
+      "Invalid resource ID.",
+      400,
+      "INVALID_ID"
+    );
   }
 
-  if (data.prerequisites) {
-    await validatePrerequisites(data.prerequisites, id);
+  const payload = { ...data };
+
+  const hasMediaId =
+    Object.prototype.hasOwnProperty.call(
+      payload,
+      "coverImageMediaId"
+    );
+
+  const requestedMediaId =
+    payload.coverImageMediaId;
+
+  delete payload.coverImageMediaId;
+
+  // Preserve the existing prerequisite validation.
+  if (payload.prerequisites) {
+    await validatePrerequisites(
+      payload.prerequisites,
+      id
+    );
   }
 
-  Object.assign(course, data);
-  return course.save();
+  let updated;
+
+  await mongoose.connection.transaction(
+    async (session) => {
+      const course = await Course.findById(
+        id
+      ).session(session);
+
+      if (!course) {
+        fail(
+          "Resource not found.",
+          404,
+          "NOT_FOUND"
+        );
+      }
+
+      if (!course.isActive) {
+        fail(
+          "Archived course cannot be edited.",
+          409
+        );
+      }
+
+      const previousMediaId =
+        course.coverImageMediaId;
+
+      if (hasMediaId) {
+        if (
+          requestedMediaId &&
+          String(requestedMediaId) ===
+            String(previousMediaId || "")
+        ) {
+          // Same image: verify its current attachment.
+          await verifyCurrentCourseImage(
+            requestedMediaId,
+            course._id,
+            course.coverImage,
+            session
+          );
+
+          if (
+            payload.coverImage !== undefined &&
+            payload.coverImage !==
+              course.coverImage
+          ) {
+            fail(
+              "Course cover image URL and media ID do not match.",
+              409,
+              "COURSE_MEDIA_URL_MISMATCH"
+            );
+          }
+        } else {
+          let nextUrl = "";
+
+          if (requestedMediaId) {
+            nextUrl = await attachCourseImage(
+              requestedMediaId,
+              course._id,
+              actorId,
+              session
+            );
+
+            if (
+              payload.coverImage &&
+              payload.coverImage !== nextUrl
+            ) {
+              fail(
+                "Course cover image URL and media ID do not match.",
+                409,
+                "COURSE_MEDIA_URL_MISMATCH"
+              );
+            }
+          } else if (payload.coverImage) {
+            fail(
+              "Removing an image requires an empty coverImage.",
+              400,
+              "COURSE_MEDIA_REMOVE_CONFLICT"
+            );
+          }
+
+          if (previousMediaId) {
+            await detachCourseImage(
+              previousMediaId,
+              course._id,
+              session
+            );
+          }
+
+          course.coverImage = nextUrl;
+          course.coverImageMediaId =
+            requestedMediaId || null;
+        }
+
+        delete payload.coverImage;
+      } else if (
+        payload.coverImage !== undefined
+      ) {
+        if (
+          previousMediaId &&
+          payload.coverImage !==
+            course.coverImage
+        ) {
+          fail(
+            "Use coverImageMediaId to replace or remove a managed image.",
+            409,
+            "COURSE_MEDIA_ID_REQUIRED"
+          );
+        }
+
+        if (
+          !previousMediaId &&
+          payload.coverImage &&
+          payload.coverImage !==
+            course.coverImage
+        ) {
+          fail(
+            "New course images require coverImageMediaId.",
+            400,
+            "COURSE_MEDIA_ID_REQUIRED"
+          );
+        }
+      }
+
+      Object.assign(course, payload);
+
+      await course.save({ session });
+
+      updated = course;
+    }
+  );
+
+  return updated;
 };
 
-export const archiveCourse = async id => {
+
+export const archiveCourse = async (id) => {
   const course = await getRecord(Course, id);
 
   const referenced = await Curriculum.exists({
@@ -346,19 +637,13 @@ export const archiveCourse = async id => {
 };
 
 const validateCurriculum = async (data) => {
-  const program = await getRecord(
-    Program,
-    data.program
-  );
+  const program = await getRecord(Program, data.program);
 
   if (!program.isActive) {
     fail("Program is inactive.", 409);
   }
 
-  if (
-    !Array.isArray(data.semesters) ||
-    data.semesters.length === 0
-  ) {
+  if (!Array.isArray(data.semesters) || data.semesters.length === 0) {
     fail("Curriculum must contain at least one semester.");
   }
 
@@ -366,11 +651,7 @@ const validateCurriculum = async (data) => {
   const semesterKeys = new Set();
 
   for (const semester of data.semesters) {
-    const {
-      yearNumber,
-      semesterNumber,
-      courses,
-    } = semester;
+    const { yearNumber, semesterNumber, courses } = semester;
 
     if (
       !Number.isInteger(yearNumber) ||
@@ -425,8 +706,7 @@ const validateCurriculum = async (data) => {
   }
 };
 
-
-export const createCurriculum = async data => {
+export const createCurriculum = async (data) => {
   const program = await getRecord(Program, data.program);
 
   if (!program.isActive) {
@@ -442,36 +722,27 @@ export const createCurriculum = async data => {
 // CLONE CURRICULUM AS DRAFT
 // ==================================================
 
-export const cloneCurriculumAsDraft = async (
-  id,
-  data
-) => {
+export const cloneCurriculumAsDraft = async (id, data) => {
   // 1. Find source curriculum
-  const source = await getRecord(
-    Curriculum,
-    id
-  );
+  const source = await getRecord(Curriculum, id);
 
   // 2. Only published curricula can be cloned
   if (source.status !== "published") {
     fail(
       "Only published curricula can be cloned as draft.",
       409,
-      "CURRICULUM_NOT_PUBLISHED"
+      "CURRICULUM_NOT_PUBLISHED",
     );
   }
 
   // 3. Verify program is still active
-  const program = await getRecord(
-    Program,
-    source.program
-  );
+  const program = await getRecord(Program, source.program);
 
   if (!program.isActive) {
     fail(
       "Cannot clone curriculum of an inactive program.",
       409,
-      "PROGRAM_INACTIVE"
+      "PROGRAM_INACTIVE",
     );
   }
 
@@ -485,25 +756,21 @@ export const cloneCurriculumAsDraft = async (
     fail(
       "This curriculum version already exists.",
       409,
-      "CURRICULUM_VERSION_EXISTS"
+      "CURRICULUM_VERSION_EXISTS",
     );
   }
 
   // 5. Copy semesters and course references
-  const semesters = source.semesters.map(
-    (semester) => ({
-      yearNumber: semester.yearNumber,
-      semesterNumber: semester.semesterNumber,
+  const semesters = source.semesters.map((semester) => ({
+    yearNumber: semester.yearNumber,
+    semesterNumber: semester.semesterNumber,
 
-      courses: semester.courses.map(
-        (item) => ({
-          course: item.course,
-          courseType: item.courseType,
-          order: item.order,
-        })
-      ),
-    })
-  );
+    courses: semester.courses.map((item) => ({
+      course: item.course,
+      courseType: item.courseType,
+      order: item.order,
+    })),
+  }));
 
   // 6. Create independent draft version
   try {
@@ -520,7 +787,7 @@ export const cloneCurriculumAsDraft = async (
       fail(
         "This curriculum version already exists.",
         409,
-        "CURRICULUM_VERSION_EXISTS"
+        "CURRICULUM_VERSION_EXISTS",
       );
     }
 
@@ -538,7 +805,7 @@ export const updateCurriculum = async (id, data) => {
   return curriculum.save();
 };
 
-export const publishCurriculum = async id => {
+export const publishCurriculum = async (id) => {
   const curriculum = await getRecord(Curriculum, id);
 
   if (curriculum.status !== "draft") {
@@ -574,7 +841,7 @@ export const archiveCurriculum = async (id) => {
     fail(
       `Cannot archive curriculum. It is referenced by ${cohortCount} cohort(s).`,
       409,
-      "CURRICULUM_IN_USE"
+      "CURRICULUM_IN_USE",
     );
   }
 
@@ -590,19 +857,11 @@ export const publishProgram = async (id) => {
   const program = await getRecord(Program, id);
 
   if (!program.isActive) {
-    fail(
-      "Archived program cannot be published.",
-      409,
-      "PROGRAM_ARCHIVED"
-    );
+    fail("Archived program cannot be published.", 409, "PROGRAM_ARCHIVED");
   }
 
   if (program.isPublished) {
-    fail(
-      "Program is already published.",
-      409,
-      "PROGRAM_ALREADY_PUBLISHED"
-    );
+    fail("Program is already published.", 409, "PROGRAM_ALREADY_PUBLISHED");
   }
 
   const now = new Date();
@@ -628,23 +887,14 @@ export const unpublishProgram = async (id) => {
   const program = await getRecord(Program, id);
 
   if (!program.isActive) {
-    fail(
-      "Archived program cannot be unpublished.",
-      409,
-      "PROGRAM_ARCHIVED"
-    );
+    fail("Archived program cannot be unpublished.", 409, "PROGRAM_ARCHIVED");
   }
 
   if (!program.isPublished) {
-    fail(
-      "Program is not published.",
-      409,
-      "PROGRAM_NOT_PUBLISHED"
-    );
+    fail("Program is not published.", 409, "PROGRAM_NOT_PUBLISHED");
   }
 
   program.isPublished = false;
 
   return program.save();
 };
-

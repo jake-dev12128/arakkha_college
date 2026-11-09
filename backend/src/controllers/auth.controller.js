@@ -15,7 +15,9 @@ import {
 import { clerkClient } from "../config/clerk.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
-
+import {
+  updateMyProfileImage,
+} from "../services/user.service.js";
 
 
 // ==================================================
@@ -387,19 +389,23 @@ export const getMe = asyncHandler(
 
     // Return authenticated user
     return res.status(200).json({
-      success: true,
+       success: true,
 
-      user: {
-        id: req.user._id,
-        clerkId: req.user.clerkId,
-        firstName: req.user.firstName,
-        lastName: req.user.lastName,
-        email: req.user.email,
-        role: req.user.role,
-        studentId:
-          req.user.studentId ?? null,
-        isActive: req.user.isActive,
-      },
+  user: {
+    id: req.user._id,
+    clerkId: req.user.clerkId,
+    firstName: req.user.firstName,
+    lastName: req.user.lastName,
+    email: req.user.email,
+    role: req.user.role,
+    studentId: req.user.studentId ?? null,
+    isActive: req.user.isActive,
+
+    // Cloudinary Profile Image
+    profileImage: req.user.profileImage ?? null,
+    profileImageMediaId:
+      req.user.profileImageMediaId ?? null,
+  },
 
       auth: {
   clerkId: req.appAuth.clerkId,
@@ -534,3 +540,41 @@ const clerkSessionId = req.appAuth.sessionId;
     });
   },
 );
+
+// ==========================================
+// UPDATE MY PROFILE IMAGE
+// ==========================================
+
+export const updateMyProfileImageController = async (
+  req,
+  res,
+  next
+) => {
+  try {
+    const { mediaId } = req.body ?? {};
+
+    if (
+      typeof mediaId !== "string" ||
+      !mediaId.trim()
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "mediaId is required.",
+        code: "MEDIA_ID_REQUIRED",
+      });
+    }
+
+    const result = await updateMyProfileImage({
+      userId: req.user._id,
+      mediaId: mediaId.trim(),
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile image updated successfully.",
+      data: result.user,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -66,7 +66,17 @@ const userSchema = new Schema(
       type: Boolean,
       default: true,
     },
+// Cloudinary profile image
+profileImage: {
+  type: String,
+  default: null,
+},
 
+profileImageMediaId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "MediaAsset",
+  default: null,
+},
 
   },
   {

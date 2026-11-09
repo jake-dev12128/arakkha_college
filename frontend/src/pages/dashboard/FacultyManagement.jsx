@@ -1,22 +1,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  Badge,
-  Box,
-  Button,
-  Field,
-  Flex,
-  Heading,
-  Image,
-  Input,
-  Spinner,
-  Table,
-  Text,
-  Textarea,
-  VStack,
+  Badge, Box, Button, Field, Flex, Heading, Image,
+  Input, Spinner, Table, Text, Textarea, VStack,
 } from "@chakra-ui/react";
 import DOMPurify from "dompurify";
 
+import ImageUploader from "../../components/common/ImageUploader.jsx";
 import ManagementToolbar from "../../components/dashboard/ManagementToolbar.jsx";
 import RichTextEditor from "../../components/dashboard/about/RichTextEditor.jsx";
 import { facultyMemberService } from "../../services/facultyMember.service.js";
@@ -31,6 +21,7 @@ const emptyForm = () => ({
   linkedinUrl: "",
   websiteUrl: "",
   image: "",
+  imageMediaId: undefined,
   displayOrder: 0,
 });
 
@@ -50,12 +41,15 @@ const fields = [
   ["position", "Position", true],
   ["department", "Department", true],
   ["email", "Public Email", false],
-  ["image", "Image URL / Local Image Path", false],
   ["linkedinUrl", "LinkedIn URL", false],
   ["websiteUrl", "Website URL", false],
 ];
 
-function OverlayPanel({ children, onClose, wide = false }) {
+function OverlayPanel({
+  children,
+  onClose,
+  wide = false,
+}) {
   return (
     <Box
       position="fixed"
@@ -74,10 +68,16 @@ function OverlayPanel({ children, onClose, wide = false }) {
         bg="bg.panel"
         boxShadow="2xl"
         direction="column"
-        onClick={(event) => event.stopPropagation()}
+        onClick={(event) =>
+          event.stopPropagation()
+        }
         role="dialog"
         aria-modal="true"
-        aria-label={wide ? "Faculty details" : "Faculty form"}
+        aria-label={
+          wide
+            ? "Faculty details"
+            : "Faculty form"
+        }
       >
         {children}
       </Flex>
@@ -96,6 +96,7 @@ export default function FacultyManagement() {
 
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -111,24 +112,39 @@ export default function FacultyManagement() {
   }, []);
 
   useEffect(() => {
-    loadMembers();
+    void loadMembers();
   }, [loadMembers]);
 
   useEffect(() => {
     if (!formOpen && !viewMember) return;
 
     const onKeyDown = (event) => {
-      if (event.key === "Escape" && !busy) {
+      if (
+        event.key === "Escape" &&
+        !busy &&
+        !imageUploading
+      ) {
         setFormOpen(false);
         setViewMember(null);
       }
     };
 
-    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener(
+      "keydown",
+      onKeyDown
+    );
 
     return () =>
-      window.removeEventListener("keydown", onKeyDown);
-  }, [formOpen, viewMember, busy]);
+      window.removeEventListener(
+        "keydown",
+        onKeyDown
+      );
+  }, [
+    formOpen,
+    viewMember,
+    busy,
+    imageUploading,
+  ]);
 
   const updateField = (key, value) => {
     setForm((previous) => ({
@@ -149,11 +165,14 @@ export default function FacultyManagement() {
     const defaults = emptyForm();
 
     setEditingId(member._id);
+
     setForm(
       Object.fromEntries(
         Object.keys(defaults).map((key) => [
           key,
-          member[key] ?? defaults[key],
+          key === "imageMediaId"
+            ? (member[key] ?? undefined)
+            : (member[key] ?? defaults[key]),
         ])
       )
     );
@@ -164,7 +183,8 @@ export default function FacultyManagement() {
   };
 
   const closeForm = () => {
-    if (busy) return;
+    if (busy || imageUploading) return;
+
     setFormOpen(false);
     setEditingId(null);
     setForm(emptyForm());
@@ -173,6 +193,9 @@ export default function FacultyManagement() {
 
   const handleSave = async (event) => {
     event.preventDefault();
+
+    if (busy || imageUploading) return;
+
     setError("");
     setSuccess("");
 
@@ -181,14 +204,21 @@ export default function FacultyManagement() {
       !form.position.trim() ||
       !form.department.trim()
     ) {
-      setError("Name, position and department are required.");
+      setError(
+        "Name, position and department are required."
+      );
       return;
     }
 
     const order = Number(form.displayOrder);
 
-    if (!Number.isInteger(order) || order < 0) {
-      setError("Display order must be a non-negative integer.");
+    if (
+      !Number.isInteger(order) ||
+      order < 0
+    ) {
+      setError(
+        "Display order must be a non-negative integer."
+      );
       return;
     }
 
@@ -204,9 +234,14 @@ export default function FacultyManagement() {
 
     try {
       if (editingId) {
-        await facultyMemberService.update(editingId, payload);
+        await facultyMemberService.update(
+          editingId,
+          payload
+        );
       } else {
-        await facultyMemberService.create(payload);
+        await facultyMemberService.create(
+          payload
+        );
       }
 
       await loadMembers();
@@ -243,7 +278,11 @@ export default function FacultyManagement() {
     setSuccess("");
 
     try {
-      await facultyMemberService.setPublication(member._id, next);
+      await facultyMemberService.setPublication(
+        member._id,
+        next
+      );
+
       await loadMembers();
 
       setSuccess(
@@ -272,9 +311,15 @@ export default function FacultyManagement() {
     setSuccess("");
 
     try {
-      await facultyMemberService.remove(member._id);
+      await facultyMemberService.remove(
+        member._id
+      );
+
       await loadMembers();
-      setSuccess("Faculty profile deleted.");
+
+      setSuccess(
+        "Faculty profile deleted."
+      );
     } catch (err) {
       setError(getError(err));
     } finally {
@@ -288,30 +333,55 @@ export default function FacultyManagement() {
     setError("");
 
     try {
-      const data = await facultyMemberService.getById(member._id);
+      const data =
+        await facultyMemberService.getById(
+          member._id
+        );
+
       setViewMember(data.member);
     } catch (err) {
       setError(getError(err));
     }
   };
 
-  const filteredMembers = members.filter((member) => {
-    if (statusFilter === "active" && member.isActive !== true) return false;
-    if (statusFilter === "inactive" && member.isActive !== false) return false;
-    const query = search.trim().toLowerCase();
+  const filteredMembers = members.filter(
+    (member) => {
+      if (
+        statusFilter === "active" &&
+        member.isActive !== true
+      ) {
+        return false;
+      }
 
-    return [
-      member.name,
-      member.position,
-      member.department,
-    ].some((value) =>
-      String(value || "").toLowerCase().includes(query)
-    );
-  });
+      if (
+        statusFilter === "inactive" &&
+        member.isActive !== false
+      ) {
+        return false;
+      }
+
+      const query =
+        search.trim().toLowerCase();
+
+      return [
+        member.name,
+        member.position,
+        member.department,
+      ].some((value) =>
+        String(value || "")
+          .toLowerCase()
+          .includes(query)
+      );
+    }
+  );
 
   if (loading) {
     return (
-      <Flex minH="300px" align="center" justify="center">
+      <Flex
+        minH="300px"
+        align="center"
+        justify="center"
+      >
         <Spinner size="lg" />
       </Flex>
     );
@@ -320,7 +390,7 @@ export default function FacultyManagement() {
   return (
     <Box width="100%" py="6">
       <VStack align="stretch" gap="6">
-        {/* PAGE HEADER */}
+        {/* HEADER */}
 
         <Flex
           justify="space-between"
@@ -333,12 +403,19 @@ export default function FacultyManagement() {
               Faculties & Staff
             </Heading>
 
-            <Text color="fg.muted" mt="1">
+            <Text
+              color="fg.muted"
+              mt="1"
+            >
               Manage faculty profiles and public visibility.
             </Text>
           </Box>
 
-          <Button colorPalette="blue" onClick={openCreate}>
+          <Button
+            colorPalette="blue"
+            disabled={busy || imageUploading}
+            onClick={openCreate}
+          >
             + Add Faculty
           </Button>
         </Flex>
@@ -360,6 +437,7 @@ export default function FacultyManagement() {
           <Box
             p="3"
             borderWidth="1px"
+            borderColor="green.300"
             borderRadius="lg"
             color="green.600"
             role="status"
@@ -368,7 +446,7 @@ export default function FacultyManagement() {
           </Box>
         )}
 
-        {/* FULL WIDTH TABLE */}
+        {/* FACULTY TABLE */}
 
         <Box
           borderWidth="1px"
@@ -387,7 +465,10 @@ export default function FacultyManagement() {
                 Faculty Profiles
               </Heading>
 
-              <Text fontSize="sm" color="fg.muted">
+              <Text
+                fontSize="sm"
+                color="fg.muted"
+              >
                 {members.length} total profiles
               </Text>
             </Box>
@@ -396,22 +477,36 @@ export default function FacultyManagement() {
               search={search}
               onSearchChange={setSearch}
               searchPlaceholder="Search faculty..."
-              filters={[{
-                key: "status",
-                label: "Status filter",
-                value: statusFilter,
-                onChange: setStatusFilter,
-                options: [
-                  { label: "All Status", value: "all" },
-                  { label: "Active", value: "active" },
-                  { label: "Inactive", value: "inactive" },
-                ],
-              }]}
+              filters={[
+                {
+                  key: "status",
+                  label: "Status filter",
+                  value: statusFilter,
+                  onChange: setStatusFilter,
+                  options: [
+                    {
+                      label: "All Status",
+                      value: "all",
+                    },
+                    {
+                      label: "Active",
+                      value: "active",
+                    },
+                    {
+                      label: "Inactive",
+                      value: "inactive",
+                    },
+                  ],
+                },
+              ]}
             />
           </Flex>
 
           <Box overflowX="auto">
-            <Table.Root size="sm" variant="line">
+            <Table.Root
+              size="sm"
+              variant="line"
+            >
               <Table.Header>
                 <Table.Row>
                   <Table.ColumnHeader>
@@ -453,7 +548,11 @@ export default function FacultyManagement() {
                   filteredMembers.map((member) => (
                     <Table.Row key={member._id}>
                       <Table.Cell>
-                        <Flex align="center" gap="3" minW="190px">
+                        <Flex
+                          align="center"
+                          gap="3"
+                          minW="190px"
+                        >
                           {member.image ? (
                             <Image
                               src={member.image}
@@ -481,7 +580,10 @@ export default function FacultyManagement() {
                               {member.name}
                             </Text>
 
-                            <Text fontSize="xs" color="fg.muted">
+                            <Text
+                              fontSize="xs"
+                              color="fg.muted"
+                            >
                               {member.position}
                             </Text>
                           </Box>
@@ -493,10 +595,15 @@ export default function FacultyManagement() {
                       </Table.Cell>
 
                       <Table.Cell>
-                        <VStack align="start" gap="1">
+                        <VStack
+                          align="start"
+                          gap="1"
+                        >
                           <Badge
                             colorPalette={
-                              member.isPublished ? "green" : "gray"
+                              member.isPublished
+                                ? "green"
+                                : "gray"
                             }
                           >
                             {member.isPublished
@@ -513,7 +620,7 @@ export default function FacultyManagement() {
                       </Table.Cell>
 
                       <Table.Cell>
-                        {member.displayOrder ?? 0}
+                        {member.displayOrder}
                       </Table.Cell>
 
                       <Table.Cell textAlign="end">
@@ -526,8 +633,10 @@ export default function FacultyManagement() {
                             <Button
                               size="xs"
                               variant="outline"
-                              disabled={busy}
-                              onClick={() => handleView(member)}
+                              disabled={busy || imageUploading}
+                              onClick={() =>
+                                handleView(member)
+                              }
                             >
                               View
                             </Button>
@@ -536,17 +645,23 @@ export default function FacultyManagement() {
                           <Button
                             size="xs"
                             variant="outline"
-                            disabled={busy}
-                            onClick={() => openEdit(member)}
+                            disabled={busy || imageUploading}
+                            onClick={() =>
+                              openEdit(member)
+                            }
                           >
                             Edit
                           </Button>
 
                           <Button
                             size="xs"
-                            colorPalette="blue"
+                            colorPalette={
+                              member.isPublished
+                                ? "orange"
+                                : "green"
+                            }
                             variant="outline"
-                            disabled={busy}
+                            disabled={busy || imageUploading}
                             onClick={() =>
                               handlePublication(member)
                             }
@@ -560,8 +675,10 @@ export default function FacultyManagement() {
                             size="xs"
                             colorPalette="red"
                             variant="outline"
-                            disabled={busy}
-                            onClick={() => handleDelete(member)}
+                            disabled={busy || imageUploading}
+                            onClick={() =>
+                              handleDelete(member)
+                            }
                           >
                             Delete
                           </Button>
@@ -576,14 +693,14 @@ export default function FacultyManagement() {
         </Box>
       </VStack>
 
-      {/* CREATE / EDIT SLIDE-IN PANEL */}
+      {/* CREATE / EDIT PANEL */}
 
       {formOpen && (
         <OverlayPanel onClose={closeForm}>
           <Flex
             p="5"
-            align="center"
             justify="space-between"
+            align="center"
             borderBottomWidth="1px"
           >
             <Box>
@@ -593,87 +710,185 @@ export default function FacultyManagement() {
                   : "Create Faculty"}
               </Heading>
 
-              <Text fontSize="sm" color="fg.muted">
-                Faculty profile information
+              <Text
+                fontSize="sm"
+                color="fg.muted"
+              >
+                Faculty and staff information
               </Text>
             </Box>
 
             <Button
               variant="ghost"
-              disabled={busy}
+              disabled={busy || imageUploading}
               onClick={closeForm}
             >
               Close
             </Button>
           </Flex>
 
-          <Box flex="1" overflowY="auto" p="5">
-            <form id="faculty-form" onSubmit={handleSave}>
-              <VStack align="stretch" gap="4">
+          <Box
+            flex="1"
+            overflowY="auto"
+            p="5"
+          >
+            <form
+              id="faculty-form"
+              onSubmit={handleSave}
+            >
+              <VStack
+                align="stretch"
+                gap="4"
+              >
                 {error && (
                   <Box
                     p="3"
                     borderWidth="1px"
                     borderColor="red.300"
-                    borderRadius="md"
                     color="red.600"
+                    borderRadius="md"
                     role="alert"
                   >
                     {error}
                   </Box>
                 )}
 
-                {fields.map(([key, label, required]) => (
-                  <Field.Root key={key} required={required}>
-                    <Field.Label>{label}</Field.Label>
+                <Field.Root>
+                  <Field.Label>
+                    Faculty Profile Image
+                  </Field.Label>
 
-                    <Input
-                      value={form[key]}
-                      disabled={busy}
-                      type={key === "email" ? "email" : "text"}
-                      maxLength={
-                        ["name", "position", "department"].includes(key)
-                          ? 150
-                          : key === "email"
-                            ? 254
-                            : 2048
+                  <ImageUploader
+                    category="faculties"
+                    value={form.image}
+                    onUploaded={(image) => {
+                      if (
+                        !image?.mediaId ||
+                        !image?.url
+                      ) {
+                        setError(
+                          "Upload response is missing mediaId or URL."
+                        );
+                        return;
                       }
-                      onChange={(event) =>
-                        updateField(key, event.target.value)
+
+                      setForm((previous) => ({
+                        ...previous,
+                        image: image.url,
+                        imageMediaId: image.mediaId,
+                      }));
+                    }}
+                    onUploadingChange={
+                      setImageUploading
+                    }
+                  />
+
+                  {form.image && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      colorPalette="red"
+                      disabled={busy || imageUploading}
+                      onClick={() =>
+                        setForm((previous) => ({
+                          ...previous,
+                          image: "",
+                          imageMediaId: null,
+                        }))
                       }
-                    />
-                  </Field.Root>
-                ))}
+                    >
+                      Remove Image
+                    </Button>
+                  )}
+
+                  <Text
+                    fontSize="xs"
+                    color="fg.muted"
+                  >
+                    Upload JPG, PNG or WebP (max 5 MB).
+                    Unused uploads are cleaned up by the backend.
+                  </Text>
+                </Field.Root>
+
+                {fields.map(
+                  ([key, label, required]) => (
+                    <Field.Root
+                      key={key}
+                      required={required}
+                    >
+                      <Field.Label>
+                        {label}
+                      </Field.Label>
+
+                      <Input
+                        value={form[key]}
+                        disabled={
+                          busy || imageUploading
+                        }
+                        type={
+                          key === "email"
+                            ? "email"
+                            : "text"
+                        }
+                        maxLength={
+                          key === "name"
+                            ? 150
+                            : key === "email"
+                              ? 254
+                              : 2048
+                        }
+                        onChange={(event) =>
+                          updateField(
+                            key,
+                            event.target.value
+                          )
+                        }
+                      />
+                    </Field.Root>
+                  )
+                )}
 
                 <Field.Root>
                   <Field.Label>
-                    Bio (Short Summary)
+                    Short Biography
                   </Field.Label>
 
                   <Textarea
-                    rows={3}
+                    rows={4}
                     value={form.bio}
+                    disabled={busy || imageUploading}
                     maxLength={5000}
-                    disabled={busy}
                     onChange={(event) =>
-                      updateField("bio", event.target.value)
+                      updateField(
+                        "bio",
+                        event.target.value
+                      )
                     }
                   />
                 </Field.Root>
 
                 <Field.Root>
                   <Field.Label>
-                    Description (Detailed Profile)
+                    Detailed Description
                   </Field.Label>
 
-                  <Box width="100%" minW="0">
+                  <Box
+                    width="100%"
+                    minW="0"
+                  >
                     <RichTextEditor
                       value={form.description}
                       onChange={(value) =>
-                        updateField("description", value)
+                        updateField(
+                          "description",
+                          value
+                        )
                       }
                       minHeight="180px"
-                      disabled={busy}
+                      disabled={
+                        busy || imageUploading
+                      }
                     />
                   </Box>
                 </Field.Root>
@@ -688,7 +903,7 @@ export default function FacultyManagement() {
                     min={0}
                     step={1}
                     value={form.displayOrder}
-                    disabled={busy}
+                    disabled={busy || imageUploading}
                     onChange={(event) =>
                       updateField(
                         "displayOrder",
@@ -704,12 +919,12 @@ export default function FacultyManagement() {
           <Flex
             p="5"
             gap="3"
-            borderTopWidth="1px"
             justify="flex-end"
+            borderTopWidth="1px"
           >
             <Button
               variant="outline"
-              disabled={busy}
+              disabled={busy || imageUploading}
               onClick={closeForm}
             >
               Cancel
@@ -720,7 +935,7 @@ export default function FacultyManagement() {
               form="faculty-form"
               colorPalette="blue"
               loading={busy}
-              disabled={busy}
+              disabled={busy || imageUploading}
             >
               {editingId
                 ? "Save Changes"
@@ -735,111 +950,107 @@ export default function FacultyManagement() {
       {viewMember && (
         <OverlayPanel
           wide
-          onClose={() => setViewMember(null)}
+          onClose={() =>
+            setViewMember(null)
+          }
         >
           <Flex
             p="5"
-            justify="space-between"
             align="center"
+            justify="space-between"
             borderBottomWidth="1px"
           >
-            <Box>
-              <Heading size="lg">
-                Faculty Details
-              </Heading>
-
-              <Text fontSize="sm" color="fg.muted">
-                Published profile preview
-              </Text>
-            </Box>
+            <Heading size="lg">
+              Faculty Details
+            </Heading>
 
             <Button
               variant="outline"
-              onClick={() => setViewMember(null)}
+              onClick={() =>
+                setViewMember(null)
+              }
             >
               Close
             </Button>
           </Flex>
 
-          <Box flex="1" overflowY="auto" p="6">
-            <VStack align="stretch" gap="5">
-              <Flex
-                gap="5"
-                align="center"
-                wrap="wrap"
-              >
-                {viewMember.image && (
-                  <Image
-                    src={viewMember.image}
-                    alt={viewMember.name}
-                    boxSize="130px"
-                    borderRadius="xl"
-                    objectFit="cover"
-                  />
-                )}
+          <Box
+            flex="1"
+            overflowY="auto"
+            p="6"
+          >
+            <VStack
+              align="stretch"
+              gap="5"
+            >
+              {viewMember.image && (
+                <Image
+                  src={viewMember.image}
+                  alt={viewMember.name}
+                  maxH="220px"
+                  maxW="220px"
+                  borderRadius="xl"
+                  objectFit="cover"
+                />
+              )}
 
-                <Box>
-                  <Heading size="xl">
-                    {viewMember.name}
-                  </Heading>
+              <Box>
+                <Heading size="xl">
+                  {viewMember.name}
+                </Heading>
 
-                  <Text mt="2">
-                    {viewMember.position}
-                  </Text>
+                <Text
+                  mt="2"
+                  fontWeight="medium"
+                >
+                  {viewMember.position}
+                </Text>
 
-                  <Text color="fg.muted">
-                    {viewMember.department}
-                  </Text>
+                <Text color="fg.muted">
+                  {viewMember.department}
+                </Text>
 
-                  <Badge colorPalette="green" mt="3">
-                    Published
-                  </Badge>
-                </Box>
-              </Flex>
+                <Badge
+                  colorPalette="green"
+                  mt="3"
+                >
+                  Published
+                </Badge>
+              </Box>
 
               {viewMember.bio && (
-                <Box>
-                  <Heading size="sm" mb="2">
-                    Biography
-                  </Heading>
-
-                  <Text whiteSpace="pre-wrap">
-                    {viewMember.bio}
-                  </Text>
-                </Box>
+                <Text whiteSpace="pre-wrap">
+                  {viewMember.bio}
+                </Text>
               )}
 
               {viewMember.description && (
-                <Box>
-                  <Heading size="sm" mb="3">
-                    Detailed Profile
-                  </Heading>
-
-                  <Box
-                    className="faculty-description"
-                    lineHeight="1.8"
-                    css={{
-                      "& p": { marginBottom: "12px" },
-                      "& ul": {
-                        paddingLeft: "24px",
-                        listStyleType: "disc",
-                      },
-                      "& ol": {
-                        paddingLeft: "24px",
-                        listStyleType: "decimal",
-                      },
-                      "& a": {
-                        color: "var(--chakra-colors-blue-500)",
-                        textDecoration: "underline",
-                      },
-                    }}
-                    dangerouslySetInnerHTML={{
-                      __html: DOMPurify.sanitize(
-                        viewMember.description
-                      ),
-                    }}
-                  />
-                </Box>
+                <Box
+                  lineHeight="1.8"
+                  css={{
+                    "& p": {
+                      marginBottom: "12px",
+                    },
+                    "& ul": {
+                      paddingLeft: "24px",
+                      listStyleType: "disc",
+                    },
+                    "& ol": {
+                      paddingLeft: "24px",
+                      listStyleType: "decimal",
+                    },
+                    "& a": {
+                      color:
+                        "var(--chakra-colors-blue-500)",
+                      textDecoration: "underline",
+                    },
+                  }}
+                  dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(
+                      viewMember.description
+                    ),
+                  }}
+                />
               )}
 
               {viewMember.email && (

@@ -7,7 +7,10 @@ import { connectRedis, redisClient } from "./config/redis.js";
 // import { verifyEmailConnection } from "./services/email.service.js";
 import { setReady, setShuttingDown } from "./utils/runtime.js";
 import logger from "./utils/logger.js";
-
+import {
+  startMediaCleanupWorker,
+  stopMediaCleanupWorker,
+} from "./workers/mediaCleanup.worker.js";
 const SHUTDOWN_TIMEOUT_MS = 15_000;
 
 const startServer = async () => {
@@ -15,7 +18,7 @@ const startServer = async () => {
     await connectDB();
     await connectRedis();
     // await verifyEmailConnection();
-
+startMediaCleanupWorker();
     const server = app.listen(env.port, () => {
       setReady(true);
 
@@ -62,7 +65,7 @@ const startServer = async () => {
         if (redisClient.isOpen) {
           await redisClient.quit();
         }
-
+await stopMediaCleanupWorker();
         if (mongoose.connection.readyState !== 0) {
           await mongoose.connection.close(false);
         }

@@ -68,6 +68,14 @@ const facultyMemberSchema = new mongoose.Schema(
       maxlength: 2048,
     },
 
+    // Cloudinary MediaAsset reference.
+    // Existing image URLs remain supported.
+    imageMediaId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "MediaAsset",
+      default: null,
+    },
+
     displayOrder: {
       type: Number,
       default: 0,
