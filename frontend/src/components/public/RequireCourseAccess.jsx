@@ -1,8 +1,10 @@
+
 import { useEffect, useState } from "react";
 
 import {
   Navigate,
   Outlet,
+  Link as RouterLink,
   useLocation,
 } from "react-router-dom";
 
@@ -10,22 +12,142 @@ import { useAuth } from "@clerk/react";
 
 import {
   Box,
-  Center,
+  Button,
+  Container,
+  Flex,
+  Heading,
   Spinner,
   Text,
+  VStack,
 } from "@chakra-ui/react";
+
+import {
+  FiAlertCircle,
+  FiArrowLeft,
+  FiHome,
+  FiShield,
+} from "react-icons/fi";
 
 import api from "../../api/api.js";
 
 import {
   buildCourseLoginUrl,
 } from "../../utils/courseReturnUrl.js";
+
 const ALLOWED_ROLES = new Set([
   "super_admin",
   "admin",
   "teacher",
   "student",
 ]);
+
+function AccessStatus({
+  title,
+  description,
+  icon: StatusIcon = FiShield,
+}) {
+  return (
+    <Box
+      bg="var(--public-bg)"
+      color="var(--public-text)"
+      minH="60vh"
+      py={{ base: 12, md: 20 }}
+    >
+      <Container maxW="760px">
+        <Box
+          bg="var(--public-surface)"
+          borderWidth="1px"
+          borderColor="var(--public-border)"
+          borderRadius="2xl"
+          p={{ base: 6, md: 12 }}
+          textAlign="center"
+          boxShadow="0 16px 45px rgba(0,0,0,0.06)"
+        >
+          <VStack gap={5}>
+            <Flex
+              w="76px"
+              h="76px"
+              borderRadius="full"
+              bg="var(--public-surface-alt)"
+              color="var(--public-accent)"
+              align="center"
+              justify="center"
+            >
+              <StatusIcon size={34} />
+            </Flex>
+
+            <Heading
+              size={{ base: "lg", md: "xl" }}
+              color="var(--public-text)"
+            >
+              {title}
+            </Heading>
+
+            <Text
+              color="var(--public-muted)"
+              lineHeight="1.9"
+              maxW="500px"
+            >
+              {description}
+            </Text>
+
+            <Flex
+              gap={3}
+              justify="center"
+              wrap="wrap"
+              pt={3}
+            >
+              <Button
+                as={RouterLink}
+                to="/programs"
+                colorPalette="blue"
+              >
+                <FiArrowLeft />
+                Back to Programs
+              </Button>
+
+              <Button
+                as={RouterLink}
+                to="/"
+                variant="outline"
+                borderColor="var(--public-border)"
+                color="var(--public-text)"
+              >
+                <FiHome />
+                Home
+              </Button>
+            </Flex>
+
+            <Box
+              mt={3}
+              p={4}
+              w="100%"
+              borderRadius="xl"
+              bg="var(--public-surface-alt)"
+            >
+              <Flex
+                gap={2}
+                align="center"
+                justify="center"
+              >
+                <FiAlertCircle />
+
+                <Text
+                  fontSize="sm"
+                  color="var(--public-muted)"
+                >
+                  If you believe this is a mistake,
+                  please contact your college
+                  administrator.
+                </Text>
+              </Flex>
+            </Box>
+          </VStack>
+        </Box>
+      </Container>
+    </Box>
+  );
+}
 
 export default function RequireCourseAccess() {
   const location = useLocation();
@@ -76,7 +198,6 @@ export default function RequireCourseAccess() {
           }
         );
 
-        // Existing ACC /auth/me response
         const user = response.data?.user;
 
         if (!user || user.isActive !== true) {
@@ -91,7 +212,7 @@ export default function RequireCourseAccess() {
               status: "forbidden",
               sessionId,
               message:
-                "Only students and teachers can view courses.",
+                "Your account does not have permission to view courses.",
             });
           }
           return;
@@ -130,9 +251,13 @@ export default function RequireCourseAccess() {
 
   if (!isLoaded || (isSignedIn && !sessionId)) {
     return (
-      <Center py={20}>
-        <Spinner size="xl" />
-      </Center>
+      <Flex
+        justify="center"
+        align="center"
+        minH="50vh"
+      >
+        <Spinner size="xl" color="blue.500" />
+      </Flex>
     );
   }
 
@@ -152,21 +277,26 @@ export default function RequireCourseAccess() {
     access.status === "loading"
   ) {
     return (
-      <Center py={20}>
-        <Spinner size="xl" />
-      </Center>
+      <Flex
+        justify="center"
+        align="center"
+        minH="50vh"
+      >
+        <Spinner size="xl" color="blue.500" />
+      </Flex>
     );
   }
 
   if (access.status !== "ready") {
     return (
-      <Center py={20}>
-        <Box textAlign="center">
-          <Text color="red.500">
-            {access.message}
-          </Text>
-        </Box>
-      </Center>
+      <AccessStatus
+        title={
+          access.status === "forbidden"
+            ? "Course Access Restricted"
+            : "Unable to Verify Access"
+        }
+        description={access.message}
+      />
     );
   }
 

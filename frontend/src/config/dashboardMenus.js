@@ -77,7 +77,6 @@ const superAdminItems = [
 const teacherAcademicItems = [
   item("My Courses", "/acc/auth/my-courses", "courses"),
   item("My Students", "/acc/auth/my-students", "students"),
-  item("Register Student", "/acc/auth/register-student", "students"),
 ];
 const websiteManagementItems = [
   item("About Us", "/acc/auth/about-management", "courses"),

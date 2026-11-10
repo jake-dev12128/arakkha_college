@@ -18,9 +18,17 @@ import { mediaService } from "../../services/media.service.js";
 import ImageUploader from "../../components/common/ImageUploader.jsx";
 
 const creatableRoles = {
-  super_admin: ["super_admin", "admin", "teacher", "student"],
-  admin: ["admin", "teacher", "student"],
-  teacher: ["student"],
+  super_admin: [
+    "super_admin",
+    "admin",
+    "teacher",
+    "student",
+  ],
+  admin: [
+    "admin",
+    "teacher",
+    "student",
+  ],
 };
 
 const initialForm = (roles) => ({

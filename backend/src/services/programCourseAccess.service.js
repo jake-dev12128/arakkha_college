@@ -42,9 +42,18 @@ export const getAllowedProgramCourseIds = async (
   // 2. ADMIN / SUPER ADMIN
   // ==========================================
 
-  if (ADMIN_ROLES.has(user.role)) {
-    return null;
-  }
+ // Admins and teachers can view all
+// published program course information.
+//
+// This does NOT grant access to
+// unassigned lessons or videos.
+
+if (
+  ADMIN_ROLES.has(user.role) ||
+  user.role === "teacher"
+) {
+  return null;
+}
 
   // ==========================================
   // 3. FIND ACTIVE COHORTS IN THIS PROGRAM

@@ -1,190 +1,709 @@
-import { useEffect, useMemo, useState } from "react";
-import { Badge, Box, Button, Container, Flex, Heading, Spinner, Text, VStack } from "@chakra-ui/react";
-import { Link as RouterLink, useParams } from "react-router-dom";
-import PageHero from "../../components/common/PageHero.jsx";
-import CourseLearningPlaylist from "../../components/public/CourseLearningPlaylist.jsx";
-import SecureLessonVideoPlayer from "../../components/dashboard/academic/SecureLessonVideoPlayer.jsx";
-import { getPublishedProgramCourses } from "../../services/publicAcademic.service.js";
-import { coursePlaybackService } from "../../services/coursePlayback.service.js";
 
-const getId = (item) => String(item?._id ?? item?.id ?? "");
-const messageOf = (error) => error?.response?.data?.message || error?.message || "Unable to load data.";
-const canceled = (error) => error?.name === "AbortError" || error?.name === "CanceledError" || error?.code === "ERR_CANCELED";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  Badge,
+  Box,
+  Button,
+  Container,
+  Flex,
+  Heading,
+  Spinner,
+  Text,
+  VStack,
+} from "@chakra-ui/react";
+
+import {
+  Link as RouterLink,
+  useParams,
+} from "react-router-dom";
+
+import {
+  FiArrowLeft,
+  FiBookOpen,
+  FiLock,
+} from "react-icons/fi";
+
+import PageHero from "../../components/common/PageHero.jsx";
+
+import CourseLearningPlaylist from "../../components/public/CourseLearningPlaylist.jsx";
+
+import SecureLessonVideoPlayer from "../../components/dashboard/academic/SecureLessonVideoPlayer.jsx";
+
+import {
+  getPublishedProgramCourses,
+} from "../../services/publicAcademic.service.js";
+
+import {
+  coursePlaybackService,
+} from "../../services/coursePlayback.service.js";
+
+const getId = (item) =>
+  String(item?._id ?? item?.id ?? "");
+
+const messageOf = (error) =>
+  error?.response?.data?.message ||
+  error?.message ||
+  "Unable to load data.";
+
+const canceled = (error) =>
+  error?.name === "AbortError" ||
+  error?.name === "CanceledError" ||
+  error?.code === "ERR_CANCELED";
+
+function CourseStatus({ title, message }) {
+  return (
+    <Box
+      maxW="700px"
+      mx="auto"
+      bg="var(--public-surface)"
+      borderWidth="1px"
+      borderColor="var(--public-border)"
+      borderRadius="2xl"
+      p={{ base: 6, md: 10 }}
+      textAlign="center"
+    >
+      <VStack gap={4}>
+        <Flex
+          w="68px"
+          h="68px"
+          borderRadius="full"
+          bg="var(--public-surface-alt)"
+          color="var(--public-accent)"
+          justify="center"
+          align="center"
+        >
+          <FiLock size={30} />
+        </Flex>
+
+        <Heading
+          size="lg"
+          color="var(--public-text)"
+        >
+          {title}
+        </Heading>
+
+        <Text
+          color="var(--public-muted)"
+          lineHeight="1.8"
+        >
+          {message}
+        </Text>
+
+        <Button
+          as={RouterLink}
+          to="/programs"
+          colorPalette="blue"
+        >
+          <FiArrowLeft />
+          Back to Programs
+        </Button>
+      </VStack>
+    </Box>
+  );
+}
 
 export default function CourseDetail() {
   const { programId, courseId } = useParams();
-  const [programData, setProgramData] = useState(null);
-  const [courseLoading, setCourseLoading] = useState(true);
-  const [courseError, setCourseError] = useState("");
-  const [tab, setTab] = useState("overview");
-  const [lessons, setLessons] = useState([]);
-  const [lessonsLoading, setLessonsLoading] = useState(true);
-  const [lessonsError, setLessonsError] = useState("");
-  const [activeLessonId, setActiveLessonId] = useState(null);
-  const [playback, setPlayback] = useState(null);
-  const [playbackLoading, setPlaybackLoading] = useState(false);
-  const [playbackError, setPlaybackError] = useState("");
-  const [refreshKey, setRefreshKey] = useState(0);
+
+  const [programData, setProgramData] =
+    useState(null);
+
+  const [courseLoading, setCourseLoading] =
+    useState(true);
+
+  const [courseError, setCourseError] =
+    useState("");
+
+  const [tab, setTab] =
+    useState("overview");
+
+  const [lessons, setLessons] =
+    useState([]);
+
+  const [lessonsLoading, setLessonsLoading] =
+    useState(false);
+
+  const [lessonsError, setLessonsError] =
+    useState("");
+
+  const [activeLessonId, setActiveLessonId] =
+    useState(null);
+
+  const [playback, setPlayback] =
+    useState(null);
+
+  const [playbackLoading, setPlaybackLoading] =
+    useState(false);
+
+  const [playbackError, setPlaybackError] =
+    useState("");
+
+  const [refreshKey, setRefreshKey] =
+    useState(0);
+
+  // ========================================
+  // LOAD AUTHORIZED COURSE CATALOG
+  // ========================================
 
   useEffect(() => {
     const controller = new AbortController();
+
     setCourseLoading(true);
     setCourseError("");
     setProgramData(null);
-    getPublishedProgramCourses(programId, controller.signal)
-      .then((data) => { if (!controller.signal.aborted) setProgramData(data); })
-      .catch((error) => { if (!controller.signal.aborted && !canceled(error)) setCourseError(messageOf(error)); })
-      .finally(() => { if (!controller.signal.aborted) setCourseLoading(false); });
+    setTab("overview");
+
+    getPublishedProgramCourses(
+      programId,
+      controller.signal
+    )
+      .then((data) => {
+        if (!controller.signal.aborted) {
+          setProgramData(data);
+        }
+      })
+      .catch((error) => {
+        if (
+          !controller.signal.aborted &&
+          !canceled(error)
+        ) {
+          setCourseError(messageOf(error));
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setCourseLoading(false);
+        }
+      });
+
     return () => controller.abort();
   }, [programId]);
 
-  const course = useMemo(() => (programData?.semesters ?? [])
-    .flatMap((semester) => semester.courses ?? [])
-    .find((item) => getId(item) === courseId), [programData, courseId]);
+  const course = useMemo(
+    () =>
+      (programData?.semesters ?? [])
+        .flatMap(
+          (semester) =>
+            semester.courses ?? []
+        )
+        .find(
+          (item) =>
+            getId(item) === courseId
+        ),
+    [programData, courseId]
+  );
+
+  // ========================================
+  // LOAD LESSONS ONLY AFTER COURSE ACCESS
+  // ========================================
 
   useEffect(() => {
     const controller = new AbortController();
+
     setLessons([]);
+    setLessonsError("");
     setActiveLessonId(null);
     setPlayback(null);
-    setLessonsError("");
+    setPlaybackError("");
+    setLessonsLoading(false);
+
+    // Do not request protected lessons
+    // until the course has been authorized
+    // through the program catalog.
+    if (
+      courseLoading ||
+      courseError ||
+      !course
+    ) {
+      return () => controller.abort();
+    }
+
     setLessonsLoading(true);
-    coursePlaybackService.listAccessible(courseId, controller.signal)
+
+    coursePlaybackService
+      .listAccessible(
+        courseId,
+        controller.signal
+      )
       .then((data) => {
-        if (controller.signal.aborted) return;
-        const items = Array.isArray(data) ? data : Array.isArray(data?.lessons) ? data.lessons : [];
-        setLessons([...items].sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0)));
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        const items = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.lessons)
+            ? data.lessons
+            : [];
+
+        setLessons(
+          [...items].sort(
+            (a, b) =>
+              Number(a.order ?? 0) -
+              Number(b.order ?? 0)
+          )
+        );
       })
-      .catch((error) => { if (!controller.signal.aborted && !canceled(error)) setLessonsError(messageOf(error)); })
-      .finally(() => { if (!controller.signal.aborted) setLessonsLoading(false); });
+      .catch((error) => {
+        if (
+          !controller.signal.aborted &&
+          !canceled(error)
+        ) {
+          setLessonsError(
+            messageOf(error)
+          );
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLessonsLoading(false);
+        }
+      });
+
     return () => controller.abort();
-  }, [courseId]);
+  }, [
+    courseId,
+    course,
+    courseLoading,
+    courseError,
+  ]);
+
+  // ========================================
+  // LOAD AUTHORIZED PLAYBACK
+  // ========================================
 
   useEffect(() => {
-    if (!activeLessonId) return;
+    if (
+      !course ||
+      !activeLessonId ||
+      !lessons.some(
+        (lesson) =>
+          getId(lesson) === activeLessonId
+      )
+    ) {
+      return;
+    }
+
     const controller = new AbortController();
+
     setPlayback(null);
     setPlaybackError("");
     setPlaybackLoading(true);
-    coursePlaybackService.getPlayback(courseId, activeLessonId, controller.signal)
-      .then((data) => { if (!controller.signal.aborted) setPlayback(data); })
-      .catch((error) => { if (!controller.signal.aborted && !canceled(error)) setPlaybackError(messageOf(error)); })
-      .finally(() => { if (!controller.signal.aborted) setPlaybackLoading(false); });
-    return () => controller.abort();
-  }, [courseId, activeLessonId, refreshKey]);
 
-  const activeLesson = lessons.find((lesson) => getId(lesson) === activeLessonId);
-  const goToLessons = () => setTab("lessons");
+    coursePlaybackService
+      .getPlayback(
+        courseId,
+        activeLessonId,
+        controller.signal
+      )
+      .then((data) => {
+        if (!controller.signal.aborted) {
+          setPlayback(data);
+        }
+      })
+      .catch((error) => {
+        if (
+          !controller.signal.aborted &&
+          !canceled(error)
+        ) {
+          setPlaybackError(
+            messageOf(error)
+          );
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setPlaybackLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [
+    courseId,
+    course,
+    activeLessonId,
+    lessons,
+    refreshKey,
+  ]);
+
+  const activeLesson = lessons.find(
+    (lesson) =>
+      getId(lesson) === activeLessonId
+  );
 
   return (
     <>
-      <PageHero title={course?.title ?? "Course Learning"}
-        description="Explore course information and learn through your accessible video lessons." />
-      <Container maxW="1280px" py={{ base: 7, md: 12 }}>
-        <Flex align="center" justify="space-between" gap={3} wrap="wrap" mb={7}>
-          <Button as={RouterLink} to={`/academic/courses/${encodeURIComponent(programId)}`} variant="outline" size="sm">
-            ← Back to Courses
+      <PageHero
+        title={
+          course?.title ??
+          "Course Learning"
+        }
+        description="Explore course information and access your learning materials."
+      />
+
+      <Box
+        bg="var(--public-bg)"
+        color="var(--public-text)"
+        minH="45vh"
+      >
+        <Container
+          maxW="1200px"
+          py={{ base: 8, md: 12 }}
+        >
+          <Button
+            as={RouterLink}
+            to={`/academic/courses/${encodeURIComponent(programId)}`}
+            variant="outline"
+            mb={8}
+            color="var(--public-text)"
+            borderColor="var(--public-border)"
+          >
+            <FiArrowLeft />
+            Back to Courses
           </Button>
-          {course?.code && <Badge colorPalette="blue" variant="subtle">{course.code}</Badge>}
-        </Flex>
 
-        {courseLoading ? <Flex justify="center" py={16}><Spinner size="xl" /></Flex>
-        : courseError ? <Text color="red.500" role="alert">{courseError}</Text>
-        : !course ? <Box py={12} textAlign="center"><Heading size="md">Course not found in this published program.</Heading></Box>
-        : (
-          <VStack align="stretch" gap={6}>
-            <Box borderWidth="1px" borderColor="var(--public-border)" borderRadius="2xl"
-              bg="var(--public-surface)" p={{ base: 5, md: 7 }}>
-              <Text fontSize="xs" fontWeight="bold" color="var(--public-accent)">COURSE INFORMATION</Text>
-              <Heading size="xl" mt={2} color="var(--public-text)">{course.title}</Heading>
-              <Text color="var(--public-muted)" mt={3} lineHeight="1.8">
-                {course.description || "Explore the lessons and topics covered in this course."}
-              </Text>
-              <Flex mt={5} gap={2} wrap="wrap">
-                <Badge variant="outline">{course.credits ?? "—"} Credits</Badge>
-                <Badge variant="outline">Theory: {course.lectureHours ?? "—"} hours</Badge>
-                <Badge variant="outline">Practical: {course.practicalHours ?? "—"} hours</Badge>
-                <Badge colorPalette="blue" variant="subtle">{course.courseType || "Course"}</Badge>
-              </Flex>
-            </Box>
-
-            <Flex gap={2} borderBottomWidth="1px" borderColor="var(--public-border)" pb={3}>
-              <Button variant={tab === "overview" ? "solid" : "outline"} colorPalette="blue" size="sm"
-                onClick={() => setTab("overview")}>Overview</Button>
-              <Button variant={tab === "lessons" ? "solid" : "outline"} colorPalette="blue" size="sm"
-                onClick={goToLessons}>Lessons {lessonsError ? "" : `(${lessons.length})`}</Button>
+          {courseLoading ? (
+            <Flex justify="center" py={16}>
+              <Spinner
+                size="xl"
+                color="blue.500"
+              />
             </Flex>
-
-            {tab === "overview" ? (
-              <Box bg="var(--public-surface)" borderWidth="1px" borderColor="var(--public-border)"
-                borderRadius="xl" p={{ base: 5, md: 7 }}>
-                <Heading size="md" color="var(--public-text)">Course Overview</Heading>
-                <Text mt={3} color="var(--public-muted)" lineHeight="1.9">
-                  {course.description || "Course details are being prepared."}
+          ) : courseError ? (
+            <CourseStatus
+              title="Course Access Restricted"
+              message={courseError}
+            />
+          ) : !course ? (
+            <CourseStatus
+              title="Course Not Available"
+              message="This course is not available to your account in the selected program."
+            />
+          ) : (
+            <VStack
+              align="stretch"
+              gap={6}
+            >
+              <Box
+                bg="var(--public-surface)"
+                borderWidth="1px"
+                borderColor="var(--public-border)"
+                borderRadius="2xl"
+                p={{ base: 6, md: 8 }}
+              >
+                <Text
+                  fontSize="xs"
+                  fontWeight="bold"
+                  letterSpacing="widest"
+                  color="var(--public-accent)"
+                >
+                  COURSE INFORMATION
                 </Text>
-                <Flex gap={4} mt={6} wrap="wrap">
-                  <Box><Text fontSize="xs" color="var(--public-muted)">Credits</Text><Text fontWeight="bold">{course.credits ?? "—"}</Text></Box>
-                  <Box><Text fontSize="xs" color="var(--public-muted)">Lecture Hours</Text><Text fontWeight="bold">{course.lectureHours ?? "—"}</Text></Box>
-                  <Box><Text fontSize="xs" color="var(--public-muted)">Practical Hours</Text><Text fontWeight="bold">{course.practicalHours ?? "—"}</Text></Box>
+
+                <Heading
+                  size="xl"
+                  mt={3}
+                  color="var(--public-text)"
+                >
+                  {course.title}
+                </Heading>
+
+                <Text
+                  mt={3}
+                  color="var(--public-muted)"
+                  lineHeight="1.9"
+                >
+                  {course.description ||
+                    "Explore the knowledge and skills covered in this course."}
+                </Text>
+
+                <Flex
+                  gap={3}
+                  wrap="wrap"
+                  mt={6}
+                >
+                  <Badge variant="outline">
+                    {course.code || "Course"}
+                  </Badge>
+
+                  <Badge variant="outline">
+                    {course.credits ?? "—"} Credits
+                  </Badge>
+
+                  <Badge
+                    colorPalette="blue"
+                    variant="subtle"
+                  >
+                    {course.courseType || "Core"}
+                  </Badge>
                 </Flex>
-                <Button mt={7} colorPalette="blue" onClick={goToLessons}>Explore Lessons</Button>
               </Box>
-            ) : (
-              <Box bg="var(--public-surface)" borderWidth="1px" borderColor="var(--public-border)"
-                borderRadius="2xl" p={{ base: 4, md: 6 }}>
-                <Flex justify="space-between" align="center" mb={5} gap={3} wrap="wrap">
-                  <Heading size="md" color="var(--public-text)">Course Learning</Heading>
-                  <Badge colorPalette="blue" variant="subtle">{lessons.length} Lessons</Badge>
-                </Flex>
-                {lessonsLoading ? <Flex justify="center" py={10}><Spinner /></Flex>
-                : lessonsError ? (
-                  <Box py={8}>
-                    <Text color="var(--public-muted)" role="alert">Lessons are not available for this account: {lessonsError}</Text>
-                  </Box>
-                ) : lessons.length === 0 ? (
-                  <Text color="var(--public-muted)" py={10} textAlign="center">No accessible video lessons are available for this course yet.</Text>
-                ) : (
-                  <Flex direction={{ base: "column", lg: "row" }} align="stretch" gap={6}>
-                    <Box flex="1 1 65%" minW={0}>
-                      <Box bg="#162238" borderRadius="xl" overflow="hidden"
-                        minHeight={{ base: "200px", md: "280px" }}
-                        display="flex" justifyContent="center" alignItems="center">
-                        {activeLessonId ? (
-                          <Box width="100%" p={3} color="white">
-                            <SecureLessonVideoPlayer playback={playback} loading={playbackLoading}
-                              error={playbackError} onRetry={() => setRefreshKey((value) => value + 1)} />
+
+              <Flex
+                gap={2}
+                pb={3}
+                borderBottomWidth="1px"
+                borderColor="var(--public-border)"
+              >
+                <Button
+                  size="sm"
+                  colorPalette="blue"
+                  variant={
+                    tab === "overview"
+                      ? "solid"
+                      : "outline"
+                  }
+                  onClick={() =>
+                    setTab("overview")
+                  }
+                >
+                  Overview
+                </Button>
+
+                <Button
+                  size="sm"
+                  colorPalette="blue"
+                  variant={
+                    tab === "lessons"
+                      ? "solid"
+                      : "outline"
+                  }
+                  onClick={() =>
+                    setTab("lessons")
+                  }
+                >
+                  Lessons
+                </Button>
+              </Flex>
+
+              {tab === "overview" ? (
+                <Box
+                  bg="var(--public-surface)"
+                  borderWidth="1px"
+                  borderColor="var(--public-border)"
+                  borderRadius="2xl"
+                  p={{ base: 6, md: 8 }}
+                >
+                  <Heading size="md">
+                    Course Overview
+                  </Heading>
+
+                  <Text
+                    mt={4}
+                    color="var(--public-muted)"
+                    lineHeight="1.9"
+                  >
+                    {course.description ||
+                      "Course details are being prepared."}
+                  </Text>
+
+                  <Flex
+                    gap={8}
+                    wrap="wrap"
+                    mt={6}
+                  >
+                    {[
+                      [
+                        "Credits",
+                        course.credits,
+                      ],
+                      [
+                        "Lecture Hours",
+                        course.lectureHours,
+                      ],
+                      [
+                        "Practical Hours",
+                        course.practicalHours,
+                      ],
+                    ].map(
+                      ([label, value]) => (
+                        <Box key={label}>
+                          <Text
+                            fontSize="xs"
+                            color="var(--public-muted)"
+                          >
+                            {label}
+                          </Text>
+                          <Text
+                            mt={1}
+                            fontWeight="bold"
+                          >
+                            {value ?? "—"}
+                          </Text>
+                        </Box>
+                      )
+                    )}
+                  </Flex>
+
+                  <Button
+                    mt={8}
+                    colorPalette="blue"
+                    onClick={() =>
+                      setTab("lessons")
+                    }
+                  >
+                    <FiBookOpen />
+                    Explore Lessons
+                  </Button>
+                </Box>
+              ) : (
+                <Box
+                  bg="var(--public-surface)"
+                  borderWidth="1px"
+                  borderColor="var(--public-border)"
+                  borderRadius="2xl"
+                  p={{ base: 5, md: 7 }}
+                >
+                  <Flex
+                    justify="space-between"
+                    align="center"
+                    mb={6}
+                  >
+                    <Heading size="md">
+                      Course Learning
+                    </Heading>
+
+                    <Badge
+                      colorPalette="blue"
+                      variant="subtle"
+                    >
+                      {lessons.length} Lessons
+                    </Badge>
+                  </Flex>
+
+                  {lessonsLoading ? (
+                    <Flex
+                      justify="center"
+                      py={12}
+                    >
+                      <Spinner />
+                    </Flex>
+                  ) : lessonsError ? (
+                    <CourseStatus
+                      title="Learning Access Restricted"
+                      message={lessonsError}
+                    />
+                  ) : lessons.length === 0 ? (
+                    <Text
+                      color="var(--public-muted)"
+                      textAlign="center"
+                      py={12}
+                    >
+                      No accessible lessons are
+                      available for this course yet.
+                    </Text>
+                  ) : (
+                    <Flex
+                      direction={{
+                        base: "column",
+                        lg: "row",
+                      }}
+                      gap={6}
+                    >
+                      <Box
+                        flex="1 1 65%"
+                        minW={0}
+                      >
+                        <Box
+                          bg="#162238"
+                          borderRadius="xl"
+                          overflow="hidden"
+                          minH={{
+                            base: "220px",
+                            md: "300px",
+                          }}
+                          display="flex"
+                          alignItems="center"
+                          justifyContent="center"
+                        >
+                          {activeLessonId ? (
+                            <Box
+                              width="100%"
+                              p={3}
+                              color="white"
+                            >
+                              <SecureLessonVideoPlayer
+                                playback={playback}
+                                loading={playbackLoading}
+                                error={playbackError}
+                                onRetry={() =>
+                                  setRefreshKey(
+                                    (value) =>
+                                      value + 1
+                                  )
+                                }
+                              />
+                            </Box>
+                          ) : (
+                            <Text
+                              color="white"
+                              textAlign="center"
+                              p={5}
+                            >
+                              Select a lesson to
+                              start learning
+                            </Text>
+                          )}
+                        </Box>
+
+                        {activeLesson && (
+                          <Box mt={5}>
+                            <Heading size="md">
+                              {activeLesson.title}
+                            </Heading>
+
+                            {activeLesson.description && (
+                              <Text
+                                mt={2}
+                                color="var(--public-muted)"
+                              >
+                                {activeLesson.description}
+                              </Text>
+                            )}
                           </Box>
-                        ) : (
-                          <VStack gap={3} textAlign="center" p={4}>
-                            <Text color="white" fontSize="3xl">▶</Text>
-                            <Text color="white" fontSize="sm">Select a lesson to start learning</Text>
-                          </VStack>
                         )}
                       </Box>
-                      {activeLesson && (
-                        <Box mt={4}>
-                          <Heading size="md" color="var(--public-text)">{activeLesson.title}</Heading>
-                          {activeLesson.description && <Text mt={2} color="var(--public-muted)">{activeLesson.description}</Text>}
+
+                      <Box
+                        flex="1 1 35%"
+                        minW={0}
+                      >
+                        <Heading
+                          size="sm"
+                          mb={4}
+                        >
+                          Lesson Playlist
+                        </Heading>
+
+                        <Box
+                          maxH={{
+                            base: "none",
+                            lg: "520px",
+                          }}
+                          overflowY="auto"
+                        >
+                          <CourseLearningPlaylist
+                            lessons={lessons}
+                            activeLessonId={activeLessonId}
+                            onSelect={
+                              setActiveLessonId
+                            }
+                          />
                         </Box>
-                      )}
-                    </Box>
-                    <Box flex="1 1 35%" minW={0}>
-                      <Flex justify="space-between" align="center" mb={3}>
-                        <Heading size="sm" color="var(--public-text)">Lesson Playlist</Heading>
-                        <Text fontSize="xs" color="var(--public-muted)">{lessons.length} items</Text>
-                      </Flex>
-                      <Box maxHeight={{ base: "none", lg: "520px" }} overflowY={{ base: "visible", lg: "auto" }}>
-                        <CourseLearningPlaylist lessons={lessons} activeLessonId={activeLessonId}
-                          onSelect={setActiveLessonId} />
                       </Box>
-                    </Box>
-                  </Flex>
-                )}
-              </Box>
-            )}
-          </VStack>
-        )}
-      </Container>
+                    </Flex>
+                  )}
+                </Box>
+              )}
+            </VStack>
+          )}
+        </Container>
+      </Box>
     </>
   );
 }

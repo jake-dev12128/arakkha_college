@@ -22,12 +22,20 @@ import MediaAsset from "../models/mediaAsset.model.js";
 const MANAGED_ROLES = new Set(["super_admin", "admin", "teacher", "student"]);
 
 const CREATION_PERMISSIONS = {
-  super_admin: ["super_admin", "admin", "teacher", "student"],
-  admin: ["admin", "teacher", "student"],
-  teacher: ["student"],
+  super_admin: [
+    "super_admin",
+    "admin",
+    "teacher",
+    "student",
+  ],
+  admin: [
+    "admin",
+    "teacher",
+    "student",
+  ],
+  teacher: [],
   student: [],
 };
-
 // ==================================================
 // USER LOOKUP
 // ==================================================

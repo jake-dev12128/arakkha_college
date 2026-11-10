@@ -390,18 +390,7 @@ export default function AppRoutes() {
                 }
               />
 
-              {/* ================================ */}
-              {/* TEACHER CREATES STUDENT */}
-              {/* ================================ */}
-
-              <Route
-                path="/acc/auth/register-student"
-                element={
-                  <RequireRole allowedRoles={TEACHER_ROLES}>
-                    <CreateAccount />
-                  </RequireRole>
-                }
-              />
+             
 
               {/* ================================ */}
               {/* ACADEMIC MANAGEMENT */}

@@ -102,13 +102,14 @@ router.patch(
 // teacher     -> student
 // ==================================================
 
+// ==================================================
+// CREATE MANAGED USER
+// SUPER ADMIN / ADMIN ONLY
+// ==================================================
+
 router.post(
   "/users",
-  requireRole(
-    "super_admin",
-    "admin",
-    "teacher"
-  ),
+  requireRole("super_admin", "admin"),
   validate(createManagedUserSchema),
   createManagedUserController
 );

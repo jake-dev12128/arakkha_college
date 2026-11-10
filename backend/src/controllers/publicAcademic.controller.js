@@ -110,8 +110,11 @@ export const getPublicProgram = asyncHandler(
 //
 // Authentication: Required
 // Roles: super_admin / admin / teacher / student
-// Student/Teacher: Assignment Required
-// ==========================================
+// Student: Active enrollment and assignment required
+// Teacher: All published curriculum courses
+// Admin/Super Admin: All published curriculum courses
+// Lessons and videos: Separate authorization required
+// // ==========================================
 
 export const getPublishedProgramCourses =
   asyncHandler(async (req, res) => {
