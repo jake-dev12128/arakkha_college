@@ -1,14 +1,21 @@
+
 import mongoose from "mongoose";
 
 import Program from "../models/program.model.js";
 import Curriculum from "../models/curriculum.model.js";
 import Course from "../models/course.model.js";
 
-import { asyncHandler } from "../utils/asyncHandler.js";
+import {
+  getAllowedProgramCourseIds,
+} from "../services/programCourseAccess.service.js";
 
-// ==================================================
+import {
+  asyncHandler,
+} from "../utils/asyncHandler.js";
+
+// ==========================================
 // HELPERS
-// ==================================================
+// ==========================================
 
 const publicProgramFields =
   "code name slug description type " +
@@ -35,10 +42,10 @@ const sendNotFound = (res) =>
     message: "Published program not found.",
   });
 
-// ==================================================
+// ==========================================
 // GET ALL PUBLIC PROGRAMS
 // GET /api/v1/public/programs
-// ==================================================
+// ==========================================
 
 export const getPublicPrograms = asyncHandler(
   async (req, res) => {
@@ -47,7 +54,10 @@ export const getPublicPrograms = asyncHandler(
       isActive: true,
     })
       .select(publicProgramFields)
-      .sort({ name: 1, _id: 1 })
+      .sort({
+        name: 1,
+        _id: 1,
+      })
       .lean();
 
     return res.status(200).json({
@@ -60,10 +70,10 @@ export const getPublicPrograms = asyncHandler(
   }
 );
 
-// ==================================================
+// ==========================================
 // GET SINGLE PUBLIC PROGRAM
 // GET /api/v1/public/programs/:programId
-// ==================================================
+// ==========================================
 
 export const getPublicProgram = asyncHandler(
   async (req, res) => {
@@ -87,29 +97,38 @@ export const getPublicProgram = asyncHandler(
 
     return res.status(200).json({
       success: true,
-      data: { program },
+      data: {
+        program,
+      },
     });
   }
 );
 
-// ==================================================
-// GET PUBLISHED COURSE CATALOG
+// ==========================================
+// GET AUTHORIZED PROGRAM COURSES
 // GET /api/v1/public/programs/:programId/courses
 //
 // Authentication: Required
-// Roles: student / teacher
-// Assignment: Not required
-// ==================================================
+// Roles: super_admin / admin / teacher / student
+// Student/Teacher: Assignment Required
+// ==========================================
 
 export const getPublishedProgramCourses =
   asyncHandler(async (req, res) => {
     const { programId } = req.params;
 
+    // ======================================
+    // 1. VALIDATE PROGRAM ID
+    // ======================================
+
     if (!isValidId(programId)) {
       return sendInvalidId(res);
     }
 
-    // 1. Program must be public and active.
+    // ======================================
+    // 2. VERIFY PUBLISHED ACTIVE PROGRAM
+    // ======================================
+
     const program = await Program.findOne({
       _id: programId,
       isPublished: true,
@@ -122,7 +141,20 @@ export const getPublishedProgramCourses =
       return sendNotFound(res);
     }
 
-    // 2. Find current effective published curriculum.
+    // ======================================
+    // 3. VERIFY USER PROGRAM ACCESS
+    // ======================================
+
+    const allowedCourseIds =
+      await getAllowedProgramCourseIds(
+        req.user,
+        program._id
+      );
+
+    // ======================================
+    // 4. FIND EFFECTIVE PUBLISHED CURRICULUM
+    // ======================================
+
     const curriculum = await Curriculum.findOne({
       program: program._id,
       status: "published",
@@ -152,7 +184,10 @@ export const getPublishedProgramCourses =
       });
     }
 
-    // 3. Collect course IDs from curriculum.
+    // ======================================
+    // 5. COLLECT CURRICULUM COURSE IDS
+    // ======================================
+
     const courseIds = [
       ...new Set(
         (curriculum.semesters ?? [])
@@ -166,10 +201,30 @@ export const getPublishedProgramCourses =
       ),
     ];
 
-    // 4. Fetch active courses only.
+    // ======================================
+    // 6. FILTER BY USER ASSIGNMENTS
+    // ======================================
+
+    // Admins receive all published curriculum
+    // courses. Students and teachers receive
+    // only courses in their allowed set.
+
+    const visibleCourseIds =
+      allowedCourseIds === null
+        ? courseIds
+        : courseIds.filter((courseId) =>
+            allowedCourseIds.has(
+              String(courseId)
+            )
+          );
+
+    // ======================================
+    // 7. LOAD ACTIVE AUTHORIZED COURSES
+    // ======================================
+
     const courses = await Course.find({
       _id: {
-        $in: courseIds,
+        $in: visibleCourseIds,
       },
       isActive: true,
     })
@@ -183,7 +238,10 @@ export const getPublishedProgramCourses =
       ])
     );
 
-    // 5. Build year/semester course catalog.
+    // ======================================
+    // 8. BUILD YEAR / SEMESTER STRUCTURE
+    // ======================================
+
     const semesters = (
       curriculum.semesters ?? []
     )
@@ -205,13 +263,16 @@ export const getPublishedProgramCourses =
 
             return {
               ...course,
-              courseType: entry.courseType,
-              order: entry.order,
+              courseType:
+                entry.courseType,
+              order:
+                entry.order,
             };
           })
           .filter(Boolean)
           .sort(
-            (a, b) => a.order - b.order
+            (a, b) =>
+              a.order - b.order
           ),
       }))
       .sort(
@@ -219,6 +280,10 @@ export const getPublishedProgramCourses =
           a.yearNumber - b.yearNumber ||
           a.semesterNumber - b.semesterNumber
       );
+
+    // ======================================
+    // 9. RETURN AUTHORIZED COURSE CATALOG
+    // ======================================
 
     return res.status(200).json({
       success: true,
@@ -233,7 +298,9 @@ export const getPublishedProgramCourses =
         },
 
         semesters,
-        totalCourses: courses.length,
+
+        totalCourses:
+          courses.length,
       },
     });
   });

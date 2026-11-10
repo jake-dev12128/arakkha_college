@@ -16,10 +16,7 @@ import {
 
 const router = express.Router();
 
-// ==================================================
-// PUBLIC PROGRAMS
-// ==================================================
-
+// Public
 router.get(
   "/programs",
   getPublicPrograms
@@ -30,11 +27,7 @@ router.get(
   getPublicProgram
 );
 
-// ==================================================
-// AUTHENTICATED COURSE CATALOG
-// STUDENT / TEACHER ONLY
-// ==================================================
-
+// Protected
 router.get(
   "/programs/:programId/courses",
   requireAuthentication,
@@ -46,4 +39,5 @@ router.get(
   ),
   getPublishedProgramCourses
 );
+
 export default router;
