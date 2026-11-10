@@ -182,26 +182,43 @@ export const dashboardMenus = {
   // TEACHER
   // ================================================
 
-  teacher: {
-    label: "Teacher",
+ 
+teacher: {
+  label: "Teacher",
 
-    sections: [
-      {
-        title: "Overview",
-        items: [overview],
-      },
+  sections: [
+    {
+      title: "Overview",
+      items: [overview],
+    },
 
-      {
-        title: "Academic",
-        items: teacherAcademicItems,
-      },
+    {
+      title: "My Teaching",
+      items: teacherAcademicItems,
+    },
 
-      {
-        title: "Account & Security",
-        items: accountItems,
-      },
-    ],
-  },
+    {
+      title: "Academic Management",
+      items: academicManagementItems,
+    },
+
+    {
+      title: "Website Management",
+      items: websiteManagementItems,
+    },
+
+    {
+      title: "Entrance Management",
+      items: entranceManagementItems,
+    },
+
+    {
+      title: "Account & Security",
+      items: accountItems,
+    },
+  ],
+},
+
 
   // ================================================
   // STUDENT

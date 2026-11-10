@@ -1,3 +1,4 @@
+import { useOutletContext } from "react-router-dom";
 import ManagementToolbar from "../../components/dashboard/ManagementToolbar.jsx";
 
 import { useCallback, useEffect, useState } from "react";
@@ -51,6 +52,9 @@ const statusColors = {
 };
 
 export default function EntranceListsManagement() {
+  const { user } = useOutletContext();
+  const canManage = ["super_admin", "admin"].includes(user?.role);
+
   const [lists, setLists] = useState([]);
   const [years, setYears] = useState([]);
 
@@ -122,6 +126,7 @@ export default function EntranceListsManagement() {
   };
 
   const openCreate = () => {
+    if (!canManage) return;
     setEditingId(null);
     setForm(initialForm());
     setFormOpen(true);
@@ -130,6 +135,7 @@ export default function EntranceListsManagement() {
   };
 
   const openEdit = async (record) => {
+    if (!canManage) return;
     if (record.status !== "draft" || busy) return;
 
     setBusy(true);
@@ -157,6 +163,7 @@ export default function EntranceListsManagement() {
 
   const saveList = async (event) => {
     event.preventDefault();
+    if (!canManage) return;
     if (busy) return;
 
     const title = form.title.trim();
@@ -214,6 +221,7 @@ export default function EntranceListsManagement() {
   };
 
   const changePublication = async (record, action) => {
+    if (!canManage) return;
     if (busy) return;
 
     if (action === "publish" && record.status !== "draft") {
@@ -293,7 +301,7 @@ export default function EntranceListsManagement() {
           </Box>
 
           <HStack>
-            {!formOpen && (
+            {canManage && !formOpen && (
               <Button
                 colorPalette="blue"
                 disabled={busy}
@@ -321,7 +329,7 @@ export default function EntranceListsManagement() {
         {message && <Text color="green.600">{message}</Text>}
         {error && <Text color="red.500">{error}</Text>}
 
-        {formOpen && (
+        {canManage && formOpen && (
           <Box
             as="form"
             onSubmit={saveList}
@@ -481,10 +489,10 @@ export default function EntranceListsManagement() {
                           disabled={busy}
                           onClick={() => setSelectedList(record)}
                         >
-                          Manage Applicants
+                          {canManage ? "Manage Applicants" : "View Applicants"}
                         </Button>
 
-                        {record.status === "draft" && (
+                        {canManage && record.status === "draft" && (
                           <>
                             <Button
                               size="xs"
@@ -511,7 +519,7 @@ export default function EntranceListsManagement() {
                           </>
                         )}
 
-                        {record.status === "published" && (
+                        {canManage && record.status === "published" && (
                           <Button
                             size="xs"
                             colorPalette="orange"

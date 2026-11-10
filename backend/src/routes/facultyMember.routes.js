@@ -1,6 +1,8 @@
 
 import { Router } from "express";
-
+import {
+  requireCmsPermission,
+} from "../middleware/teacherReadOnly.middleware.js";
 import {
   listPublicFaculty,
   getPublicFaculty,
@@ -27,22 +29,7 @@ const adminRouter = Router();
 // ADMIN / SUPER ADMIN AUTHORIZATION
 // ==================================================
 
-const requireFacultyAdmin = (req, res, next) => {
-  const allowedRoles = new Set([
-    "admin",
-    "super_admin",
-  ]);
 
-  if (!req.user || !allowedRoles.has(req.user.role)) {
-    return res.status(403).json({
-      success: false,
-      message: "Insufficient permissions.",
-      code: "FORBIDDEN",
-    });
-  }
-
-  next();
-};
 
 // ==================================================
 // PUBLIC ROUTES
@@ -65,7 +52,7 @@ publicRouter.get(
 
 adminRouter.use(
   requireAuthentication,
-  requireFacultyAdmin
+  requireCmsPermission
 );
 
 // ==================================================

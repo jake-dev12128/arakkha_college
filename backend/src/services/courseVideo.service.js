@@ -470,46 +470,25 @@ export const verifyCoursePlaybackAccess = async (
   // TEACHER
   // ========================================
 
+  // ========================================
+  // TEACHER — FULL PUBLISHED READ ACCESS
+  // ========================================
+
+  // Teachers may view published lessons and
+  // videos of any active course, regardless
+  // of course assignments or cohort membership.
+  //
+  // Draft lessons remain restricted.
+  // This does not grant upload/edit/delete rights.
+
   if (user.role === "teacher") {
-    const teacher = await Teacher.findOne({
-      userId: user._id,
-    })
-      .select("_id")
-      .lean();
-
-    if (!teacher) {
-      fail("Teacher profile not found.");
-    }
-
-    const assignments = await CourseAssignment.find({
-      course: course._id,
-      teacher: teacher._id,
-      isActive: true,
-    })
-      .select("cohort")
-      .lean();
-
-    if (!assignments.length) {
-      fail("You are not assigned to this course.");
-    }
-
-    const activeCohort = await Cohort.exists({
-      _id: {
-        $in: assignments.map((item) => item.cohort),
-      },
-      status: "active",
-    });
-
-    if (!activeCohort) {
-      fail("No active cohort assignment exists.");
-    }
-
     return {
       courseId: course._id,
       role: "teacher",
       canPreviewDraft: false,
     };
   }
+
 
   // ========================================
   // STUDENT

@@ -1,3 +1,4 @@
+import { useOutletContext } from "react-router-dom";
 import ManagementToolbar from "../../components/dashboard/ManagementToolbar.jsx";
 
 import { useCallback, useEffect, useState } from "react";
@@ -102,6 +103,8 @@ const formatDate = (value) =>
 export default function EntranceManagement({
   resource = "information",
 }) {
+  const { user } = useOutletContext();
+  const canManage = ["super_admin", "admin"].includes(user?.role);
   const isInformation = resource === "information";
 
   const [records, setRecords] = useState([]);
@@ -113,6 +116,8 @@ export default function EntranceManagement({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
+  const [viewRecord, setViewRecord] = useState(null);
+  const [viewLoading, setViewLoading] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm());
@@ -221,6 +226,7 @@ const loadAcademicYears = useCallback(async () => {
   };
 
   const openCreate = () => {
+    if (!canManage) return;
     setEditingId(null);
     setForm(emptyForm());
     setError("");
@@ -229,6 +235,7 @@ const loadAcademicYears = useCallback(async () => {
   };
 
   const openEdit = async (record) => {
+    if (!canManage) return;
     if (record.status !== "draft") return;
 
     setBusy(true);
@@ -432,6 +439,7 @@ const loadAcademicYears = useCallback(async () => {
 
   const handleSave = async (event) => {
     event.preventDefault();
+    if (!canManage) return;
 
     if (busy) return;
 
@@ -469,6 +477,7 @@ const loadAcademicYears = useCallback(async () => {
   // ==================================================
 
   const handlePublication = async (record, action) => {
+    if (!canManage) return;
     if (busy) return;
 
     if (
@@ -532,6 +541,20 @@ const loadAcademicYears = useCallback(async () => {
     }
   };
 
+  const openView = async (record) => {
+    setViewRecord(record);
+    setViewLoading(true);
+    setError("");
+    try {
+      const detail = await entranceService.getInformation(record._id);
+      setViewRecord(detail);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setViewLoading(false);
+    }
+  };
+
   // ==================================================
   // RECORD TABLE
   // ==================================================
@@ -582,7 +605,10 @@ const loadAcademicYears = useCallback(async () => {
               {isInformation && (
                 <Table.Cell>
                   <HStack gap={2} flexWrap="wrap">
-                    {record.status === "draft" && (
+                    <Button size="xs" variant="outline" onClick={() => openView(record)}>
+                      View
+                    </Button>
+                    {canManage && record.status === "draft" && (
                       <>
                         <Button
                           size="xs"
@@ -609,7 +635,7 @@ const loadAcademicYears = useCallback(async () => {
                       </>
                     )}
 
-                    {record.status === "published" && (
+                    {canManage && record.status === "published" && (
                       <Button
                         size="xs"
                         colorPalette="orange"
@@ -1055,7 +1081,7 @@ const loadAcademicYears = useCallback(async () => {
           </Box>
 
           <HStack gap={2}>
-            {isInformation && !formOpen && (
+            {canManage && isInformation && !formOpen && (
               <Button
                 colorPalette="blue"
                 disabled={busy}
@@ -1106,7 +1132,43 @@ const loadAcademicYears = useCallback(async () => {
           </Box>
         )}
 
-        {isInformation && formOpen && renderForm()}
+        {viewRecord && (
+          <Box borderWidth="1px" borderRadius="lg" p={5}>
+            <Flex justify="space-between" align="center" gap={3} mb={3}>
+              <Heading size="md">{viewRecord.title || "Entrance Information"}</Heading>
+              <Button size="sm" variant="outline" onClick={() => setViewRecord(null)}>Close</Button>
+            </Flex>
+            {viewLoading ? <Spinner /> : (
+              <VStack align="stretch" gap={3}>
+                <Text whiteSpace="pre-wrap">{viewRecord.description || "No description"}</Text>
+                <Text fontWeight="semibold">Requirements</Text>
+                {(viewRecord.requirements ?? []).map((item, index) => (
+                  <Box key={index}>
+                    <Text fontWeight="medium">{item.title}</Text>
+                    <Text whiteSpace="pre-wrap">{item.description}</Text>
+                  </Box>
+                ))}
+                <Text fontWeight="semibold">Awards</Text>
+                {(viewRecord.awards ?? []).map((item, index) => (
+                  <Box key={index}>
+                    <Text fontWeight="medium">{item.awardTitle}</Text>
+                    <Text whiteSpace="pre-wrap">{item.description}</Text>
+                  </Box>
+                ))}
+                <Text>Application: {viewRecord.application?.fileName || "—"}</Text>
+                <Text>Start: {formatDate(viewRecord.applicationStartDate)}</Text>
+                <Text>End: {formatDate(viewRecord.applicationEndDate)}</Text>
+                {viewRecord.application?.pdfUrl && (
+                  <Box as="a" href={viewRecord.application.pdfUrl} target="_blank" rel="noopener noreferrer" color="blue.500">
+                    View application PDF
+                  </Box>
+                )}
+              </VStack>
+            )}
+          </Box>
+        )}
+
+        {canManage && isInformation && formOpen && renderForm()}
 
         {loading ? (
           <HStack justify="center" py={10}>

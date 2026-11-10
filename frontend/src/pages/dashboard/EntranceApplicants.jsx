@@ -1,3 +1,4 @@
+import { useOutletContext } from "react-router-dom";
 import ManagementToolbar from "../../components/dashboard/ManagementToolbar.jsx";
 
 import { useCallback, useEffect, useState } from "react";
@@ -42,7 +43,9 @@ const statuses = [
 ];
 
 export default function EntranceApplicants({ list, onBack }) {
-  const editable = list.status === "draft";
+  const { user } = useOutletContext();
+  const canManage = ["super_admin", "admin"].includes(user?.role);
+  const editable = canManage && list.status === "draft";
 
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);

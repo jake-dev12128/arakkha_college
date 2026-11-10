@@ -1,6 +1,8 @@
 
 import { Router } from "express";
-
+import {
+  requireCmsPermission,
+} from "../middleware/teacherReadOnly.middleware.js";
 import {
   publicNewsList,
   publicNewsDetail,
@@ -19,20 +21,7 @@ import {
 const publicRouter = Router();
 const adminRouter = Router();
 
-const requireNewsAdmin = (req, res, next) => {
-  if (
-    !req.user ||
-    !["admin", "super_admin"].includes(req.user.role)
-  ) {
-    return res.status(403).json({
-      success: false,
-      message: "Insufficient permissions.",
-      code: "FORBIDDEN",
-    });
-  }
 
-  next();
-};
 
 // PUBLIC
 publicRouter.get("/", publicNewsList);
@@ -41,7 +30,7 @@ publicRouter.get("/:id", publicNewsDetail);
 // ADMIN
 adminRouter.use(
   requireAuthentication,
-  requireNewsAdmin
+  requireCmsPermission
 );
 
 adminRouter.get("/", adminNewsList);

@@ -4,7 +4,9 @@ import { Router } from "express";
 import {
   requireAuthentication,
 } from "../middleware/auth.middleware.js";
-
+import {
+  requireCmsPermission,
+} from "../middleware/teacherReadOnly.middleware.js";
 import {
   requireRole,
 } from "../middleware/authorization.middleware.js";
@@ -43,7 +45,7 @@ export const adminEntranceRouter = Router();
 
 adminEntranceRouter.use(
   requireAuthentication,
-  requireRole("super_admin", "admin")
+  requireCmsPermission
 );
 
 adminEntranceRouter

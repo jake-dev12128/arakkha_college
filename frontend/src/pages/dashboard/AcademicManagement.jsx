@@ -1,4 +1,6 @@
 
+import { useOutletContext } from "react-router-dom";
+
 import {
   useCallback,
   useEffect,
@@ -929,6 +931,9 @@ function AdminLessonVideo({ courseId, lesson }) {
 export default function AcademicManagement({
   resource,
 }) {
+  const { user } = useOutletContext() ?? {};
+  const canManage = ["super_admin", "admin"].includes(user?.role);
+  const isReadOnly = user?.role === "teacher";
   // ==================================================
   // STATE
   // ==================================================
@@ -1342,6 +1347,7 @@ const [cloneError, setCloneError] = useState("");
   // ==================================================
 
   const startCreate = () => {
+    if (!canManage) return;
     setImageUploading(false);
     setEditingId(null);
 
@@ -1355,6 +1361,7 @@ const [cloneError, setCloneError] = useState("");
   };
 
   const startEdit = async (record) => {
+    if (!canManage) return;
     setImageUploading(false);
   if (!canEditRecord(resource, record)) {
     setError(
@@ -1539,6 +1546,7 @@ const [cloneError, setCloneError] = useState("");
   // ==================================================
 
   const saveRecord = async () => {
+    if (!canManage) return;
     if (imageUploading) {
       setError("Wait for the image upload to finish before saving.");
       return;
@@ -1645,6 +1653,7 @@ const [cloneError, setCloneError] = useState("");
   const openDelete = async (
     record,
   ) => {
+    if (!canManage) return;
     setDeleteRecord(record);
     setDeleteOpen(true);
     setDeleteError("");
@@ -1674,6 +1683,7 @@ const [cloneError, setCloneError] = useState("");
   // ==================================================
 
   const confirmDelete = async () => {
+    if (!canManage) return;
     if (
       !deleteRecord ||
       !eligibility?.canDelete ||
@@ -1728,6 +1738,7 @@ const [cloneError, setCloneError] = useState("");
 // ==================================================
 
 const openCloneDialog = (record) => {
+    if (!canManage) return;
   if (record.status !== "published") {
     setError("Only published curricula can be cloned.");
     return;
@@ -1745,6 +1756,7 @@ const openCloneDialog = (record) => {
 // ==================================================
 
 const submitClone = async () => {
+    if (!canManage) return;
   if (!cloneSource || cloneSaving) return;
 
   const version = cloneVersion.trim();
@@ -1799,6 +1811,7 @@ const submitClone = async () => {
 // ==================================================
 
 const performAction = async (record, action) => {
+    if (!canManage) return;
   const confirmed = window.confirm(
     `Are you sure you want to ${action} "${getRecordTitle(record)}"?`
   );
@@ -1853,6 +1866,7 @@ const performAction = async (record, action) => {
   // ==================================================
 
   const openLifecycleDialog = (record, action) => {
+    if (!canManage) return;
     if (resource !== "academic-years") return;
 
     const allowed = record.isActive !== false && (
@@ -1878,6 +1892,7 @@ const performAction = async (record, action) => {
   };
 
   const confirmLifecycleAction = async () => {
+    if (!canManage) return;
     if (!lifecycleDialog || lifecycleSaving) return;
 
     const { record, action } = lifecycleDialog;
@@ -1917,9 +1932,17 @@ const performAction = async (record, action) => {
     setLessonsLoading(true);
     setLessonError("");
     try {
-      const result = await courseLessonService.list(courseId, { page: 1, limit: 100 });
+      const result = canManage
+        ? await courseLessonService.list(courseId, { page: 1, limit: 100 })
+        : await coursePlaybackService.listAccessible(courseId);
       const items = result?.lessons ?? result?.data?.lessons ?? result?.data ?? result;
-      setLessons(Array.isArray(items) ? items : []);
+      setLessons(Array.isArray(items)
+        ? items.map((lesson) => ({
+            ...lesson,
+            _id: lesson._id ?? lesson.id,
+            videoMediaId: lesson.videoMediaId ?? (lesson.hasVideo ? "available" : null),
+          }))
+        : []);
     } catch (err) {
       setLessonError(getError(err));
     } finally {
@@ -1972,6 +1995,7 @@ const performAction = async (record, action) => {
   };
 
   const selectLesson = (lesson) => {
+    if (!canManage) return;
     setLessonEditorOpen(true);
     setSelectedLessonId(getId(lesson));
     setLessonForm({
@@ -1984,6 +2008,7 @@ const performAction = async (record, action) => {
   };
 
   const saveLesson = async () => {
+    if (!canManage) return;
     const courseId = getId(selectedCourse);
     if (!courseId || lessonSaving) return;
     setLessonSaving(true);
@@ -2016,6 +2041,7 @@ const performAction = async (record, action) => {
   };
 
   const toggleLessonPublication = async (lesson) => {
+    if (!canManage) return;
     const courseId = getId(selectedCourse);
     if (!courseId || lessonSaving) return;
     setLessonSaving(true);
@@ -2033,6 +2059,7 @@ const performAction = async (record, action) => {
   };
 
   const detachLessonVideo = async (lesson) => {
+    if (!canManage) return;
     const courseId = getId(selectedCourse);
     if (!courseId || lessonSaving || !window.confirm(`Detach video from "${lesson.title}"?`)) return;
     setLessonSaving(true);
@@ -2050,6 +2077,7 @@ const performAction = async (record, action) => {
   };
 
   const deleteCourseLesson = async (lesson) => {
+    if (!canManage) return;
     const courseId = getId(selectedCourse);
     if (!courseId || lessonSaving || !window.confirm(`Permanently delete lesson "${lesson.title}"?`)) return;
     setLessonSaving(true);
@@ -2629,19 +2657,13 @@ if (
             fontSize="sm"
             color="fg.muted"
           >
-            Manage academic
-            records and
-            related information.
+            {isReadOnly ? "View academic records and related information." : "Manage academic records and related information."}
           </Text>
         </Box>
 
-        <Button
-          onClick={
-            startCreate
-          }
-        >
-          + Add New
-        </Button>
+        {canManage && (
+          <Button onClick={startCreate}>+ Add New</Button>
+        )}
       </Flex>
 
       {/* ALERTS */}
@@ -2812,6 +2834,7 @@ if (
                         </Button>
                       )}
 
+                     {canManage && (<>
                      {canEditRecord(resource, record) && (
   <Button
     size="xs"
@@ -2929,6 +2952,7 @@ if (
                           Delete
                         </Button>
                       )}
+                     </>)}
                     </Flex>
                   </Table.Cell>
                 </Table.Row>
@@ -3033,17 +3057,19 @@ if (
                 </Box>
                 <Flex gap={2} align="center">
                   <Badge colorPalette="blue">{lessons.length} lessons</Badge>
-                  <Button
-                    size="sm"
-                    colorPalette="blue"
-                    disabled={lessonSaving}
-                    onClick={() => {
-                      resetLessonForm();
-                      setLessonEditorOpen(true);
-                    }}
-                  >
-                    + Create Lesson
-                  </Button>
+                  {canManage && (
+                    <Button
+                      size="sm"
+                      colorPalette="blue"
+                      disabled={lessonSaving}
+                      onClick={() => {
+                        resetLessonForm();
+                        setLessonEditorOpen(true);
+                      }}
+                    >
+                      + Create Lesson
+                    </Button>
+                  )}
                 </Flex>
               </Flex>
         </Box>
@@ -3069,7 +3095,7 @@ if (
                     {lessonsLoading ? (
                       <Flex justify="center" py={8}><Spinner size="sm" /></Flex>
                     ) : lessons.length === 0 ? (
-                      <Text p={4} fontSize="sm" color="fg.muted">No lessons created yet. Select Create Lesson to begin.</Text>
+                      <Text p={4} fontSize="sm" color="fg.muted">{canManage ? "No lessons created yet. Select Create Lesson to begin." : "No published video lessons are available."}</Text>
                     ) : (
                       <VStack align="stretch" gap={0} maxH={{ lg: "65vh" }} overflowY="auto">
                         {[...lessons].sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0)).map((lesson, index) => {
@@ -3102,6 +3128,7 @@ if (
                                     {!lesson.videoMediaId && <Text fontSize="xs" color="fg.muted">No video</Text>}
                                   </Flex>
                                 </Box>
+                                {canManage && (
                                 <Button
                                   size="xs"
                                   variant="ghost"
@@ -3110,6 +3137,7 @@ if (
                                 >
                                   Edit
                                 </Button>
+                                )}
                               </Flex>
                             </Box>
                           );
@@ -3173,6 +3201,7 @@ if (
                               Refresh Video
                             </Button>
                           </Flex>
+                          {canManage && (
                           <Flex gap={2} wrap="wrap" mt={4} pt={3} borderTopWidth="1px">
                             <Button size="sm" variant="outline" disabled={lessonSaving} onClick={() => selectLesson(activeLesson)}>
                               Edit / Video
@@ -3188,6 +3217,7 @@ if (
                             <Button size="sm" variant="outline" colorPalette="red" disabled={lessonSaving}
                               onClick={() => deleteCourseLesson(activeLesson)}>Delete</Button>
                           </Flex>
+                          )}
                         </Box>
                       );
                     })()}
@@ -3202,6 +3232,7 @@ if (
       )}
 
       {/* Lesson create/edit and video upload; existing handlers preserved */}
+      {canManage && (
       <Dialog.Root open={lessonEditorOpen} onOpenChange={(details) => {
         if (!lessonSaving) setLessonEditorOpen(details.open);
       }} size="lg" scrollBehavior="inside">
@@ -3257,6 +3288,7 @@ if (
           </Dialog.Content>
         </Dialog.Positioner>
       </Dialog.Root>
+      )}
 
       {/* CREATE / EDIT DRAWER */}
 
@@ -3410,7 +3442,7 @@ if (
                 Close
               </Button>
 
-            {detailsRecord &&
+            {canManage && detailsRecord &&
   canEditRecord(resource, detailsRecord) && (
     <Button
       onClick={() => {

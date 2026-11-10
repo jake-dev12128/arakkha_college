@@ -1,3 +1,4 @@
+import { useOutletContext } from "react-router-dom";
 
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -72,6 +73,10 @@ function SidePanel({ children, onClose, title }) {
 }
 
 export default function CollaborationManagement() {
+  const { user } = useOutletContext() ?? {};
+  const canManage = ["super_admin", "admin"].includes(user?.role);
+  const isReadOnly = user?.role === "teacher";
+
   const [partners, setPartners] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
@@ -111,6 +116,7 @@ export default function CollaborationManagement() {
   };
 
   const openCreate = () => {
+    if (!canManage) return;
     setEditingId(null);
     setForm(emptyForm());
     setError("");
@@ -119,6 +125,7 @@ export default function CollaborationManagement() {
   };
 
   const openEdit = (partner) => {
+    if (!canManage) return;
     const defaults = emptyForm();
 
     setEditingId(partner._id);
@@ -148,6 +155,7 @@ export default function CollaborationManagement() {
   };
 
   const handleSave = async (event) => {
+    if (!canManage) return;
     event.preventDefault();
 
     if (busy || imageUploading) return;
@@ -210,6 +218,7 @@ export default function CollaborationManagement() {
   };
 
   const handlePublication = async (partner) => {
+    if (!canManage) return;
     const next = !partner.isPublished;
 
     if (
@@ -245,6 +254,7 @@ export default function CollaborationManagement() {
   };
 
   const handleDelete = async (partner) => {
+    if (!canManage) return;
     if (
       !window.confirm(
         `Permanently delete ${partner.name}? This cannot be undone.`
@@ -272,7 +282,10 @@ export default function CollaborationManagement() {
   };
 
   const handleView = async (partner) => {
-    if (!partner.isPublished) return;
+    if (!partner.isPublished) {
+      setViewPartner(partner);
+      return;
+    }
 
     setError("");
 
@@ -338,17 +351,19 @@ export default function CollaborationManagement() {
               Collaboration Management
             </Heading>
             <Text color="fg.muted" mt="1">
-              Manage partner organizations and public visibility.
+              {isReadOnly ? "View partner organizations (read-only)." : "Manage partner organizations and public visibility."}
             </Text>
           </Box>
 
-          <Button
+          {canManage && (
+<Button
             colorPalette="blue"
             disabled={busy || imageUploading}
             onClick={openCreate}
           >
             + Add Partner
           </Button>
+)}
         </Flex>
 
         {error && !formOpen && (
@@ -536,8 +551,7 @@ export default function CollaborationManagement() {
                           justify="flex-end"
                           wrap="wrap"
                         >
-                          {partner.isPublished && (
-                            <Button
+                          <Button
                               size="xs"
                               variant="outline"
                               disabled={busy || imageUploading}
@@ -547,9 +561,9 @@ export default function CollaborationManagement() {
                             >
                               View
                             </Button>
-                          )}
 
-                          <Button
+                          {canManage && (
+<Button
                             size="xs"
                             variant="outline"
                             disabled={busy || imageUploading}
@@ -559,8 +573,10 @@ export default function CollaborationManagement() {
                           >
                             Edit
                           </Button>
+)}
 
-                          <Button
+                          {canManage && (
+<Button
                             size="xs"
                             colorPalette={
                               partner.isPublished
@@ -577,8 +593,10 @@ export default function CollaborationManagement() {
                               ? "Unpublish"
                               : "Publish"}
                           </Button>
+)}
 
-                          <Button
+                          {canManage && (
+<Button
                             size="xs"
                             colorPalette="red"
                             variant="outline"
@@ -589,6 +607,7 @@ export default function CollaborationManagement() {
                           >
                             Delete
                           </Button>
+)}
                         </Flex>
                       </Table.Cell>
                     </Table.Row>
@@ -602,7 +621,7 @@ export default function CollaborationManagement() {
 
       {/* CREATE / EDIT PANEL */}
 
-      {formOpen && (
+      {canManage && formOpen && (
         <SidePanel
           title="Collaboration partner form"
           onClose={closeForm}

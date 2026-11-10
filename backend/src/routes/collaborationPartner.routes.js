@@ -1,6 +1,8 @@
 
 import { Router } from "express";
-
+import {
+  requireCmsPermission,
+} from "../middleware/teacherReadOnly.middleware.js";
 import {
   listPublicCollaborations,
   getPublicCollaboration,
@@ -19,22 +21,7 @@ import {
 const publicRouter = Router();
 const adminRouter = Router();
 
-const requireCollaborationAdmin = (req, res, next) => {
-  const allowedRoles = new Set([
-    "admin",
-    "super_admin",
-  ]);
 
-  if (!req.user || !allowedRoles.has(req.user.role)) {
-    return res.status(403).json({
-      success: false,
-      message: "Insufficient permissions.",
-      code: "FORBIDDEN",
-    });
-  }
-
-  next();
-};
 
 // ==================================================
 // PUBLIC ROUTES
@@ -53,10 +40,9 @@ publicRouter.get(
 // ==================================================
 // ADMIN ROUTES
 // ==================================================
-
 adminRouter.use(
   requireAuthentication,
-  requireCollaborationAdmin
+  requireCmsPermission
 );
 
 adminRouter.get(

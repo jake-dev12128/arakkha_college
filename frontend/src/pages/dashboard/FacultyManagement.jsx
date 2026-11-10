@@ -1,3 +1,4 @@
+import { useOutletContext } from "react-router-dom";
 
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -86,6 +87,10 @@ function OverlayPanel({
 }
 
 export default function FacultyManagement() {
+  const { user } = useOutletContext() ?? {};
+  const canManage = ["super_admin", "admin"].includes(user?.role);
+  const isReadOnly = user?.role === "teacher";
+
   const [members, setMembers] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
@@ -154,6 +159,7 @@ export default function FacultyManagement() {
   };
 
   const openCreate = () => {
+    if (!canManage) return;
     setEditingId(null);
     setForm(emptyForm());
     setError("");
@@ -162,6 +168,7 @@ export default function FacultyManagement() {
   };
 
   const openEdit = (member) => {
+    if (!canManage) return;
     const defaults = emptyForm();
 
     setEditingId(member._id);
@@ -192,6 +199,7 @@ export default function FacultyManagement() {
   };
 
   const handleSave = async (event) => {
+    if (!canManage) return;
     event.preventDefault();
 
     if (busy || imageUploading) return;
@@ -263,6 +271,7 @@ export default function FacultyManagement() {
   };
 
   const handlePublication = async (member) => {
+    if (!canManage) return;
     const next = !member.isPublished;
 
     if (
@@ -298,6 +307,7 @@ export default function FacultyManagement() {
   };
 
   const handleDelete = async (member) => {
+    if (!canManage) return;
     if (
       !window.confirm(
         `Permanently delete ${member.name}? This cannot be undone.`
@@ -328,7 +338,10 @@ export default function FacultyManagement() {
   };
 
   const handleView = async (member) => {
-    if (!member.isPublished) return;
+    if (!member.isPublished) {
+      setViewMember(member);
+      return;
+    }
 
     setError("");
 
@@ -407,17 +420,19 @@ export default function FacultyManagement() {
               color="fg.muted"
               mt="1"
             >
-              Manage faculty profiles and public visibility.
+              {isReadOnly ? "View faculty profiles (read-only)." : "Manage faculty profiles and public visibility."}
             </Text>
           </Box>
 
-          <Button
+          {canManage && (
+<Button
             colorPalette="blue"
             disabled={busy || imageUploading}
             onClick={openCreate}
           >
             + Add Faculty
           </Button>
+)}
         </Flex>
 
         {error && !formOpen && (
@@ -629,8 +644,7 @@ export default function FacultyManagement() {
                           justify="flex-end"
                           wrap="wrap"
                         >
-                          {member.isPublished && (
-                            <Button
+                          <Button
                               size="xs"
                               variant="outline"
                               disabled={busy || imageUploading}
@@ -640,9 +654,9 @@ export default function FacultyManagement() {
                             >
                               View
                             </Button>
-                          )}
 
-                          <Button
+                          {canManage && (
+<Button
                             size="xs"
                             variant="outline"
                             disabled={busy || imageUploading}
@@ -652,8 +666,10 @@ export default function FacultyManagement() {
                           >
                             Edit
                           </Button>
+)}
 
-                          <Button
+                          {canManage && (
+<Button
                             size="xs"
                             colorPalette={
                               member.isPublished
@@ -670,8 +686,10 @@ export default function FacultyManagement() {
                               ? "Unpublish"
                               : "Publish"}
                           </Button>
+)}
 
-                          <Button
+                          {canManage && (
+<Button
                             size="xs"
                             colorPalette="red"
                             variant="outline"
@@ -682,6 +700,7 @@ export default function FacultyManagement() {
                           >
                             Delete
                           </Button>
+)}
                         </Flex>
                       </Table.Cell>
                     </Table.Row>
@@ -695,7 +714,7 @@ export default function FacultyManagement() {
 
       {/* CREATE / EDIT PANEL */}
 
-      {formOpen && (
+      {canManage && formOpen && (
         <OverlayPanel onClose={closeForm}>
           <Flex
             p="5"

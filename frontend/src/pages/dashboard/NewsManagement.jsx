@@ -1,3 +1,4 @@
+import { useOutletContext } from "react-router-dom";
 import ManagementToolbar from "../../components/dashboard/ManagementToolbar.jsx";
 
 import { useCallback, useEffect, useState } from "react";
@@ -111,6 +112,10 @@ function Drawer({ title, children, onClose, disabled }) {
 }
 
 export default function NewsManagement() {
+  const { user } = useOutletContext() ?? {};
+  const canManage = ["super_admin", "admin"].includes(user?.role);
+  const isReadOnly = user?.role === "teacher";
+
   const [articles, setArticles] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
@@ -150,6 +155,7 @@ const [success, setSuccess] = useState("");
   };
 
   const openCreate = () => {
+    if (!canManage) return;
     setEditingId(null);
     setForm(emptyForm());
     setError("");
@@ -158,6 +164,7 @@ const [success, setSuccess] = useState("");
   };
 
   const openEdit = (article) => {
+    if (!canManage) return;
     setEditingId(article._id);
 
     setForm({
@@ -182,6 +189,7 @@ const closeForm = () => {
   setError("");
 };
   const handleSave = async (event) => {
+    if (!canManage) return;
     event.preventDefault();
   if (busy || imageUploading) return;
 
@@ -240,6 +248,7 @@ const closeForm = () => {
   };
 
   const handlePublication = async (article) => {
+    if (!canManage) return;
     const next = !article.isPublished;
 
     if (
@@ -270,6 +279,7 @@ const closeForm = () => {
   };
 
   const handleDelete = async (article) => {
+    if (!canManage) return;
     if (
       !window.confirm(
         `Permanently delete "${article.title}"? This cannot be undone.`,
@@ -295,7 +305,10 @@ const closeForm = () => {
   };
 
   const handleView = async (article) => {
-    if (!article.isPublished) return;
+    if (!article.isPublished) {
+      setPreview(article);
+      return;
+    }
 
     setBusy(true);
     setError("");
@@ -351,13 +364,15 @@ const closeForm = () => {
             <Heading size="xl">News Management</Heading>
 
             <Text mt="1" color="fg.muted">
-              Create, publish and manage college news.
+              {isReadOnly ? "View college news (read-only)." : "Create, publish and manage college news."}
             </Text>
           </Box>
 
-          <Button colorPalette="blue" onClick={openCreate} disabled={busy}>
+          {canManage && (
+<Button colorPalette="blue" onClick={openCreate} disabled={busy}>
             + Add News
           </Button>
+)}
         </Flex>
 
         {error && !formOpen && (
@@ -512,8 +527,7 @@ const closeForm = () => {
 
                       <Table.Cell textAlign="end">
                         <Flex justify="flex-end" gap="2" wrap="wrap">
-                          {article.isPublished && (
-                            <Button
+                          <Button
                               size="xs"
                               variant="outline"
                               disabled={busy}
@@ -521,9 +535,9 @@ const closeForm = () => {
                             >
                               View
                             </Button>
-                          )}
 
-                          <Button
+                          {canManage && (
+<Button
                             size="xs"
                             variant="outline"
                             disabled={busy}
@@ -531,8 +545,10 @@ const closeForm = () => {
                           >
                             Edit
                           </Button>
+)}
 
-                          <Button
+                          {canManage && (
+<Button
                             size="xs"
                             variant="outline"
                             colorPalette="blue"
@@ -541,8 +557,10 @@ const closeForm = () => {
                           >
                             {article.isPublished ? "Unpublish" : "Publish"}
                           </Button>
+)}
 
-                          <Button
+                          {canManage && (
+<Button
                             size="xs"
                             variant="outline"
                             colorPalette="red"
@@ -551,6 +569,7 @@ const closeForm = () => {
                           >
                             Delete
                           </Button>
+)}
                         </Flex>
                       </Table.Cell>
                     </Table.Row>
@@ -564,7 +583,7 @@ const closeForm = () => {
 
       {/* CREATE / EDIT DRAWER */}
 
-      {formOpen && (
+      {canManage && formOpen && (
        <Drawer
   title={editingId ? "Edit News" : "Create News"}
   onClose={closeForm}

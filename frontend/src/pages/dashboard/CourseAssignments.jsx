@@ -22,6 +22,8 @@ import {
   VStack,
 } from "@chakra-ui/react";
 
+import { useOutletContext } from "react-router-dom";
+
 import api from "../../api/api.js";
 
 import {
@@ -159,6 +161,10 @@ const extractPagination = (result) =>
 // ==================================================
 
 export default function CourseAssignments() {
+  const { user } = useOutletContext() ?? {};
+  const canManage = ["super_admin", "admin"].includes(user?.role);
+  const isReadOnly = user?.role === "teacher";
+
   // ==================================================
   // LOOKUP DATA
   // ==================================================
@@ -290,9 +296,14 @@ const [cohorts, setCohorts] = useState([]);
         },
       ];
 
+      // Teacher read-only pages must not request admin-only student/teacher directories.
+      const visibleRequests = canManage
+        ? requests
+        : requests.filter((request) => ["Cohorts", "Courses"].includes(request.name));
+
       try {
         const results = await Promise.allSettled(
-          requests.map((request) =>
+          visibleRequests.map((request) =>
             api.get(request.url, {
               params: request.params,
               signal: controller.signal,
@@ -307,7 +318,7 @@ const [cohorts, setCohorts] = useState([]);
         const errors = [];
 
         results.forEach((result, index) => {
-          const request = requests[index];
+          const request = visibleRequests[index];
 
           if (result.status === "fulfilled") {
             const records = extractList(
@@ -353,7 +364,7 @@ const [cohorts, setCohorts] = useState([]);
     loadLookups();
 
     return () => controller.abort();
-  }, [lookupReloadKey]);
+  }, [lookupReloadKey, canManage]);
 
   // ==================================================
   // LOAD ASSIGNMENTS
@@ -476,6 +487,7 @@ const [cohorts, setCohorts] = useState([]);
   // ==================================================
 
  const handleAssignTeacher = async (event) => {
+    if (!canManage) return;
   event.preventDefault();
 
   const payload = {
@@ -520,6 +532,7 @@ const [cohorts, setCohorts] = useState([]);
   // ==================================================
 
   const handleAssignStudent = async (event) => {
+    if (!canManage) return;
     event.preventDefault();
 
     if (
@@ -560,6 +573,7 @@ const [cohorts, setCohorts] = useState([]);
     assignmentId,
     studentId
   ) => {
+    if (!canManage) return;
     const confirmed = window.confirm(
       "Remove this student from the course assignment?"
     );
@@ -593,6 +607,7 @@ const [cohorts, setCohorts] = useState([]);
   const handleRevokeAssignment = async (
     assignmentId
   ) => {
+    if (!canManage) return;
     const confirmed = window.confirm(
       "Revoke this assignment? The teacher and assigned students will lose access through this assignment."
     );
@@ -649,7 +664,9 @@ const [cohorts, setCohorts] = useState([]);
           </Heading>
 
           <Text color="fg.muted" fontSize="sm">
-            Manage teachers, students and course access.
+            {isReadOnly
+              ? "View course assignments and student rosters."
+              : "Manage teachers, students and course access."}
           </Text>
         </Box>
       </Flex>
@@ -714,13 +731,12 @@ const [cohorts, setCohorts] = useState([]);
           Courses: {courses.length}
         </Badge>
 
-        <Badge variant="subtle">
-          Teachers: {teachers.length}
-        </Badge>
-
-        <Badge variant="subtle">
-          Students: {students.length}
-        </Badge>
+        {canManage && (
+          <>
+            <Badge variant="subtle">Teachers: {teachers.length}</Badge>
+            <Badge variant="subtle">Students: {students.length}</Badge>
+          </>
+        )}
 
         {lookupsLoading && (
           <HStack gap={2}>
@@ -736,6 +752,7 @@ const [cohorts, setCohorts] = useState([]);
       {/* ASSIGNMENT FORMS */}
       {/* ========================================== */}
 
+      {canManage && (
       <Flex
         gap={5}
         direction={{
@@ -1040,7 +1057,9 @@ const [cohorts, setCohorts] = useState([]);
         </Card.Root>
       </Flex>
 
-      {/* ========================================== */}
+      
+      )}
+
       {/* FILTERS */}
       {/* ========================================== */}
 
@@ -1233,7 +1252,7 @@ const [cohorts, setCohorts] = useState([]);
                               Students
                             </Button>
 
-                            {assignment.isActive && (
+                            {canManage && assignment.isActive && (
                               <Button
                                 size="xs"
                                 colorPalette="red"
@@ -1280,7 +1299,7 @@ const [cohorts, setCohorts] = useState([]);
                                         {getName(student)}
                                       </Text>
 
-                                      {assignment.isActive && (
+                                      {canManage && assignment.isActive && (
                                         <Button
                                           size="xs"
                                           variant="ghost"

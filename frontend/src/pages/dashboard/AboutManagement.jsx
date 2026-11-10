@@ -1,3 +1,4 @@
+import { useOutletContext } from "react-router-dom";
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -66,6 +67,10 @@ const getErrorMessage = (error) =>
 // ==================================================
 
 export default function AboutManagement() {
+  const { user } = useOutletContext() ?? {};
+  const canManage = ["super_admin", "admin"].includes(user?.role);
+  const isReadOnly = user?.role === "teacher";
+
   const [form, setForm] = useState(emptyContent);
 
   const [exists, setExists] = useState(false);
@@ -139,6 +144,7 @@ export default function AboutManagement() {
   // ==================================================
 
   const updateField = (section, field, value) => {
+    if (!canManage) return;
     setForm((previous) => ({
       ...previous,
       [section]: {
@@ -183,6 +189,7 @@ export default function AboutManagement() {
   // ==================================================
 
   const handleSave = async () => {
+    if (!canManage) return;
     setError("");
     setSuccess("");
 
@@ -217,6 +224,7 @@ export default function AboutManagement() {
   // ==================================================
 
   const handlePublish = async () => {
+    if (!canManage) return;
     if (dirty) {
       setError("Save your changes before publishing.");
       return;
@@ -252,6 +260,7 @@ export default function AboutManagement() {
   };
 
   const handleUnpublish = async () => {
+    if (!canManage) return;
     if (
       !window.confirm(
         "Unpublish About Us from the public website?"
@@ -310,7 +319,7 @@ export default function AboutManagement() {
             </Heading>
 
             <Text color="fg.muted" mt="2">
-              Manage public website content.
+              {isReadOnly ? "View public website content (read-only)." : "Manage public website content."}
             </Text>
           </Box>
 
@@ -372,6 +381,7 @@ export default function AboutManagement() {
               <Field.Label>Page Title</Field.Label>
 
               <Input
+                  readOnly={!canManage}
                 value={form.hero.title}
                 onChange={(event) =>
                   updateField(
@@ -390,6 +400,7 @@ export default function AboutManagement() {
               </Field.Label>
 
               <Input
+                  readOnly={!canManage}
                 value={form.hero.description}
                 onChange={(event) =>
                   updateField(
@@ -443,6 +454,7 @@ export default function AboutManagement() {
                 </Field.Label>
 
                 <Input
+                  readOnly={!canManage}
                   value={form.introduction.eyebrow}
                   onChange={(event) =>
                     updateField(
@@ -462,6 +474,7 @@ export default function AboutManagement() {
               <Field.Label>Section Title</Field.Label>
 
               <Input
+                  readOnly={!canManage}
                 value={form[activeSection].title}
                 onChange={(event) =>
                   updateField(
@@ -481,8 +494,9 @@ export default function AboutManagement() {
                 Section Description
               </Field.Label>
 
-              <Box width="100%">
+              <Box width="100%" pointerEvents={canManage ? "auto" : "none"}>
                 <RichTextEditor
+                  readOnly={!canManage}
                   key={activeSection}
                   value={
                     form[activeSection].description
@@ -516,7 +530,8 @@ export default function AboutManagement() {
             Reload
           </Button>
 
-          <Button
+          {canManage && (
+<Button
             colorPalette="blue"
             loading={busy}
             disabled={!dirty || busy}
@@ -524,8 +539,9 @@ export default function AboutManagement() {
           >
             Save Changes
           </Button>
+)}
 
-          {isPublished ? (
+          {canManage && (isPublished ? (
             <Button
               colorPalette="orange"
               variant="outline"
@@ -544,7 +560,7 @@ export default function AboutManagement() {
             >
               Publish
             </Button>
-          )}
+          ))}
         </Flex>
 
       </VStack>

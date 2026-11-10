@@ -15,20 +15,63 @@ import programEnrollmentRoutes from "./programEnrollment.routes.js";
 
 const router = express.Router();
 
-// Authenticate once for all academic admin routes.
+// ==========================================
+// AUTHENTICATION
+// ==========================================
+
+// All academic management routes require
+// an authenticated and active user.
 router.use(requireAuthentication);
 
-router.use(
-  requireRole("super_admin", "admin"),
-);
+// ==========================================
+// ACADEMIC READ-ONLY RBAC
+// ==========================================
 
-// Academic Management
+// Teacher:
+//   GET / HEAD -> Allowed
+//   POST / PUT / PATCH / DELETE -> Forbidden
+//
+// Admin / Super Admin:
+//   Existing read and write permissions
+//
+// Student:
+//   No access to admin academic routes
+
+const requireAcademicPermission = (
+  req,
+  res,
+  next
+) => {
+  if (
+    req.method === "GET" ||
+    req.method === "HEAD"
+  ) {
+    return requireRole(
+      "super_admin",
+      "admin",
+      "teacher"
+    )(req, res, next);
+  }
+
+  return requireRole(
+    "super_admin",
+    "admin"
+  )(req, res, next);
+};
+
+router.use(requireAcademicPermission);
+
+// ==========================================
+// ACADEMIC MANAGEMENT
+// ==========================================
+
+// Programs, Courses, Curricula
 router.use(academicRoutes);
 
-// Academic Years and Cohorts
+// Academic Years, Cohorts
 router.use(academicOperationsRoutes);
 
-// Student Program Enrollment
+// Program Enrollments
 router.use(programEnrollmentRoutes);
 
 export default router;

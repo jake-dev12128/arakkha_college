@@ -29,7 +29,8 @@ import EntranceStudentLists from "../pages/public/EntranceStudentLists.jsx";
 import FacultyStaff from "../pages/public/FacultyStaff.jsx";
 import Collaboration from "../pages/public/Collaboration.jsx";
 import CollaborationDetail from "../pages/public/CollaborationDetail.jsx";
-import News from "../pages/public/News.jsx";import NewsDetail from "../pages/public/NewsDetail.jsx";
+import News from "../pages/public/News.jsx";
+import NewsDetail from "../pages/public/NewsDetail.jsx";
 import Programs from "../pages/public/Programs.jsx";
 import Contact from "../pages/public/Contact.jsx";
 import NotFound from "../pages/public/NotFound.jsx";
@@ -118,7 +119,10 @@ function RequireRole({ allowedRoles, children }) {
 // ==================================================
 
 const ADMIN_ROLES = ["super_admin", "admin"];
+// Admin/Super Admin: Full management access
+// Teacher: Read-only management access
 
+const MANAGEMENT_READ_ROLES = ["super_admin", "admin", "teacher"];
 const TEACHER_ROLES = ["teacher"];
 
 const STUDENT_ROLES = ["student"];
@@ -159,7 +163,10 @@ export default function AppRoutes() {
 
           <Route element={<RequireCourseAccess />}>
             <Route path="/academic/courses/:programId" element={<Courses />} />
-            <Route path="/academic/courses/:programId/:courseId" element={<CourseDetail />} />
+            <Route
+              path="/academic/courses/:programId/:courseId"
+              element={<CourseDetail />}
+            />
           </Route>
           <Route
             path="/academic/entrance-information"
@@ -180,10 +187,7 @@ export default function AppRoutes() {
           <Route path="/collaboration" element={<Collaboration />} />
           <Route path="/collaboration/:id" element={<CollaborationDetail />} />
           <Route path="/news" element={<News />} />
-<Route
-  path="/news/:id"
-  element={<NewsDetail />}
-/>
+          <Route path="/news/:id" element={<NewsDetail />} />
           <Route path="/programs" element={<Programs />} />
 
           <Route path="/contact" element={<Contact />} />
@@ -240,7 +244,7 @@ export default function AppRoutes() {
               <Route
                 path="/acc/auth/about-management"
                 element={
-                  <RequireRole allowedRoles={ADMIN_ROLES}>
+                  <RequireRole allowedRoles={MANAGEMENT_READ_ROLES}>
                     <AboutManagement />
                   </RequireRole>
                 }
@@ -250,7 +254,7 @@ export default function AppRoutes() {
               <Route
                 path="/acc/auth/faculty-management"
                 element={
-                  <RequireRole allowedRoles={ADMIN_ROLES}>
+                  <RequireRole allowedRoles={MANAGEMENT_READ_ROLES}>
                     <FacultyManagement />
                   </RequireRole>
                 }
@@ -261,7 +265,7 @@ export default function AppRoutes() {
               <Route
                 path="/acc/auth/collaboration-management"
                 element={
-                  <RequireRole allowedRoles={ADMIN_ROLES}>
+                  <RequireRole allowedRoles={MANAGEMENT_READ_ROLES}>
                     <CollaborationManagement />
                   </RequireRole>
                 }
@@ -270,7 +274,7 @@ export default function AppRoutes() {
               <Route
                 path="/acc/auth/news-management"
                 element={
-                  <RequireRole allowedRoles={ADMIN_ROLES}>
+                  <RequireRole allowedRoles={MANAGEMENT_READ_ROLES}>
                     <NewsManagement />
                   </RequireRole>
                 }
@@ -390,8 +394,6 @@ export default function AppRoutes() {
                 }
               />
 
-             
-
               {/* ================================ */}
               {/* ACADEMIC MANAGEMENT */}
               {/* ADMIN / SUPER ADMIN */}
@@ -400,7 +402,7 @@ export default function AppRoutes() {
               <Route
                 path="/acc/auth/programs"
                 element={
-                  <RequireRole allowedRoles={ADMIN_ROLES}>
+                  <RequireRole allowedRoles={MANAGEMENT_READ_ROLES}>
                     <AcademicManagement resource="programs" />
                   </RequireRole>
                 }
@@ -409,25 +411,23 @@ export default function AppRoutes() {
               <Route
                 path="/acc/auth/courses"
                 element={
-                  <RequireRole allowedRoles={ADMIN_ROLES}>
+                  <RequireRole allowedRoles={MANAGEMENT_READ_ROLES}>
                     <AcademicManagement resource="courses" />
                   </RequireRole>
                 }
               />
-
               <Route
                 path="/acc/auth/curricula"
                 element={
-                  <RequireRole allowedRoles={ADMIN_ROLES}>
+                  <RequireRole allowedRoles={MANAGEMENT_READ_ROLES}>
                     <AcademicManagement resource="curricula" />
                   </RequireRole>
                 }
               />
-
               <Route
                 path="/acc/auth/academic-years"
                 element={
-                  <RequireRole allowedRoles={ADMIN_ROLES}>
+                  <RequireRole allowedRoles={MANAGEMENT_READ_ROLES}>
                     <AcademicManagement resource="academic-years" />
                   </RequireRole>
                 }
@@ -436,7 +436,7 @@ export default function AppRoutes() {
               <Route
                 path="/acc/auth/cohorts"
                 element={
-                  <RequireRole allowedRoles={ADMIN_ROLES}>
+                  <RequireRole allowedRoles={MANAGEMENT_READ_ROLES}>
                     <AcademicManagement resource="cohorts" />
                   </RequireRole>
                 }
@@ -445,7 +445,7 @@ export default function AppRoutes() {
               <Route
                 path="/acc/auth/enrollments"
                 element={
-                  <RequireRole allowedRoles={ADMIN_ROLES}>
+                  <RequireRole allowedRoles={MANAGEMENT_READ_ROLES}>
                     <AcademicManagement resource="program-enrollments" />
                   </RequireRole>
                 }
@@ -458,7 +458,7 @@ export default function AppRoutes() {
               <Route
                 path="/acc/auth/entrance-information"
                 element={
-                  <RequireRole allowedRoles={ADMIN_ROLES}>
+                  <RequireRole allowedRoles={MANAGEMENT_READ_ROLES}>
                     <EntranceManagement resource="information" />
                   </RequireRole>
                 }
@@ -467,7 +467,7 @@ export default function AppRoutes() {
               <Route
                 path="/acc/auth/entrance-lists"
                 element={
-                  <RequireRole allowedRoles={ADMIN_ROLES}>
+                  <RequireRole allowedRoles={MANAGEMENT_READ_ROLES}>
                     <EntranceManagement resource="lists" />
                   </RequireRole>
                 }
@@ -477,14 +477,14 @@ export default function AppRoutes() {
               {/* ADMIN / SUPER ADMIN */}
               {/* ================================ */}
 
-              <Route
-                path="/acc/auth/course-assignments"
-                element={
-                  <RequireRole allowedRoles={ADMIN_ROLES}>
-                    <CourseAssignments />
-                  </RequireRole>
-                }
-              />
+             <Route
+  path="/acc/auth/course-assignments"
+  element={
+    <RequireRole allowedRoles={MANAGEMENT_READ_ROLES}>
+      <CourseAssignments />
+    </RequireRole>
+  }
+/>
 
               {/* ================================ */}
               {/* TEACHER / STUDENT MY COURSES */}

@@ -117,9 +117,20 @@ const removeStudentParamsSchema = z.object({
 // &teacherId=...
 // &isActive=true
 
+// ==========================================
+// GET ALL COURSE ASSIGNMENTS
+// ADMIN / SUPER ADMIN / TEACHER
+// READ-ONLY FOR TEACHER
+// ==========================================
+
 router.get(
-  "/admin/course-assignments",requireAuthentication,
-  requireRole("super_admin", "admin"),
+  "/admin/course-assignments",
+  requireAuthentication,
+  requireRole(
+    "super_admin",
+    "admin",
+    "teacher"
+  ),
   validate(paginationSchema, "query"),
   getAllAssignments,
 );
