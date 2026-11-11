@@ -40,11 +40,12 @@ const LOOKUP_LIMIT = 100;
 const initialTeacherForm = {
   cohortId: "",
   courseId: "",
-  teacherId: "",
+  teacherIds: [],
 };
 const initialStudentForm = {
-  assignmentId: "",
-  studentId: "",
+  assignmentIds: [],
+  studentIds: [],
+  mode: "shared",
 };
 
 // ==================================================
@@ -486,83 +487,42 @@ const [cohorts, setCohorts] = useState([]);
   // ASSIGN TEACHER
   // ==================================================
 
- const handleAssignTeacher = async (event) => {
-    if (!canManage) return;
-  event.preventDefault();
-
-  const payload = {
-    cohortId: teacherForm.cohortId,
-    courseId: teacherForm.courseId,
-    teacherId: teacherForm.teacherId,
-  };
-
-  if (
-    !payload.cohortId ||
-    !payload.courseId ||
-    !payload.teacherId
-  ) {
-    setError("Please select a cohort, course and teacher.");
-    return;
-  }
-
-  setSaving(true);
-  setError("");
-  setSuccess("");
-
-  try {
-    if (import.meta.env.DEV) {
-      console.debug("Teacher assignment payload:", payload);
-    }
-
-    await courseAccessService.assignTeacher(payload);
-
-    setSuccess("Teacher assigned successfully.");
-    setTeacherForm(initialTeacherForm);
-    setPage(1);
-    refreshAssignments();
-  } catch (err) {
-    setError(getErrorMessage(err));
-  } finally {
-    setSaving(false);
-  }
-};
-
-  // ==================================================
-  // ASSIGN STUDENT
-  // ==================================================
-
-  const handleAssignStudent = async (event) => {
-    if (!canManage) return;
+  const handleAssignTeacher = async (event) => {
     event.preventDefault();
-
-    if (
-      !studentForm.assignmentId ||
-      !studentForm.studentId
-    ) {
-      setError(
-        "Please select an assignment and student."
-      );
+    if (!canManage) return;
+    const { courseId, cohortId, teacherIds } = teacherForm;
+    if (!courseId || !cohortId || teacherIds.length === 0) {
+      setError("Select a cohort, course and at least one teacher.");
       return;
     }
-
-    setSaving(true);
-    setError("");
-    setSuccess("");
-
+    setSaving(true); setError(""); setSuccess("");
     try {
-      await courseAccessService.assignStudent(
-        studentForm
-      );
+      await courseAccessService.assignTeachersBatch({ courseId, cohortId, teacherIds });
+      setSuccess(`${teacherIds.length} teacher(s) assigned successfully.`);
+      setTeacherForm(initialTeacherForm);
+      setPage(1); refreshAssignments();
+    } catch (err) { setError(getErrorMessage(err)); }
+    finally { setSaving(false); }
+  };
 
-      setSuccess("Student assigned successfully.");
-      setStudentForm(initialStudentForm);
-
-      refreshAssignments();
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setSaving(false);
+  const handleAssignStudent = async (event) => {
+    event.preventDefault();
+    if (!canManage) return;
+    const { assignmentIds, studentIds, mode } = studentForm;
+    if (!assignmentIds.length || !studentIds.length) {
+      setError("Select assignments and at least one student."); return;
     }
+    if (mode === "separate" && assignmentIds.length !== 1) {
+      setError("Separate mode requires one teacher assignment at a time."); return;
+    }
+    setSaving(true); setError(""); setSuccess("");
+    try {
+      await courseAccessService.assignStudentsBatch({ assignmentIds, studentIds, mode });
+      setSuccess(`${studentIds.length} student(s) assigned to ${assignmentIds.length} teacher assignment(s).`);
+      setStudentForm(initialStudentForm);
+      refreshAssignments();
+    } catch (err) { setError(getErrorMessage(err)); }
+    finally { setSaving(false); }
   };
 
   // ==================================================
@@ -860,63 +820,30 @@ const [cohorts, setCohorts] = useState([]);
                     )}
                 </Box>
 
-                {/* TEACHER */}
-
                 <Box>
-                  <Text mb={2} fontWeight="medium">
-                    Teacher
-                  </Text>
-
-                  <NativeSelect.Root>
-                    <NativeSelect.Field
-                      value={teacherForm.teacherId}
-                      disabled={lookupsLoading || saving}
-                      onChange={(event) =>
-                        setTeacherForm((prev) => ({
-                          ...prev,
-                          teacherId: event.target.value,
-                        }))
-                      }
-                    >
-                      <option value="">
-                        {lookupsLoading
-                          ? "Loading teachers..."
-                          : teachers.length === 0
-                            ? "No teachers available"
-                            : "Select teacher"}
+                  <Text mb={2} fontWeight="medium">Teachers (multiple selection)</Text>
+                  <select
+                    multiple
+                    size={Math.min(7, Math.max(3, teachers.length))}
+                    value={teacherForm.teacherIds}
+                    disabled={lookupsLoading || saving}
+                    onChange={(event) => setTeacherForm((prev) => ({
+                      ...prev,
+                      teacherIds: Array.from(event.target.selectedOptions, (option) => option.value),
+                    }))}
+                    style={{ width: "100%", padding: "10px", border: "1px solid #94a3b8", borderRadius: "6px", background: "transparent", color: "inherit" }}
+                  >
+                    {teachers.map((teacher) => (
+                      <option key={getId(teacher)} value={teacher.profileId || ""} disabled={!teacher.profileId}>
+                        {getName(teacher)}
                       </option>
-
-                      {teachers.map((teacher) => (
-                        <option
-                          key={getId(teacher)}
-                          value={teacher.profileId || ""}
-                          disabled={!teacher.profileId}
-                        >
-                          {getName(teacher)}
-                          {!teacher.profileId
-                            ? " (profile ID unavailable)"
-                            : ""}
-                        </option>
-                      ))}
-                    </NativeSelect.Field>
-
-                    <NativeSelect.Indicator />
-                  </NativeSelect.Root>
+                    ))}
+                  </select>
+                  <Text fontSize="xs" color="fg.muted">Ctrl/Command + click to select multiple teachers.</Text>
                 </Box>
-
-                {/* SUBMIT */}
-
-                <Button
-                  type="submit"
-                  loading={saving}
-                  disabled={
-                    lookupsLoading ||
-                    !teacherForm.courseId ||
-                    !teacherForm.teacherId
-                  }
-                >
-                  Assign Teacher
-                </Button>
+                <Button type="submit" loading={saving} disabled={
+                  lookupsLoading || saving || !teacherForm.cohortId || !teacherForm.courseId || !teacherForm.teacherIds.length
+                }>Assign {teacherForm.teacherIds.length || ""} Teacher(s)</Button>
               </VStack>
             </form>
           </Card.Body>
@@ -936,121 +863,67 @@ const [cohorts, setCohorts] = useState([]);
           <Card.Body>
             <form onSubmit={handleAssignStudent}>
               <VStack align="stretch" gap={4}>
-                {/* COURSE ASSIGNMENT */}
-
                 <Box>
-                  <Text mb={2} fontWeight="medium">
-                    Course Assignment
-                  </Text>
-
+                  <Text mb={2} fontWeight="medium">Assignment mode</Text>
                   <NativeSelect.Root>
-                    <NativeSelect.Field
-                      value={studentForm.assignmentId}
-                      disabled={loading || saving}
-                      onChange={(event) =>
-                        setStudentForm((prev) => ({
-                          ...prev,
-                          assignmentId:
-                            event.target.value,
-                        }))
-                      }
-                    >
-                      <option value="">
-                        Select assignment
-                      </option>
-
-                      {activeAssignments.map(
-                        (assignment) => (
-                          <option
-                            key={assignment._id}
-                            value={assignment._id}
-                          >
-                            {assignment.course?.code ||
-                              "Course"}
-                            {" — "}
-                            {getName(assignment.teacher)}
-                          </option>
-                        )
-                      )}
+                    <NativeSelect.Field value={studentForm.mode} onChange={(event) => setStudentForm((prev) => ({
+                      ...prev, mode: event.target.value, assignmentIds: [],
+                    }))}>
+                      <option value="shared">Shared students — multiple teachers, same course/cohort</option>
+                      <option value="separate">Separate student group — one teacher assignment</option>
                     </NativeSelect.Field>
-
-                    <NativeSelect.Indicator />
-                  </NativeSelect.Root>
-
-                  {!loading &&
-                    activeAssignments.length === 0 && (
-                      <Text
-                        mt={2}
-                        fontSize="xs"
-                        color="fg.muted"
-                      >
-                        Assign a teacher to a course
-                        first.
-                      </Text>
-                    )}
-                </Box>
-
-                {/* STUDENT */}
-
-                <Box>
-                  <Text mb={2} fontWeight="medium">
-                    Student
-                  </Text>
-
-                  <NativeSelect.Root>
-                    <NativeSelect.Field
-                      value={studentForm.studentId}
-                      disabled={lookupsLoading || saving}
-                      onChange={(event) =>
-                        setStudentForm((prev) => ({
-                          ...prev,
-                          studentId: event.target.value,
-                        }))
-                      }
-                    >
-                      <option value="">
-                        {lookupsLoading
-                          ? "Loading students..."
-                          : students.length === 0
-                            ? "No students available"
-                            : "Select student"}
-                      </option>
-
-                      {students.map((student) => (
-                        <option
-                          key={getId(student)}
-                          value={student.profileId || ""}
-                          disabled={!student.profileId}
-                        >
-                          {student.studentId
-                            ? `${student.studentId} — `
-                            : ""}
-                          {getName(student)}
-                          {!student.profileId
-                            ? " (profile ID unavailable)"
-                            : ""}
-                        </option>
-                      ))}
-                    </NativeSelect.Field>
-
                     <NativeSelect.Indicator />
                   </NativeSelect.Root>
                 </Box>
-
-                {/* SUBMIT */}
-
-                <Button
-                  type="submit"
-                  loading={saving}
-                  disabled={
-                    lookupsLoading ||
-                    loading ||
-                    !studentForm.assignmentId ||
-                    !studentForm.studentId
-                  }
-                >
-                  Assign Student
-                </Button>
+                <Box>
+                  <Text mb={2} fontWeight="medium">Teacher assignments</Text>
+                  <select
+                    multiple={studentForm.mode === "shared"}
+                    size={studentForm.mode === "shared" ? 6 : 1}
+                    value={studentForm.mode === "shared" ? studentForm.assignmentIds : studentForm.assignmentIds[0] || ""}
+                    disabled={loading || saving}
+                    onChange={(event) => setStudentForm((prev) => ({
+                      ...prev,
+                      assignmentIds: prev.mode === "shared"
+                        ? Array.from(event.target.selectedOptions, (option) => option.value)
+                        : event.target.value ? [event.target.value] : [],
+                    }))}
+                    style={{ width: "100%", padding: "10px", border: "1px solid #94a3b8", borderRadius: "6px", background: "transparent", color: "inherit" }}
+                  >
+                    {studentForm.mode === "separate" && <option value="">Select assignment</option>}
+                    {activeAssignments.map((assignment) => (
+                      <option key={assignment._id} value={assignment._id}>
+                        {assignment.course?.code || "Course"} — {getName(assignment.teacher)}
+                        {assignment.cohort?.code ? ` (${assignment.cohort.code})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <Text fontSize="xs" color="fg.muted">For shared mode, select assignments of the same course and cohort (Ctrl/Command + click).</Text>
+                </Box>
+                <Box>
+                  <Text mb={2} fontWeight="medium">Students (multiple selection)</Text>
+                  <select
+                    multiple
+                    size={Math.min(8, Math.max(3, students.length))}
+                    value={studentForm.studentIds}
+                    disabled={lookupsLoading || saving}
+                    onChange={(event) => setStudentForm((prev) => ({
+                      ...prev,
+                      studentIds: Array.from(event.target.selectedOptions, (option) => option.value),
+                    }))}
+                    style={{ width: "100%", padding: "10px", border: "1px solid #94a3b8", borderRadius: "6px", background: "transparent", color: "inherit" }}
+                  >
+                    {students.map((student) => (
+                      <option key={getId(student)} value={student.profileId || ""} disabled={!student.profileId}>
+                        {student.studentId ? `${student.studentId} — ` : ""}{getName(student)}
+                      </option>
+                    ))}
+                  </select>
+                  <Text fontSize="xs" color="fg.muted">Ctrl/Command + click to select multiple students.</Text>
+                </Box>
+                <Button type="submit" loading={saving} disabled={
+                  lookupsLoading || loading || saving || !studentForm.assignmentIds.length || !studentForm.studentIds.length
+                }>Assign {studentForm.studentIds.length || ""} Student(s)</Button>
               </VStack>
             </form>
           </Card.Body>

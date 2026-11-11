@@ -1,4 +1,3 @@
-
 import mongoose from "mongoose";
 import Cohort from "../models/cohort.model.js";
 import Curriculum from "../models/curriculum.model.js";
@@ -23,36 +22,19 @@ const ensureId = (id) => {
         ? id.toString()
         : null;
 
-  if (
-    !normalizedId ||
-    !mongoose.isObjectIdOrHexString(normalizedId)
-  ) {
-    throw new AppError(
-      "Invalid resource ID.",
-      400,
-      "INVALID_RESOURCE_ID",
-    );
+  if (!normalizedId || !mongoose.isObjectIdOrHexString(normalizedId)) {
+    throw new AppError("Invalid resource ID.", 400, "INVALID_RESOURCE_ID");
   }
 
   return normalizedId;
 };
-const ensureActiveProfile = async (
-  Model,
-  id,
-  role,
-) => {
+const ensureActiveProfile = async (Model, id, role) => {
   ensureId(id);
 
-  const profile = await Model.findById(id)
-    .select("_id userId")
-    .lean();
+  const profile = await Model.findById(id).select("_id userId").lean();
 
   if (!profile) {
-    throw new AppError(
-      "Profile not found.",
-      404,
-      "PROFILE_NOT_FOUND",
-    );
+    throw new AppError("Profile not found.", 404, "PROFILE_NOT_FOUND");
   }
 
   const user = await User.findOne({
@@ -64,21 +46,13 @@ const ensureActiveProfile = async (
     .lean();
 
   if (!user) {
-    throw new AppError(
-      "Account is not active.",
-      409,
-      "ACCOUNT_NOT_ACTIVE",
-    );
+    throw new AppError("Account is not active.", 409, "ACCOUNT_NOT_ACTIVE");
   }
 
   return profile;
 };
 
-const getOwnProfile = async (
-  Model,
-  userId,
-  code,
-) => {
+const getOwnProfile = async (Model, userId, code) => {
   const profile = await Model.findOne({
     userId,
   })
@@ -86,11 +60,7 @@ const getOwnProfile = async (
     .lean();
 
   if (!profile) {
-    throw new AppError(
-      "Profile not found.",
-      404,
-      code,
-    );
+    throw new AppError("Profile not found.", 404, code);
   }
 
   return profile;
@@ -99,10 +69,7 @@ const getOwnProfile = async (
 // VALIDATE COURSE BELONGS TO COHORT CURRICULUM
 // ==================================================
 
-const validateCourseInCohort = async (
-  courseId,
-  cohortId,
-) => {
+const validateCourseInCohort = async (courseId, cohortId) => {
   ensureId(courseId);
   ensureId(cohortId);
 
@@ -111,11 +78,7 @@ const validateCourseInCohort = async (
     .lean();
 
   if (!cohort) {
-    throw new AppError(
-      "Cohort not found.",
-      404,
-      "COHORT_NOT_FOUND",
-    );
+    throw new AppError("Cohort not found.", 404, "COHORT_NOT_FOUND");
   }
 
   if (!["planned", "active"].includes(cohort.status)) {
@@ -126,16 +89,11 @@ const validateCourseInCohort = async (
     );
   }
 
-  const curriculum = await Curriculum.findById(
-    cohort.curriculum,
-  )
+  const curriculum = await Curriculum.findById(cohort.curriculum)
     .select("program status semesters")
     .lean();
 
-  if (
-    !curriculum ||
-    String(curriculum.program) !== String(cohort.program)
-  ) {
+  if (!curriculum || String(curriculum.program) !== String(cohort.program)) {
     throw new AppError(
       "Invalid cohort curriculum.",
       409,
@@ -143,12 +101,8 @@ const validateCourseInCohort = async (
     );
   }
 
-  const courseExists = curriculum.semesters.some(
-    (semester) =>
-      semester.courses.some(
-        (entry) =>
-          String(entry.course) === String(courseId),
-      ),
+  const courseExists = curriculum.semesters.some((semester) =>
+    semester.courses.some((entry) => String(entry.course) === String(courseId)),
   );
 
   if (!courseExists) {
@@ -165,141 +119,283 @@ const validateCourseInCohort = async (
 // ADMIN - ASSIGN TEACHER
 // ==================================================
 
-export const assignTeacher = asyncHandler(
-  async (req, res) => {
-const { courseId, teacherId, cohortId } = req.body;
+export const assignTeacher = asyncHandler(async (req, res) => {
+  const { courseId, teacherId, cohortId } = req.body;
 
-await validateCourseInCohort(courseId, cohortId);
-    ensureId(courseId);
+  await validateCourseInCohort(courseId, cohortId);
+  ensureId(courseId);
 
-    const course = await Course.findOne({
-      _id: courseId,
-      isActive: true,
-    })
-      .select("_id")
-      .lean();
+  const course = await Course.findOne({
+    _id: courseId,
+    isActive: true,
+  })
+    .select("_id")
+    .lean();
 
-    if (!course) {
-      throw new AppError(
-        "Active course not found.",
-        404,
-        "COURSE_NOT_FOUND",
-      );
+  if (!course) {
+    throw new AppError("Active course not found.", 404, "COURSE_NOT_FOUND");
+  }
+
+  await ensureActiveProfile(Teacher, teacherId, "teacher");
+
+  let assignment;
+
+  try {
+    assignment = await CourseAssignment.findOneAndUpdate(
+      {
+        course: courseId,
+        teacher: teacherId,
+        cohort: cohortId,
+      },
+      {
+        $set: {
+          isActive: true,
+        },
+        $setOnInsert: {
+          students: [],
+        },
+      },
+      {
+        new: true,
+        upsert: true,
+        runValidators: true,
+      },
+    );
+  } catch (error) {
+    if (error.code !== 11000) {
+      throw error;
     }
 
-    await ensureActiveProfile(
-      Teacher,
-      teacherId,
-      "teacher",
-    );
+    // Concurrent creation: read the winner.
+    assignment = await CourseAssignment.findOne({
+      course: courseId,
+      teacher: teacherId,
+      cohort: cohortId,
+    });
 
-    let assignment;
+    if (!assignment) {
+      throw error;
+    }
 
-    try {
-      assignment =
-        await CourseAssignment.findOneAndUpdate(
-          {
-  course: courseId,
-  teacher: teacherId,
-  cohort: cohortId,
-},
-          {
-            $set: {
-              isActive: true,
-            },
-            $setOnInsert: {
-              students: [],
-            },
-          },
-          {
-            new: true,
-            upsert: true,
-            runValidators: true,
-          },
-        );
-    } catch (error) {
-      if (error.code !== 11000) {
-        throw error;
-      }
+    if (!assignment.isActive) {
+      assignment.isActive = true;
+      await assignment.save();
+    }
+  }
 
-      // Concurrent creation: read the winner.
-     assignment = await CourseAssignment.findOne({
-  course: courseId,
-  teacher: teacherId,
-  cohort: cohortId,
+  return res.status(200).json({
+    success: true,
+    message: "Teacher assigned successfully.",
+    data: {
+      assignment,
+    },
+  });
 });
 
-      if (!assignment) {
-        throw error;
-      }
+// ==================================================
+// ADMIN - ASSIGN STUDENT
+// ==================================================
 
-      if (!assignment.isActive) {
-        assignment.isActive = true;
-        await assignment.save();
-      }
-    }
+// ==================================================
+// ADMIN - ASSIGN STUDENT
+// ==================================================
 
-    return res.status(200).json({
-      success: true,
-      message: "Teacher assigned successfully.",
-      data: {
-        assignment,
+export const assignStudent = asyncHandler(async (req, res) => {
+  const { assignmentId, studentId } = req.body;
+
+  ensureId(assignmentId);
+
+  // 1. Validate student profile and account
+  await ensureActiveProfile(Student, studentId, "student");
+
+  // 2. Find active course assignment
+  const existingAssignment = await CourseAssignment.findOne({
+    _id: assignmentId,
+    isActive: true,
+  }).lean();
+
+  if (!existingAssignment) {
+    throw new AppError(
+      "Active assignment not found.",
+      404,
+      "ASSIGNMENT_NOT_FOUND",
+    );
+  }
+
+  // 3. Check cohort reference
+  if (!existingAssignment.cohort) {
+    throw new AppError(
+      "Assignment has no cohort.",
+      409,
+      "ASSIGNMENT_COHORT_REQUIRED",
+    );
+  }
+
+  // 4. Validate course and cohort curriculum
+  const cohort = await validateCourseInCohort(
+    existingAssignment.course,
+    existingAssignment.cohort,
+  );
+
+  if (cohort.status !== "active") {
+    throw new AppError(
+      "Student assignment requires an active cohort.",
+      409,
+      "COHORT_NOT_ACTIVE",
+    );
+  }
+
+  // 5. Check active program enrollment
+  const enrollment = await ProgramEnrollment.exists({
+    student: studentId,
+    cohort: existingAssignment.cohort,
+    program: cohort.program,
+    status: "active",
+  });
+
+  if (!enrollment) {
+    throw new AppError(
+      "Student must have an active enrollment in this cohort.",
+      409,
+      "ACTIVE_ENROLLMENT_REQUIRED",
+    );
+  }
+
+  // 6. Assign student only after validation
+  const assignment = await CourseAssignment.findOneAndUpdate(
+    {
+      _id: assignmentId,
+      isActive: true,
+      cohort: existingAssignment.cohort,
+    },
+    {
+      $addToSet: {
+        students: studentId,
       },
+    },
+    {
+      new: true,
+      runValidators: true,
+    },
+  );
+
+  if (!assignment) {
+    throw new AppError(
+      "Active assignment not found.",
+      404,
+      "ASSIGNMENT_NOT_FOUND",
+    );
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: "Student assigned successfully.",
+    data: {
+      assignment,
+    },
+  });
+});
+
+// ==================================================
+// ADMIN - BATCH TEACHERS / STUDENTS (OPTION C)
+// Existing single-assignment endpoints remain unchanged.
+// ==================================================
+
+export const assignTeachersBatch = asyncHandler(async (req, res) => {
+  const { courseId, cohortId, teacherIds } = req.body;
+  await validateCourseInCohort(courseId, cohortId);
+  const course = await Course.exists({ _id: courseId, isActive: true });
+  if (!course)
+    throw new AppError("Active course not found.", 404, "COURSE_NOT_FOUND");
+
+  // Validate every teacher before writing any assignment.
+  await Promise.all(
+    teacherIds.map((id) => ensureActiveProfile(Teacher, id, "teacher")),
+  );
+  const session = await mongoose.startSession();
+  try {
+    let assignments = [];
+    await session.withTransaction(async () => {
+      await CourseAssignment.bulkWrite(
+        teacherIds.map((teacherId) => ({
+          updateOne: {
+            filter: { course: courseId, cohort: cohortId, teacher: teacherId },
+            update: {
+              $set: { isActive: true },
+              $setOnInsert: { students: [] },
+            },
+            upsert: true,
+          },
+        })),
+        { session, ordered: true },
+      );
+      assignments = await CourseAssignment.find({
+        course: courseId,
+        cohort: cohortId,
+        teacher: { $in: teacherIds },
+      })
+        .session(session)
+        .lean();
     });
-  },
-);
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: "Teachers assigned successfully.",
+        data: { assignments },
+      });
+  } finally {
+    await session.endSession();
+  }
+});
 
-// ==================================================
-// ADMIN - ASSIGN STUDENT
-// ==================================================
-
-// ==================================================
-// ADMIN - ASSIGN STUDENT
-// ==================================================
-
-export const assignStudent = asyncHandler(
-  async (req, res) => {
-    const { assignmentId, studentId } = req.body;
-
-    ensureId(assignmentId);
-
-    // 1. Validate student profile and account
-    await ensureActiveProfile(
-      Student,
-      studentId,
-      "student",
+export const assignStudentsBatch = asyncHandler(async (req, res) => {
+  const { assignmentIds, studentIds, mode } = req.body;
+  if (mode === "separate" && assignmentIds.length !== 1) {
+    throw new AppError(
+      "Separate mode requires exactly one teacher assignment per request.",
+      400,
+      "INVALID_ASSIGNMENT_MODE",
     );
-
-    // 2. Find active course assignment
-    const existingAssignment =
-      await CourseAssignment.findOne({
-        _id: assignmentId,
-        isActive: true,
-      }).lean();
-
-    if (!existingAssignment) {
-      throw new AppError(
-        "Active assignment not found.",
-        404,
-        "ASSIGNMENT_NOT_FOUND",
-      );
-    }
-
-    // 3. Check cohort reference
-    if (!existingAssignment.cohort) {
-      throw new AppError(
-        "Assignment has no cohort.",
-        409,
-        "ASSIGNMENT_COHORT_REQUIRED",
-      );
-    }
-
-    // 4. Validate course and cohort curriculum
+  }
+  await Promise.all(
+    studentIds.map((id) => ensureActiveProfile(Student, id, "student")),
+  );
+  const assignments = await CourseAssignment.find({
+    _id: { $in: assignmentIds },
+    isActive: true,
+  })
+    .select("_id course cohort isActive")
+    .lean();
+  if (assignments.length !== assignmentIds.length) {
+    throw new AppError(
+      "One or more active assignments were not found.",
+      404,
+      "ASSIGNMENT_NOT_FOUND",
+    );
+  }
+  // Shared mode must target the same course and cohort; otherwise the
+  // user must explicitly perform separate assignment operations.
+  const reference = assignments[0];
+  if (
+    mode === "shared" &&
+    assignments.some(
+      (item) =>
+        String(item.course) !== String(reference.course) ||
+        String(item.cohort) !== String(reference.cohort),
+    )
+  ) {
+    throw new AppError(
+      "Shared mode requires the same course and cohort.",
+      400,
+      "SHARED_GROUP_MISMATCH",
+    );
+  }
+  for (const assignment of assignments) {
     const cohort = await validateCourseInCohort(
-      existingAssignment.course,
-      existingAssignment.cohort,
+      assignment.course,
+      assignment.cohort,
     );
-
     if (cohort.status !== "active") {
       throw new AppError(
         "Student assignment requires an active cohort.",
@@ -307,452 +403,387 @@ export const assignStudent = asyncHandler(
         "COHORT_NOT_ACTIVE",
       );
     }
-
-    // 5. Check active program enrollment
-    const enrollment = await ProgramEnrollment.exists({
-      student: studentId,
-      cohort: existingAssignment.cohort,
+    const enrollments = await ProgramEnrollment.find({
+      student: { $in: studentIds },
+      cohort: assignment.cohort,
       program: cohort.program,
       status: "active",
-    });
-
-    if (!enrollment) {
+    })
+      .select("student")
+      .lean();
+    const eligible = new Set(enrollments.map((item) => String(item.student)));
+    if (studentIds.some((id) => !eligible.has(id))) {
       throw new AppError(
-        "Student must have an active enrollment in this cohort.",
+        "Every student must have an active enrollment in the selected cohort.",
         409,
         "ACTIVE_ENROLLMENT_REQUIRED",
       );
     }
-
-    // 6. Assign student only after validation
-    const assignment =
-      await CourseAssignment.findOneAndUpdate(
-        {
-          _id: assignmentId,
-          isActive: true,
-          cohort: existingAssignment.cohort,
-        },
-        {
-          $addToSet: {
-            students: studentId,
+  }
+  const session = await mongoose.startSession();
+  try {
+    let updated = [];
+    await session.withTransaction(async () => {
+      await CourseAssignment.bulkWrite(
+        assignments.map((assignment) => ({
+          updateOne: {
+            filter: { _id: assignment._id, isActive: true },
+            update: { $addToSet: { students: { $each: studentIds } } },
           },
-        },
-        {
-          new: true,
-          runValidators: true,
-        },
+        })),
+        { session, ordered: true },
       );
-
-    if (!assignment) {
-      throw new AppError(
-        "Active assignment not found.",
-        404,
-        "ASSIGNMENT_NOT_FOUND",
-      );
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "Student assigned successfully.",
-      data: {
-        assignment,
-      },
+      updated = await CourseAssignment.find({ _id: { $in: assignmentIds } })
+        .session(session)
+        .lean();
     });
-  },
-);
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: "Students assigned successfully.",
+        data: { assignments: updated },
+      });
+  } finally {
+    await session.endSession();
+  }
+});
 
 // ==================================================
 // ADMIN - GET ALL ASSIGNMENTS
 // ==================================================
 
-export const getAllAssignments = asyncHandler(
-  async (req, res) => {
-    const page = Math.max(
-      1,
-      Number(req.query.page) || 1,
-    );
+export const getAllAssignments = asyncHandler(async (req, res) => {
+  const page = Math.max(1, Number(req.query.page) || 1);
 
-    const limit = Math.min(
-      100,
-      Math.max(
-        1,
-        Number(req.query.limit) || 20,
-      ),
-    );
+  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
 
-    const skip = (page - 1) * limit;
+  const skip = (page - 1) * limit;
 
-    const filter = {};
+  const filter = {};
 
-    if (req.query.courseId) {
-      ensureId(req.query.courseId);
-      filter.course = req.query.courseId;
+  if (req.query.courseId) {
+    ensureId(req.query.courseId);
+    filter.course = req.query.courseId;
+  }
+
+  if (req.query.teacherId) {
+    ensureId(req.query.teacherId);
+    filter.teacher = req.query.teacherId;
+  }
+
+  if (req.query.isActive !== undefined) {
+    if (!["true", "false"].includes(req.query.isActive)) {
+      throw new AppError("Invalid isActive filter.", 400, "INVALID_FILTER");
     }
 
-    if (req.query.teacherId) {
-      ensureId(req.query.teacherId);
-      filter.teacher = req.query.teacherId;
-    }
+    filter.isActive = req.query.isActive === "true";
+  }
 
-    if (req.query.isActive !== undefined) {
-      if (
-        !["true", "false"].includes(
-          req.query.isActive,
-        )
-      ) {
-        throw new AppError(
-          "Invalid isActive filter.",
-          400,
-          "INVALID_FILTER",
-        );
-      }
+  const [assignments, total] = await Promise.all([
+    CourseAssignment.find(filter)
+      .populate({
+        path: "course",
+        select: "code title credits isActive",
+      })
+      .populate({
+        path: "teacher",
+        select: "firstName lastName email",
+      })
+      .populate({
+        path: "students",
+        select: "studentId firstName lastName",
+      })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
 
-      filter.isActive =
-        req.query.isActive === "true";
-    }
+    CourseAssignment.countDocuments(filter),
+  ]);
 
-    const [assignments, total] =
-      await Promise.all([
-        CourseAssignment.find(filter)
-          .populate({
-            path: "course",
-            select: "code title credits isActive",
-          })
-          .populate({
-            path: "teacher",
-            select: "firstName lastName email",
-          })
-          .populate({
-            path: "students",
-            select: "studentId firstName lastName",
-          })
-          .sort({ createdAt: -1 })
-          .skip(skip)
-          .limit(limit)
-          .lean(),
-
-        CourseAssignment.countDocuments(filter),
-      ]);
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        assignments,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-        },
+  return res.status(200).json({
+    success: true,
+    data: {
+      assignments,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
       },
-    });
-  },
-);
+    },
+  });
+});
 
 // ==================================================
 // ADMIN - REMOVE STUDENT FROM ASSIGNMENT
 // ==================================================
 
-export const removeStudent = asyncHandler(
-  async (req, res) => {
-    const { assignmentId, studentId } = req.params;
+export const removeStudent = asyncHandler(async (req, res) => {
+  const { assignmentId, studentId } = req.params;
 
-    ensureId(assignmentId);
-    ensureId(studentId);
+  ensureId(assignmentId);
+  ensureId(studentId);
 
-    const assignment =
-      await CourseAssignment.findOneAndUpdate(
-        {
-          _id: assignmentId,
-          isActive: true,
-        },
-        {
-          $pull: {
-            students: studentId,
-          },
-        },
-        {
-          new: true,
-          runValidators: true,
-        },
-      );
-
-    if (!assignment) {
-      throw new AppError(
-        "Active assignment not found.",
-        404,
-        "ASSIGNMENT_NOT_FOUND",
-      );
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "Student removed from assignment.",
-      data: {
-        assignment,
+  const assignment = await CourseAssignment.findOneAndUpdate(
+    {
+      _id: assignmentId,
+      isActive: true,
+    },
+    {
+      $pull: {
+        students: studentId,
       },
-    });
-  },
-);
+    },
+    {
+      new: true,
+      runValidators: true,
+    },
+  );
+
+  if (!assignment) {
+    throw new AppError(
+      "Active assignment not found.",
+      404,
+      "ASSIGNMENT_NOT_FOUND",
+    );
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: "Student removed from assignment.",
+    data: {
+      assignment,
+    },
+  });
+});
 
 // ==================================================
 // ADMIN - REVOKE TEACHER ASSIGNMENT
 // ==================================================
 
-export const revokeAssignment = asyncHandler(
-  async (req, res) => {
-    const { assignmentId } = req.params;
+export const revokeAssignment = asyncHandler(async (req, res) => {
+  const { assignmentId } = req.params;
 
-    ensureId(assignmentId);
+  ensureId(assignmentId);
 
-    const assignment =
-      await CourseAssignment.findOneAndUpdate(
-        {
-          _id: assignmentId,
-          isActive: true,
-        },
-        {
-          $set: {
-            isActive: false,
-          },
-        },
-        {
-          new: true,
-          runValidators: true,
-        },
-      );
-
-    if (!assignment) {
-      throw new AppError(
-        "Active assignment not found.",
-        404,
-        "ASSIGNMENT_NOT_FOUND",
-      );
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "Course assignment revoked.",
-      data: {
-        assignment,
-      },
-    });
-  },
-);
-
-// ==================================================
-// TEACHER - GET OWN COURSES
-// ==================================================
-
-// ==================================================
-// TEACHER - GET OWN COURSES
-// ==================================================
-
-export const getTeacherCourses = asyncHandler(
-  async (req, res) => {
-    // 1. Get current teacher profile
-    const teacher = await getOwnProfile(
-      Teacher,
-      req.user._id,
-      "TEACHER_NOT_FOUND",
-    );
-
-    // 2. Find active cohorts
-    const activeCohorts = await Cohort.find({
-      status: "active",
-    })
-      .select("_id")
-      .lean();
-
-    const activeCohortIds = activeCohorts.map(
-      (cohort) => cohort._id,
-    );
-
-    if (activeCohortIds.length === 0) {
-      return res.status(200).json({
-        success: true,
-        data: {
-          courses: [],
-        },
-      });
-    }
-
-    // 3. Find teacher's active assignments
-    const assignments = await CourseAssignment.find({
-      teacher: teacher._id,
-      cohort: {
-        $in: activeCohortIds,
-      },
-      isActive: true,
-    })
-      .populate({
-        path: "course",
-        match: {
-          isActive: true,
-        },
-        select: "code title description credits",
-      })
-      .select("course cohort")
-      .lean();
-
-    // 4. Return valid courses
-    const courses = assignments
-      .filter((assignment) => assignment.course)
-      .map((assignment) => ({
-        assignmentId: assignment._id,
-        course: assignment.course,
-      }));
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        courses,
-      },
-    });
-  },
-);
-// ==================================================
-// TEACHER - GET STUDENTS OF OWN ASSIGNMENT
-// ==================================================
-// ==================================================
-// TEACHER - GET STUDENTS OF OWN ASSIGNMENT
-// ==================================================
-
-export const getTeacherCourseStudents = asyncHandler(
-  async (req, res) => {
-    const { assignmentId } = req.params;
-
-    ensureId(assignmentId);
-
-    // 1. Get current teacher profile
-    const teacher = await getOwnProfile(
-      Teacher,
-      req.user._id,
-      "TEACHER_NOT_FOUND",
-    );
-
-    // 2. Find teacher's active assignment
-    const assignment = await CourseAssignment.findOne({
+  const assignment = await CourseAssignment.findOneAndUpdate(
+    {
       _id: assignmentId,
-      teacher: teacher._id,
       isActive: true,
-    })
-      .populate({
-        path: "course",
-        match: {
-          isActive: true,
-        },
-        select: "_id",
-      })
-      .populate({
-        path: "students",
-        select: "_id userId studentId firstName lastName",
-      })
-      .lean();
-
-    if (!assignment || !assignment.course) {
-      throw new AppError(
-        "Assignment not found.",
-        404,
-        "ASSIGNMENT_NOT_FOUND",
-      );
-    }
-
-    // 3. Verify active cohort
-    const cohort = await Cohort.findOne({
-      _id: assignment.cohort,
-      status: "active",
-    })
-      .select("_id program")
-      .lean();
-
-    if (!cohort) {
-      throw new AppError(
-        "Active cohort not found.",
-        409,
-        "COHORT_NOT_ACTIVE",
-      );
-    }
-
-    // 4. Get assigned students
-    const students = (assignment.students || [])
-      .filter(Boolean);
-
-    if (students.length === 0) {
-      return res.status(200).json({
-        success: true,
-        data: {
-          students: [],
-        },
-      });
-    }
-
-    // 5. Find active student accounts
-    const activeUsers = await User.find({
-      _id: {
-        $in: students.map(
-          (student) => student.userId,
-        ),
+    },
+    {
+      $set: {
+        isActive: false,
       },
-      role: "student",
-      isActive: true,
-    })
-      .select("_id")
-      .lean();
+    },
+    {
+      new: true,
+      runValidators: true,
+    },
+  );
 
-    const activeUserIds = new Set(
-      activeUsers.map(
-        (user) => String(user._id),
-      ),
+  if (!assignment) {
+    throw new AppError(
+      "Active assignment not found.",
+      404,
+      "ASSIGNMENT_NOT_FOUND",
     );
+  }
 
-    // 6. Find active enrollments for this cohort
-    const activeEnrollments =
-      await ProgramEnrollment.find({
-        student: {
-          $in: students.map(
-            (student) => student._id,
-          ),
-        },
-        cohort: cohort._id,
-        program: cohort.program,
-        status: "active",
-      })
-        .select("student")
-        .lean();
+  return res.status(200).json({
+    success: true,
+    message: "Course assignment revoked.",
+    data: {
+      assignment,
+    },
+  });
+});
 
-    const enrolledStudentIds = new Set(
-      activeEnrollments.map(
-        (enrollment) => String(enrollment.student),
-      ),
-    );
+// ==================================================
+// TEACHER - GET OWN COURSES
+// ==================================================
 
-    // 7. Return only eligible students
-    const safeStudents = students
-      .filter(
-        (student) =>
-          activeUserIds.has(
-            String(student.userId),
-          ) &&
-          enrolledStudentIds.has(
-            String(student._id),
-          ),
-      )
-      .map((student) => ({
-        _id: student._id,
-        studentId: student.studentId,
-        firstName: student.firstName,
-        lastName: student.lastName,
-      }));
+// ==================================================
+// TEACHER - GET OWN COURSES
+// ==================================================
 
+export const getTeacherCourses = asyncHandler(async (req, res) => {
+  // 1. Get current teacher profile
+  const teacher = await getOwnProfile(
+    Teacher,
+    req.user._id,
+    "TEACHER_NOT_FOUND",
+  );
+
+  // 2. Find active cohorts
+  const activeCohorts = await Cohort.find({
+    status: "active",
+  })
+    .select("_id")
+    .lean();
+
+  const activeCohortIds = activeCohorts.map((cohort) => cohort._id);
+
+  if (activeCohortIds.length === 0) {
     return res.status(200).json({
       success: true,
       data: {
-        students: safeStudents,
+        courses: [],
       },
     });
-  },
-);
+  }
+
+  // 3. Find teacher's active assignments
+  const assignments = await CourseAssignment.find({
+    teacher: teacher._id,
+    cohort: {
+      $in: activeCohortIds,
+    },
+    isActive: true,
+  })
+    .populate({
+      path: "course",
+      match: {
+        isActive: true,
+      },
+      select: "code title description credits",
+    })
+    .select("course cohort")
+    .lean();
+
+  // 4. Return valid courses
+  const courses = assignments
+    .filter((assignment) => assignment.course)
+    .map((assignment) => ({
+      assignmentId: assignment._id,
+      course: assignment.course,
+    }));
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      courses,
+    },
+  });
+});
+// ==================================================
+// TEACHER - GET STUDENTS OF OWN ASSIGNMENT
+// ==================================================
+// ==================================================
+// TEACHER - GET STUDENTS OF OWN ASSIGNMENT
+// ==================================================
+
+export const getTeacherCourseStudents = asyncHandler(async (req, res) => {
+  const { assignmentId } = req.params;
+
+  ensureId(assignmentId);
+
+  // 1. Get current teacher profile
+  const teacher = await getOwnProfile(
+    Teacher,
+    req.user._id,
+    "TEACHER_NOT_FOUND",
+  );
+
+  // 2. Find teacher's active assignment
+  const assignment = await CourseAssignment.findOne({
+    _id: assignmentId,
+    teacher: teacher._id,
+    isActive: true,
+  })
+    .populate({
+      path: "course",
+      match: {
+        isActive: true,
+      },
+      select: "_id",
+    })
+    .populate({
+      path: "students",
+      select: "_id userId studentId firstName lastName",
+    })
+    .lean();
+
+  if (!assignment || !assignment.course) {
+    throw new AppError("Assignment not found.", 404, "ASSIGNMENT_NOT_FOUND");
+  }
+
+  // 3. Verify active cohort
+  const cohort = await Cohort.findOne({
+    _id: assignment.cohort,
+    status: "active",
+  })
+    .select("_id program")
+    .lean();
+
+  if (!cohort) {
+    throw new AppError("Active cohort not found.", 409, "COHORT_NOT_ACTIVE");
+  }
+
+  // 4. Get assigned students
+  const students = (assignment.students || []).filter(Boolean);
+
+  if (students.length === 0) {
+    return res.status(200).json({
+      success: true,
+      data: {
+        students: [],
+      },
+    });
+  }
+
+  // 5. Find active student accounts
+  const activeUsers = await User.find({
+    _id: {
+      $in: students.map((student) => student.userId),
+    },
+    role: "student",
+    isActive: true,
+  })
+    .select("_id")
+    .lean();
+
+  const activeUserIds = new Set(activeUsers.map((user) => String(user._id)));
+
+  // 6. Find active enrollments for this cohort
+  const activeEnrollments = await ProgramEnrollment.find({
+    student: {
+      $in: students.map((student) => student._id),
+    },
+    cohort: cohort._id,
+    program: cohort.program,
+    status: "active",
+  })
+    .select("student")
+    .lean();
+
+  const enrolledStudentIds = new Set(
+    activeEnrollments.map((enrollment) => String(enrollment.student)),
+  );
+
+  // 7. Return only eligible students
+  const safeStudents = students
+    .filter(
+      (student) =>
+        activeUserIds.has(String(student.userId)) &&
+        enrolledStudentIds.has(String(student._id)),
+    )
+    .map((student) => ({
+      _id: student._id,
+      studentId: student.studentId,
+      firstName: student.firstName,
+      lastName: student.lastName,
+    }));
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      students: safeStudents,
+    },
+  });
+});
 
 // ==================================================
 // STUDENT - GET OWN COURSES
@@ -761,95 +792,89 @@ export const getTeacherCourseStudents = asyncHandler(
 // STUDENT - GET OWN COURSES
 // ==================================================
 
-export const getStudentCourses = asyncHandler(
-  async (req, res) => {
-    // 1. Get current student's profile
-    const student = await getOwnProfile(
-      Student,
-      req.user._id,
-      "STUDENT_NOT_FOUND",
-    );
+export const getStudentCourses = asyncHandler(async (req, res) => {
+  // 1. Get current student's profile
+  const student = await getOwnProfile(
+    Student,
+    req.user._id,
+    "STUDENT_NOT_FOUND",
+  );
 
-    // 2. Find student's active enrollments
-    const enrollments = await ProgramEnrollment.find({
-      student: student._id,
-      status: "active",
-    })
-      .select("cohort")
-      .lean();
+  // 2. Find student's active enrollments
+  const enrollments = await ProgramEnrollment.find({
+    student: student._id,
+    status: "active",
+  })
+    .select("cohort")
+    .lean();
 
-    const cohortIds = enrollments.map(
-      (enrollment) => enrollment.cohort,
-    );
+  const cohortIds = enrollments.map((enrollment) => enrollment.cohort);
 
-    // 3. No active enrollment means no course access
-    if (cohortIds.length === 0) {
-      return res.status(200).json({
-        success: true,
-        data: {
-          courses: [],
-        },
-      });
-    }
-
-    // 4. Only active cohorts
-    const activeCohorts = await Cohort.find({
-      _id: {
-        $in: cohortIds,
-      },
-      status: "active",
-    })
-      .select("_id")
-      .lean();
-
-    const activeCohortIds = activeCohorts.map(
-      (cohort) => cohort._id,
-    );
-
-    if (activeCohortIds.length === 0) {
-      return res.status(200).json({
-        success: true,
-        data: {
-          courses: [],
-        },
-      });
-    }
-
-    // 5. Find assignments in active enrolled cohorts
-    const assignments = await CourseAssignment.find({
-      students: student._id,
-      cohort: {
-        $in: activeCohortIds,
-      },
-      isActive: true,
-    })
-      .populate({
-        path: "course",
-        match: {
-          isActive: true,
-        },
-        select: "code title description credits",
-      })
-      .select("course cohort")
-      .lean();
-
-    // 6. Remove invalid courses and duplicates
-    const courses = [
-      ...new Map(
-        assignments
-          .filter((assignment) => assignment.course)
-          .map((assignment) => [
-            String(assignment.course._id),
-            assignment.course,
-          ]),
-      ).values(),
-    ];
-
+  // 3. No active enrollment means no course access
+  if (cohortIds.length === 0) {
     return res.status(200).json({
       success: true,
       data: {
-        courses,
+        courses: [],
       },
     });
-  },
-);
+  }
+
+  // 4. Only active cohorts
+  const activeCohorts = await Cohort.find({
+    _id: {
+      $in: cohortIds,
+    },
+    status: "active",
+  })
+    .select("_id")
+    .lean();
+
+  const activeCohortIds = activeCohorts.map((cohort) => cohort._id);
+
+  if (activeCohortIds.length === 0) {
+    return res.status(200).json({
+      success: true,
+      data: {
+        courses: [],
+      },
+    });
+  }
+
+  // 5. Find assignments in active enrolled cohorts
+  const assignments = await CourseAssignment.find({
+    students: student._id,
+    cohort: {
+      $in: activeCohortIds,
+    },
+    isActive: true,
+  })
+    .populate({
+      path: "course",
+      match: {
+        isActive: true,
+      },
+      select: "code title description credits",
+    })
+    .select("course cohort")
+    .lean();
+
+  // 6. Remove invalid courses and duplicates
+  const courses = [
+    ...new Map(
+      assignments
+        .filter((assignment) => assignment.course)
+        .map((assignment) => [
+          String(assignment.course._id),
+          assignment.course,
+        ]),
+    ).values(),
+  ];
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      courses,
+    },
+  });
+});

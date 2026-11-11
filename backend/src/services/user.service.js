@@ -1,4 +1,3 @@
-
 import mongoose from "mongoose";
 import { randomUUID } from "node:crypto";
 
@@ -19,23 +18,30 @@ import MediaAsset from "../models/mediaAsset.model.js";
 // ROLE CONFIGURATION
 // ==================================================
 
-const MANAGED_ROLES = new Set(["super_admin", "admin", "teacher", "student"]);
 
+// ==================================================
+// ROLE CONFIGURATION
+// ==================================================
+
+// User Management accepts only administrative roles.
+const MANAGED_ROLES = new Set([
+  "super_admin",
+  "admin",
+]);
+
+const ACADEMIC_ROLES = new Set(["teacher", "student"]);
+
+// Permissions for the User Management
+// Create Account workflow only.
 const CREATION_PERMISSIONS = {
-  super_admin: [
-    "super_admin",
-    "admin",
-    "teacher",
-    "student",
-  ],
-  admin: [
-    "admin",
-    "teacher",
-    "student",
-  ],
-  teacher: [],
+  super_admin: ["super_admin", "admin", "teacher", "student"],
+
+  admin: ["admin", "teacher", "student"],
+
+  teacher: ["student"],
   student: [],
 };
+
 // ==================================================
 // USER LOOKUP
 // ==================================================
@@ -152,15 +158,36 @@ const validateActor = (actor, role) => {
   }
 };
 
-const normalizeInput = (input) => {
-  if (!input || typeof input !== "object") {
-    throw new AppError("Invalid account data.", 400, "INVALID_ACCOUNT_DATA");
+
+const normalizeInput = (input, allowedRoles = MANAGED_ROLES) => {
+  if (
+    !input ||
+    typeof input !== "object" ||
+    Array.isArray(input)
+  ) {
+    throw new AppError(
+      "Invalid account data.",
+      400,
+      "INVALID_ACCOUNT_DATA",
+    );
   }
 
-  const { firstName, lastName, email, password, role } = input;
+  const {
+    firstName,
+    lastName,
+    email,
+    password,
+    role,
+  } = input;
 
-  if (!MANAGED_ROLES.has(role)) {
-    throw new AppError("Invalid role.", 400, "INVALID_ROLE");
+  // Reject teacher/student creation through
+  // the User Management endpoint.
+  if (!allowedRoles.has(role)) {
+    throw new AppError(
+      "This account role is not allowed on this endpoint.",
+      400,
+      "INVALID_MANAGED_USER_ROLE",
+    );
   }
 
   if (
@@ -181,8 +208,11 @@ const normalizeInput = (input) => {
 
   return {
     ...input,
+
     firstName: firstName.trim(),
+
     lastName: lastName.trim(),
+
     email: email.trim().toLowerCase(),
   };
 };
@@ -261,8 +291,8 @@ const compensateClerkCreation = async (clerkUserId) => {
 // CREATE MANAGED USER
 // ==================================================
 
-export const createManagedUser = async ({ input, actor }) => {
-  const data = normalizeInput(input);
+export const createManagedUser = async ({ input, actor, allowedRoles = MANAGED_ROLES }) => {
+  const data = normalizeInput(input, allowedRoles);
 
   validateActor(actor, data.role);
 
@@ -492,6 +522,10 @@ export const createManagedUser = async ({ input, actor }) => {
 
     createdAt: createdUser.createdAt,
   };
+};
+
+export const createAcademicAccount = async ({ input, actor }) => {
+  return createManagedUser({ input, actor, allowedRoles: ACADEMIC_ROLES });
 };
 
 const profileImageError = (message, statusCode = 400) => {

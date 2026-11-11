@@ -1,53 +1,102 @@
 
 import { z } from "zod";
 
-const name = z.string().trim().min(1).max(100);
-const address = z.string().trim().min(1).max(500);
+// ==================================================
+// MANAGED ADMIN ACCOUNT VALIDATION
+// ==================================================
 
-const base = z.object({
-  firstName: name,
-  lastName: name,
-  email: z.string().trim().toLowerCase().email().max(320),
-  password: z.string().min(8).max(128),
+const nameSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(100);
+
+const baseAccountSchema = z.object({
+  firstName: nameSchema,
+
+  lastName: nameSchema,
+
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email()
+    .max(320),
+
+  password: z
+    .string()
+    .min(8)
+    .max(128),
 });
 
-const personal = {
-  address,
-  currentAddress: address,
-  age: z.number().int().min(1).max(120),
-  fatherName: name,
-  motherName: name,
-  nationalId: z.string().trim().min(1).max(100),
-  dateOfBirth: z.coerce.date().refine(
-    (value) => value <= new Date(),
-    "Date of birth cannot be in the future.",
-  ),
-  gender: z.enum(["male", "female", "other"]),
-};
-
-const scoreSchema = z.object({
-  subject: z.string().trim().min(1).max(100),
-  score: z.number().min(0).max(100),
-}).strict();
-
-const student = base.extend({
-  role: z.literal("student"),
-  ...personal,
-  matriculationScores: z.array(scoreSchema).max(30).default([]),
-}).strict();
-
-const teacher = base.extend({
-  role: z.literal("teacher"),
-  ...personal,
-}).strict();
-
-const admin = base.extend({
-  role: z.enum(["admin", "super_admin"]),
-}).strict();
+// ==================================================
+// ADMIN / SUPER ADMIN ONLY
+// ==================================================
 
 export const createManagedUserSchema =
-  z.discriminatedUnion("role", [
-    student,
-    teacher,
-    admin,
-  ]);
+  baseAccountSchema
+    .extend({
+      role: z.enum([
+        "super_admin",
+        "admin",
+      ]),
+    })
+    .strict();
+
+// ==================================================
+// ACADEMIC ACCOUNTS
+// ==================================================
+
+const academicProfileFields = {
+  address: z.string().trim().min(1).max(500),
+  currentAddress: z.string().trim().min(1).max(500),
+
+  age: z.number().int().min(1).max(120),
+
+  fatherName: z.string().trim().min(1),
+  motherName: z.string().trim().min(1),
+  nationalId: z.string().trim().min(1),
+
+  dateOfBirth: z.coerce.date().refine(
+    (date) => date <= new Date(),
+    "Date of birth cannot be in the future."
+  ),
+
+  gender: z.enum([
+    "male",
+    "female",
+    "other",
+  ]),
+};
+
+const academicBaseSchema =
+  baseAccountSchema.extend(academicProfileFields);
+
+// ==================================================
+// TEACHER CREATE VALIDATION
+// ==================================================
+
+export const createTeacherSchema =
+  academicBaseSchema
+    .extend({
+      role: z.literal("teacher"),
+    })
+    .strict();
+
+// ==================================================
+// STUDENT CREATE VALIDATION
+// ==================================================
+
+export const createStudentSchema =
+  academicBaseSchema
+    .extend({
+      role: z.literal("student"),
+
+      matriculationScores: z.array(
+        z.object({
+          subject: z.string().trim().min(1).max(100),
+          score: z.number().min(0).max(100),
+        }).strict()
+      ).max(30).default([]),
+    })
+    .strict();

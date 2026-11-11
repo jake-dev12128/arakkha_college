@@ -15,6 +15,7 @@ import {
 
 import {
   createManagedUserController,
+  createAcademicAccountController,
 } from "../controllers/managed-user.controller.js";
 
 import {
@@ -29,6 +30,8 @@ import {
 
 import {
   createManagedUserSchema,
+  createTeacherSchema,
+  createStudentSchema,
 } from "../schemas/managed-user.schema.js";
 
 import {
@@ -85,26 +88,19 @@ const validateQuery = (schema, localKey) => {
 // ==================================================
 
 router.use(requireAuthentication);
-// ==========================================
+
+// ==================================================
 // ADMIN-MANAGED PROFILE IMAGE
-// ==========================================
+// ==================================================
 
 router.patch(
   "/users/:userId/profile-image",
   requireRole("super_admin", "admin"),
   updateManagedProfileImageController
 );
-// ==================================================
-// CREATE MANAGED USER
-//
-// super_admin -> all roles
-// admin       -> admin, teacher, student
-// teacher     -> student
-// ==================================================
 
 // ==================================================
-// CREATE MANAGED USER
-// SUPER ADMIN / ADMIN ONLY
+// CREATE ADMIN / SUPER ADMIN ONLY
 // ==================================================
 
 router.post(
@@ -112,6 +108,28 @@ router.post(
   requireRole("super_admin", "admin"),
   validate(createManagedUserSchema),
   createManagedUserController
+);
+
+// ==================================================
+// CREATE TEACHER
+// ==================================================
+
+router.post(
+  "/teachers",
+  requireRole("super_admin", "admin"),
+  validate(createTeacherSchema),
+  createAcademicAccountController
+);
+
+// ==================================================
+// CREATE STUDENT
+// ==================================================
+
+router.post(
+  "/students",
+  requireRole("super_admin", "admin", "teacher"),
+  validate(createStudentSchema),
+  createAcademicAccountController
 );
 
 // ==================================================
@@ -152,15 +170,6 @@ router.patch(
 // ==================================================
 // DEACTIVATE MANAGED USER
 // ==================================================
-//
-// SECURITY:
-// Disabled until Clerk session revocation,
-// reconciliation, and lifecycle audit handling
-// are completed.
-//
-// Do not expose a partially implemented
-// deactivation workflow in production.
-// ==================================================
 
 router.patch(
   "/users/:id/deactivate",
@@ -179,10 +188,6 @@ router.patch(
 // ==================================================
 // REACTIVATE MANAGED USER
 // ==================================================
-//
-// Reactivation is also disabled until the
-// account lifecycle workflow is complete.
-// ==================================================
 
 router.patch(
   "/users/:id/reactivate",
@@ -200,13 +205,6 @@ router.patch(
 
 // ==================================================
 // PERMANENT DELETE MANAGED USER
-// ==================================================
-//
-// Only super_admin can request deletion.
-//
-// The service currently blocks deletion
-// until academic dependency checks are
-// implemented.
 // ==================================================
 
 router.delete(
@@ -229,10 +227,6 @@ for (const [path, role] of [
   ["students", "student"],
   ["teachers", "teacher"],
 ]) {
-  // ----------------------------------------------
-  // LIST PROFILES
-  // ----------------------------------------------
-
   router.get(
     `/${path}`,
     requireRole("super_admin", "admin"),
@@ -240,19 +234,11 @@ for (const [path, role] of [
     listProfiles(role)
   );
 
-  // ----------------------------------------------
-  // GET PROFILE BY USER ID
-  // ----------------------------------------------
-
   router.get(
     `/${path}/by-user/:userId`,
     requireRole("super_admin", "admin"),
     getProfileByUserId(role)
   );
-
-  // ----------------------------------------------
-  // GET PROFILE BY PROFILE ID
-  // ----------------------------------------------
 
   router.get(
     `/${path}/:id`,
@@ -260,20 +246,12 @@ for (const [path, role] of [
     getProfile(role)
   );
 
-  // ----------------------------------------------
-  // UPDATE PROFILE
-  // ----------------------------------------------
-
   router.patch(
     `/${path}/:id`,
     requireRole("super_admin", "admin"),
     validate(updateProfileSchema),
     updateProfile(role)
   );
-
-  // ----------------------------------------------
-  // DEACTIVATE PROFILE
-  // ----------------------------------------------
 
   router.patch(
     `/${path}/:id/deactivate`,

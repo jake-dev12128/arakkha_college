@@ -644,17 +644,21 @@ export default function ProfileForm({
         );
       }
 
-      const createdUser = createdUserId
-        ? { _id: createdUserId }
-        : await dashboardService.createUser({
-        role,
-        firstName,
-        lastName,
-        email:
-          form.email.trim().toLowerCase(),
-        password: form.password,
-        ...personal,
-      });
+     
+const payload = {
+  firstName,
+  lastName,
+  email: form.email.trim().toLowerCase(),
+  password: form.password,
+  ...personal,
+};
+
+const createdUser = createdUserId
+  ? { _id: createdUserId }
+  : isStudent
+    ? await dashboardService.createStudent(payload)
+    : await dashboardService.createTeacher(payload);
+
 
       const newUserId = createdUser?._id || createdUser?.id;
       if (!createdUserId && newUserId) {

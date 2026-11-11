@@ -91,14 +91,39 @@ export const dashboardService = {
   },
 
   // ==================================================
+  // CREATE TEACHER
+  // ==================================================
+
+  async createTeacher(payload) {
+    const response = await api.post(
+      "/admin/teachers",
+      {
+        ...payload,
+        role: "teacher",
+      }
+    );
+
+    return response.data.data.user;
+  },
+
+  // ==================================================
+  // CREATE STUDENT
+  // ==================================================
+
+  async createStudent(payload) {
+    const response = await api.post(
+      "/admin/students",
+      {
+        ...payload,
+        role: "student",
+      }
+    );
+
+    return response.data.data.user;
+  },
+
+  // ==================================================
   // USER MANAGEMENT — UPDATE USER
-  //
-  // Currently supported:
-  // - firstName
-  // - lastName
-  //
-  // Email updates require a separate
-  // Clerk identity verification flow.
   // ==================================================
 
   async updateUser(userId, payload) {
@@ -142,11 +167,6 @@ export const dashboardService = {
 
   // ==================================================
   // USER MANAGEMENT — PERMANENT DELETE USER
-  //
-  // Only super_admin can perform this action.
-  //
-  // The backend must verify all dependencies
-  // before allowing permanent deletion.
   // ==================================================
 
   async permanentlyDeleteUser(
@@ -166,10 +186,6 @@ export const dashboardService = {
 
     return response.data.data;
   },
-
-  // ==================================================
-  // STUDENT / TEACHER PROFILE MANAGEMENT
-  // ==================================================
 
   // ==================================================
   // LIST PROFILES

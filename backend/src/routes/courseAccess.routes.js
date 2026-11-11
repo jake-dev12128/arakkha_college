@@ -1,22 +1,17 @@
-
 import express from "express";
 import { z } from "zod";
 
-import {
-  requireAuthentication,
-} from "../middleware/auth.middleware.js";
+import { requireAuthentication } from "../middleware/auth.middleware.js";
 
-import {
-  requireRole,
-} from "../middleware/authorization.middleware.js";
+import { requireRole } from "../middleware/authorization.middleware.js";
 
-import {
-  validate,
-} from "../middleware/validation.middleware.js";
+import { validate } from "../middleware/validation.middleware.js";
 
 import {
   assignTeacher,
   assignStudent,
+  assignTeachersBatch,
+  assignStudentsBatch,
   getAllAssignments,
   removeStudent,
   revokeAssignment,
@@ -37,30 +32,21 @@ const router = express.Router();
 
 const objectIdSchema = z
   .string()
-  .regex(
-    /^[0-9a-fA-F]{24}$/,
-    "Invalid MongoDB ObjectId.",
-  );
+  .regex(/^[0-9a-fA-F]{24}$/, "Invalid MongoDB ObjectId.");
 
-const paginationSchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
+const paginationSchema = z
+  .object({
+    page: z.coerce.number().int().min(1).default(1),
 
-  limit: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(100)
-    .default(20),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
 
-  courseId: objectIdSchema.optional(),
+    courseId: objectIdSchema.optional(),
 
-  teacherId: objectIdSchema.optional(),
+    teacherId: objectIdSchema.optional(),
 
-  isActive: z.enum([
-    "true",
-    "false",
-  ]).optional(),
-}).strict();
+    isActive: z.enum(["true", "false"]).optional(),
+  })
+  .strict();
 
 // ==================================================
 // REQUEST BODY SCHEMAS
@@ -68,31 +54,64 @@ const paginationSchema = z.object({
 
 // ADMIN: ASSIGN TEACHER TO COURSE
 
-const assignTeacherSchema = z.object({
-  courseId: objectIdSchema,
-  teacherId: objectIdSchema,
-  cohortId: objectIdSchema,
-}).strict();
+const assignTeacherSchema = z
+  .object({
+    courseId: objectIdSchema,
+    teacherId: objectIdSchema,
+    cohortId: objectIdSchema,
+  })
+  .strict();
 
 // ADMIN: ASSIGN STUDENT TO COURSE ASSIGNMENT
 
-const assignStudentSchema = z.object({
-  assignmentId: objectIdSchema,
-  studentId: objectIdSchema,
-}).strict();
+const assignStudentSchema = z
+  .object({
+    assignmentId: objectIdSchema,
+    studentId: objectIdSchema,
+  })
+  .strict();
+
+const uniqueIds = z
+  .array(objectIdSchema)
+  .min(1)
+  .max(100)
+  .refine(
+    (ids) => new Set(ids).size === ids.length,
+    "Duplicate IDs are not allowed.",
+  );
+
+const assignTeachersBatchSchema = z
+  .object({
+    courseId: objectIdSchema,
+    cohortId: objectIdSchema,
+    teacherIds: uniqueIds,
+  })
+  .strict();
+
+const assignStudentsBatchSchema = z
+  .object({
+    assignmentIds: uniqueIds,
+    studentIds: uniqueIds,
+    mode: z.enum(["shared", "separate"]),
+  })
+  .strict();
 
 // ==================================================
 // ROUTE PARAMETER SCHEMAS
 // ==================================================
 
-const assignmentParamsSchema = z.object({
-  assignmentId: objectIdSchema,
-}).strict();
+const assignmentParamsSchema = z
+  .object({
+    assignmentId: objectIdSchema,
+  })
+  .strict();
 
-const removeStudentParamsSchema = z.object({
-  assignmentId: objectIdSchema,
-  studentId: objectIdSchema,
-}).strict();
+const removeStudentParamsSchema = z
+  .object({
+    assignmentId: objectIdSchema,
+    studentId: objectIdSchema,
+  })
+  .strict();
 
 // ==================================================
 // AUTHENTICATION
@@ -100,7 +119,6 @@ const removeStudentParamsSchema = z.object({
 
 // All routes below require a valid Clerk session,
 // an active MongoDB user and valid application session.
-
 
 // ==================================================
 // ADMIN / SUPER ADMIN
@@ -126,11 +144,7 @@ const removeStudentParamsSchema = z.object({
 router.get(
   "/admin/course-assignments",
   requireAuthentication,
-  requireRole(
-    "super_admin",
-    "admin",
-    "teacher"
-  ),
+  requireRole("super_admin", "admin", "teacher"),
   validate(paginationSchema, "query"),
   getAllAssignments,
 );
@@ -140,7 +154,8 @@ router.get(
 // POST /api/v1/admin/course-assignments/teachers
 
 router.post(
-  "/admin/course-assignments/teachers",requireAuthentication,
+  "/admin/course-assignments/teachers",
+  requireAuthentication,
   requireRole("super_admin", "admin"),
   validate(assignTeacherSchema, "body"),
   assignTeacher,
@@ -151,10 +166,28 @@ router.post(
 // POST /api/v1/admin/course-assignments/students
 
 router.post(
-  "/admin/course-assignments/students",requireAuthentication,
+  "/admin/course-assignments/students",
+  requireAuthentication,
   requireRole("super_admin", "admin"),
   validate(assignStudentSchema, "body"),
   assignStudent,
+);
+
+// Batch endpoints preserve existing single-item API contracts.
+router.post(
+  "/admin/course-assignments/teachers/batch",
+  requireAuthentication,
+  requireRole("super_admin", "admin"),
+  validate(assignTeachersBatchSchema, "body"),
+  assignTeachersBatch,
+);
+
+router.post(
+  "/admin/course-assignments/students/batch",
+  requireAuthentication,
+  requireRole("super_admin", "admin"),
+  validate(assignStudentsBatchSchema, "body"),
+  assignStudentsBatch,
 );
 
 // REMOVE STUDENT FROM COURSE ASSIGNMENT
@@ -163,7 +196,8 @@ router.post(
 // /api/v1/admin/course-assignments/:assignmentId/students/:studentId
 
 router.delete(
-  "/admin/course-assignments/:assignmentId/students/:studentId",requireAuthentication,
+  "/admin/course-assignments/:assignmentId/students/:studentId",
+  requireAuthentication,
   requireRole("super_admin", "admin"),
   validate(removeStudentParamsSchema, "params"),
   removeStudent,
@@ -175,7 +209,8 @@ router.delete(
 // /api/v1/admin/course-assignments/:assignmentId/revoke
 
 router.patch(
-  "/admin/course-assignments/:assignmentId/revoke",requireAuthentication,
+  "/admin/course-assignments/:assignmentId/revoke",
+  requireAuthentication,
   requireRole("super_admin", "admin"),
   validate(assignmentParamsSchema, "params"),
   revokeAssignment,
@@ -190,7 +225,8 @@ router.patch(
 // GET /api/v1/teacher/courses
 
 router.get(
-  "/teacher/courses",requireAuthentication,
+  "/teacher/courses",
+  requireAuthentication,
   requireRole("teacher"),
   getTeacherCourses,
 );
@@ -201,7 +237,8 @@ router.get(
 // /api/v1/teacher/course-assignments/:assignmentId/students
 
 router.get(
-  "/teacher/course-assignments/:assignmentId/students",requireAuthentication,
+  "/teacher/course-assignments/:assignmentId/students",
+  requireAuthentication,
   requireRole("teacher"),
   validate(assignmentParamsSchema, "params"),
   getTeacherCourseStudents,
@@ -216,7 +253,8 @@ router.get(
 // GET /api/v1/student/courses
 
 router.get(
-  "/student/courses",requireAuthentication,
+  "/student/courses",
+  requireAuthentication,
   requireRole("student"),
   getStudentCourses,
 );
