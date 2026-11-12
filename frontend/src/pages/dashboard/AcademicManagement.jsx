@@ -933,6 +933,8 @@ export default function AcademicManagement({
 }) {
   const { user } = useOutletContext() ?? {};
   const canManage = ["super_admin", "admin"].includes(user?.role);
+  // Lesson actions are permitted for teachers only on backend-verified assigned courses.
+  const canManageLessons = ["super_admin", "admin", "teacher"].includes(user?.role);
   const isReadOnly = user?.role === "teacher";
   // ==================================================
   // STATE
@@ -1045,7 +1047,7 @@ const [cloneError, setCloneError] = useState("");
   const [previewData, setPreviewData] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState("");
-  const [lessonForm, setLessonForm] = useState({ title: "", description: "", order: 0 });
+  const [lessonForm, setLessonForm] = useState({ title: "", description: "", order: 1 });
 
   const fields = useMemo(
     () => FIELD_CONFIG[resource] ?? [],
@@ -1932,7 +1934,7 @@ const performAction = async (record, action) => {
     setLessonsLoading(true);
     setLessonError("");
     try {
-      const result = canManage
+      const result = canManageLessons
         ? await courseLessonService.list(courseId, { page: 1, limit: 100 })
         : await coursePlaybackService.listAccessible(courseId);
       const items = result?.lessons ?? result?.data?.lessons ?? result?.data ?? result;
@@ -1952,7 +1954,7 @@ const performAction = async (record, action) => {
 
   const resetLessonForm = () => {
     setSelectedLessonId(null);
-    setLessonForm({ title: "", description: "", order: 0 });
+    setLessonForm({ title: "", description: "", order: 1 });
     setLessonError("");
   };
 
@@ -1986,7 +1988,7 @@ const performAction = async (record, action) => {
     setPreviewData(null);
     setPreviewError("");
     setSelectedLessonId(null);
-    setLessonForm({ title: "", description: "", order: 0 });
+    setLessonForm({ title: "", description: "", order: 1 });
     setLessonError("");
     setLessonNotice("");
     setLessons([]);
@@ -1995,20 +1997,20 @@ const performAction = async (record, action) => {
   };
 
   const selectLesson = (lesson) => {
-    if (!canManage) return;
+    if (!canManageLessons) return;
     setLessonEditorOpen(true);
     setSelectedLessonId(getId(lesson));
     setLessonForm({
       title: lesson.title ?? "",
       description: lesson.description ?? "",
-      order: lesson.order ?? 0,
+      order: lesson.order ?? 1,
     });
     setLessonError("");
     setLessonNotice("");
   };
 
   const saveLesson = async () => {
-    if (!canManage) return;
+    if (!canManageLessons) return;
     const courseId = getId(selectedCourse);
     if (!courseId || lessonSaving) return;
     setLessonSaving(true);
@@ -2021,8 +2023,8 @@ const performAction = async (record, action) => {
         order: Number(lessonForm.order),
       };
       if (payload.title.length < 2) throw new Error("Lesson title must contain at least 2 characters.");
-      if (!Number.isInteger(payload.order) || payload.order < 0) {
-        throw new Error("Lesson order must be a non-negative integer.");
+      if (!Number.isInteger(payload.order) || payload.order < 1) {
+        throw new Error("Lesson order must be a positive integer.");
       }
       if (selectedLessonId) {
         await courseLessonService.update(courseId, selectedLessonId, payload);
@@ -2041,7 +2043,7 @@ const performAction = async (record, action) => {
   };
 
   const toggleLessonPublication = async (lesson) => {
-    if (!canManage) return;
+    if (!canManageLessons) return;
     const courseId = getId(selectedCourse);
     if (!courseId || lessonSaving) return;
     setLessonSaving(true);
@@ -2059,7 +2061,7 @@ const performAction = async (record, action) => {
   };
 
   const detachLessonVideo = async (lesson) => {
-    if (!canManage) return;
+    if (!canManageLessons) return;
     const courseId = getId(selectedCourse);
     if (!courseId || lessonSaving || !window.confirm(`Detach video from "${lesson.title}"?`)) return;
     setLessonSaving(true);
@@ -2077,7 +2079,7 @@ const performAction = async (record, action) => {
   };
 
   const deleteCourseLesson = async (lesson) => {
-    if (!canManage) return;
+    if (!canManageLessons) return;
     const courseId = getId(selectedCourse);
     if (!courseId || lessonSaving || !window.confirm(`Permanently delete lesson "${lesson.title}"?`)) return;
     setLessonSaving(true);
@@ -3057,7 +3059,7 @@ if (
                 </Box>
                 <Flex gap={2} align="center">
                   <Badge colorPalette="blue">{lessons.length} lessons</Badge>
-                  {canManage && (
+                  {canManageLessons && (
                     <Button
                       size="sm"
                       colorPalette="blue"
@@ -3095,7 +3097,7 @@ if (
                     {lessonsLoading ? (
                       <Flex justify="center" py={8}><Spinner size="sm" /></Flex>
                     ) : lessons.length === 0 ? (
-                      <Text p={4} fontSize="sm" color="fg.muted">{canManage ? "No lessons created yet. Select Create Lesson to begin." : "No published video lessons are available."}</Text>
+                      <Text p={4} fontSize="sm" color="fg.muted">{canManageLessons ? "No lessons created yet. Select Create Lesson to begin." : "No published video lessons are available."}</Text>
                     ) : (
                       <VStack align="stretch" gap={0} maxH={{ lg: "65vh" }} overflowY="auto">
                         {[...lessons].sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0)).map((lesson, index) => {
@@ -3128,7 +3130,7 @@ if (
                                     {!lesson.videoMediaId && <Text fontSize="xs" color="fg.muted">No video</Text>}
                                   </Flex>
                                 </Box>
-                                {canManage && (
+                                {canManageLessons && (
                                 <Button
                                   size="xs"
                                   variant="ghost"
@@ -3201,7 +3203,7 @@ if (
                               Refresh Video
                             </Button>
                           </Flex>
-                          {canManage && (
+                          {canManageLessons && (
                           <Flex gap={2} wrap="wrap" mt={4} pt={3} borderTopWidth="1px">
                             <Button size="sm" variant="outline" disabled={lessonSaving} onClick={() => selectLesson(activeLesson)}>
                               Edit / Video
@@ -3232,7 +3234,7 @@ if (
       )}
 
       {/* Lesson create/edit and video upload; existing handlers preserved */}
-      {canManage && (
+      {canManageLessons && (
       <Dialog.Root open={lessonEditorOpen} onOpenChange={(details) => {
         if (!lessonSaving) setLessonEditorOpen(details.open);
       }} size="lg" scrollBehavior="inside">
@@ -3256,7 +3258,7 @@ if (
                 </Field.Root>
                 <Field.Root required>
                   <Field.Label>Lesson Order</Field.Label>
-                  <Input type="number" min={0} value={lessonForm.order} disabled={lessonSaving}
+                  <Input type="number" min={1} value={lessonForm.order} disabled={lessonSaving}
                     onChange={(event) => setLessonForm((previous) => ({ ...previous, order: event.target.value }))} />
                 </Field.Root>
                 <Flex gap={2} wrap="wrap">
