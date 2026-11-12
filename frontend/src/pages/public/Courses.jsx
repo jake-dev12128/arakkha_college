@@ -201,17 +201,6 @@ function CourseCard({ course, programId }) {
           wrap="wrap"
           justify="space-between"
         >
-          {/* Credits are optional. */}
-          {course.credits !== null &&
-            course.credits !== undefined && (
-              <Flex align="center" gap={2}>
-                <FiBookOpen color={accent} />
-                <Text fontSize="sm">
-                  {course.credits} Credits
-                </Text>
-              </Flex>
-            )}
-
           <Flex align="center" gap={2}>
             <FiClock color={accent} />
             <Text fontSize="sm">

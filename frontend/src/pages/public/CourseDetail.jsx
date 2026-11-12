@@ -431,13 +431,6 @@ export default function CourseDetail() {
                     {course.code || "Course"}
                   </Badge>
 
-                  {course.credits !== null &&
-                    course.credits !== undefined && (
-                      <Badge variant="outline">
-                        {course.credits} Credits
-                      </Badge>
-                    )}
-
                   <Badge
                     colorPalette="blue"
                     variant="subtle"
@@ -512,10 +505,6 @@ export default function CourseDetail() {
                   >
                     {[
                       [
-                        "Credits",
-                        course.credits,
-                      ],
-                      [
                         "Lecture Hours",
                         course.lectureHours,
                       ],
@@ -523,30 +512,23 @@ export default function CourseDetail() {
                         "Practical Hours",
                         course.practicalHours,
                       ],
-                    ]
-                      .filter(
-                        ([label, value]) =>
-                          label !== "Credits" ||
-                          (value !== null && value !== undefined)
-                      )
-                      .map(
-                      ([label, value]) => (
-                        <Box key={label}>
-                          <Text
-                            fontSize="xs"
-                            color="var(--public-muted)"
-                          >
-                            {label}
-                          </Text>
-                          <Text
-                            mt={1}
-                            fontWeight="bold"
-                          >
-                            {value ?? "—"}
-                          </Text>
-                        </Box>
-                      )
-                    )}
+                    ].map(([label, value]) => (
+                      <Box key={label}>
+                        <Text
+                          fontSize="xs"
+                          color="var(--public-muted)"
+                        >
+                          {label}
+                        </Text>
+
+                        <Text
+                          mt={1}
+                          fontWeight="bold"
+                        >
+                          {value ?? "—"}
+                        </Text>
+                      </Box>
+                    ))}
                   </Flex>
 
                   <Button

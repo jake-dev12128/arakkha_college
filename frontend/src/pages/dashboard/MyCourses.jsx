@@ -97,39 +97,34 @@ function CourseCard({
       borderRadius="xl"
       overflow="hidden"
     >
-      <Card.Header>
-        <Flex
-          align="flex-start"
-          justify="space-between"
-          gap={3}
-          wrap="wrap"
-        >
-          <Box>
-            <HStack gap={2} mb={2}>
-              <Badge colorPalette="blue">
-                {course.code || "COURSE"}
-              </Badge>
+     
+<Card.Header>
+  <Flex
+    align="flex-start"
+    justify="space-between"
+    gap={3}
+    wrap="wrap"
+  >
+    <Box>
+      <HStack gap={2} mb={2}>
+        <Badge colorPalette="blue">
+          {course.code || "COURSE"}
+        </Badge>
 
-              {isTeacher && (
-                <Badge colorPalette="purple">
-                  Teaching
-                </Badge>
-              )}
-            </HStack>
+        {isTeacher && (
+          <Badge colorPalette="purple">
+            Teaching
+          </Badge>
+        )}
+      </HStack>
 
-            <Heading size="md">
-              {course.title || "Untitled Course"}
-            </Heading>
-          </Box>
+      <Heading size="md">
+        {course.title || "Untitled Course"}
+      </Heading>
+    </Box>
+  </Flex>
+</Card.Header>
 
-          {course.credits !== undefined &&
-            course.credits !== null && (
-              <Badge variant="outline">
-                {course.credits} Credits
-              </Badge>
-            )}
-        </Flex>
-      </Card.Header>
 
       <Card.Body>
         <VStack align="stretch" gap={4}>
