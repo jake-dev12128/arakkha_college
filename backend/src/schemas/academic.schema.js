@@ -117,10 +117,20 @@ const courseFields = {
     .max(5000)
     .default(""),
 
+  // ==================================================
+  // OPTIONAL COURSE CREDITS
+  // ==================================================
+  // Number: 0–30
+  // null: No credits assigned
+  // undefined: Credits not provided
+  // ==================================================
+
   credits: z
     .number()
     .min(0)
-    .max(30),
+    .max(30)
+    .nullable()
+    .optional(),
 
   lectureHours: z
     .number()

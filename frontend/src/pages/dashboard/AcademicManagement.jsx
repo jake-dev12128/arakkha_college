@@ -445,7 +445,7 @@ const DEFAULT_VALUES = {
   courses: {
     code: "",
     title: "",
-    credits: 3,
+    credits: "",
     lectureHours: 0,
     practicalHours: 0,
     description: "",
@@ -778,7 +778,7 @@ const TABLE_COLUMNS = {
   courses: [
     { label: "Code", value: (r) => r.code },
     { label: "Course Title", value: (r) => r.title },
-    { label: "Credits", value: (r) => r.credits },
+    { label: "Credits", value: (r) => r.credits ?? "—" },
     { label: "Lecture Hours", value: (r) => r.lectureHours },
     { label: "Practical Hours", value: (r) => r.practicalHours },
   ],
@@ -1517,8 +1517,9 @@ const [cloneError, setCloneError] = useState("");
       ) {
         if (
           value === "" &&
-          name === "capacity"
+          (name === "capacity" || name === "credits")
         ) {
+          // Blank optional numbers must not become 0.
           value = null;
         } else {
           value = Number(value);

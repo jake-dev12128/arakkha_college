@@ -431,9 +431,12 @@ export default function CourseDetail() {
                     {course.code || "Course"}
                   </Badge>
 
-                  <Badge variant="outline">
-                    {course.credits ?? "—"} Credits
-                  </Badge>
+                  {course.credits !== null &&
+                    course.credits !== undefined && (
+                      <Badge variant="outline">
+                        {course.credits} Credits
+                      </Badge>
+                    )}
 
                   <Badge
                     colorPalette="blue"
@@ -520,7 +523,13 @@ export default function CourseDetail() {
                         "Practical Hours",
                         course.practicalHours,
                       ],
-                    ].map(
+                    ]
+                      .filter(
+                        ([label, value]) =>
+                          label !== "Credits" ||
+                          (value !== null && value !== undefined)
+                      )
+                      .map(
                       ([label, value]) => (
                         <Box key={label}>
                           <Text

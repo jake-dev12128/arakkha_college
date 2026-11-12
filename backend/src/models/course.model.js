@@ -26,10 +26,14 @@ const courseSchema = new Schema(
       maxlength: 5000,
     },
 
+    // OPTIONAL: Credits are not required.
+    // null means no credit value has been assigned.
     credits: {
       type: Number,
-      required: true,
+      required: false,
+      default: null,
       min: 0,
+      max: 30,
     },
 
     lectureHours: {
