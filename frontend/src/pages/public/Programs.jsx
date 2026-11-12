@@ -106,7 +106,7 @@ export default function Programs() {
                 key={program._id}
                 flex={{
                   base: "0 1 100%",
-                  sm: "0 1 calc(50% - 12px)",
+                  sm: "0 1 calc(100% - 12px)",
                   lg: "0 1 calc(33.333% - 16px)",
                 }}
                 minW={0}

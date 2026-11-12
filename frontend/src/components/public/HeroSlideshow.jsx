@@ -4,15 +4,15 @@ import { Box } from "@chakra-ui/react";
 
 const slides = [
   {
-    src: "/img/c2.png",
+    src: "/img/ss.jpg",
     alt: "ACC Computer College campus",
   },
   {
-    src: "/img/c3.jpg",
+    src: "/img/ss2.jpg",
     alt: "Computer laboratory",
   },
   {
-    src: "/img/acdemic.jpg",
+    src: "/img/ss3.jpg",
     alt: "Students learning at ACC",
   },
 ];

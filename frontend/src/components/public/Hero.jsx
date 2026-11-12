@@ -33,14 +33,14 @@ export default function Hero() {
             </Text>
 
             <Heading
-              size={{ base: "3xl", md: "5xl" }}
+              size={{ base: "3xl", md: "4xl" }}
               lineHeight="1.05"
               color="#F1F5F9"
             >
               Building the next generation of technology professionals.
             </Heading>
 
-            <Text
+            {/* <Text
               fontSize={{ base: "md", md: "xl" }}
               color="#CBD5E1"
               maxW="680px"
@@ -49,7 +49,7 @@ export default function Hero() {
               Explore our academic programs, student information, entrance
               announcements, faculty and staff, partnerships and the latest
               college news.
-            </Text>
+            </Text> */}
 
             <Flex gap="4" wrap="wrap">
               <Button
