@@ -131,7 +131,6 @@ const DATE_FIELDS = new Set([
 const NUMBER_FIELDS = new Set([
   "durationYears",
   "semestersPerYear",
-  "credits",
   "lectureHours",
   "practicalHours",
   "capacity",
@@ -209,10 +208,6 @@ const FIELD_CONFIG = {
       name: "title",
       label: "Course Title",
       required: true,
-    },
-    {
-      name: "credits",
-      label: "Credits",
     },
     {
       name: "lectureHours",
@@ -397,7 +392,6 @@ const EDITABLE_FIELDS = {
   courses: [
     "title",
     "description",
-    "credits",
     "lectureHours",
     "practicalHours",
     "prerequisites",
@@ -445,7 +439,6 @@ const DEFAULT_VALUES = {
   courses: {
     code: "",
     title: "",
-    credits: "",
     lectureHours: 0,
     practicalHours: 0,
     description: "",
@@ -778,7 +771,6 @@ const TABLE_COLUMNS = {
   courses: [
     { label: "Code", value: (r) => r.code },
     { label: "Course Title", value: (r) => r.title },
-    { label: "Credits", value: (r) => r.credits ?? "—" },
     { label: "Lecture Hours", value: (r) => r.lectureHours },
     { label: "Practical Hours", value: (r) => r.practicalHours },
   ],
@@ -833,7 +825,7 @@ const DETAIL_GROUPS = {
   },
 ],
   courses: [
-    { title: "Course Information", fields: ["code", "title", "credits", "lectureHours", "practicalHours", "description", "prerequisites"] },
+    { title: "Course Information", fields: ["code", "title", "lectureHours", "practicalHours", "description", "prerequisites"] },
   ],
   curricula: [
     { title: "Curriculum Information", fields: ["program", "version", "effectiveFrom", "status", "isPublished"] },
@@ -1517,9 +1509,9 @@ const [cloneError, setCloneError] = useState("");
       ) {
         if (
           value === "" &&
-          (name === "capacity" || name === "credits")
+          name === "capacity"
         ) {
-          // Blank optional numbers must not become 0.
+          // Blank optional capacity must not become 0.
           value = null;
         } else {
           value = Number(value);
