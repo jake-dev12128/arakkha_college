@@ -1,15 +1,7 @@
-
 import { useState } from "react";
 import { useAuth } from "@clerk/react";
 
-import {
-  Box,
-  Button,
-  Flex,
-  HStack,
-  IconButton,
-  Text,
-} from "@chakra-ui/react";
+import { Box, Button, Flex, HStack, IconButton, Text } from "@chakra-ui/react";
 
 import {
   FaBars,
@@ -52,11 +44,7 @@ export default function Header({
   // ==========================================
 
   const handleCopySessionToken = async () => {
-    if (
-      !ENABLE_TOKEN_COPY ||
-      !isSignedIn ||
-      copying
-    ) {
+    if (!ENABLE_TOKEN_COPY || !isSignedIn || copying) {
       return;
     }
 
@@ -68,25 +56,18 @@ export default function Header({
       const token = await getToken();
 
       if (!token) {
-        throw new Error(
-          "Session token is unavailable. Please sign in again."
-        );
+        throw new Error("Session token is unavailable. Please sign in again.");
       }
 
       if (!navigator.clipboard?.writeText) {
-        throw new Error(
-          "Clipboard is unavailable in this browser."
-        );
+        throw new Error("Clipboard is unavailable in this browser.");
       }
 
       await navigator.clipboard.writeText(token);
 
       setCopied(true);
     } catch (error) {
-      setCopyError(
-        error?.message ||
-          "Failed to copy session token."
-      );
+      setCopyError(error?.message || "Failed to copy session token.");
     } finally {
       setCopying(false);
     }
@@ -106,8 +87,9 @@ export default function Header({
       justify="space-between"
       gap={3}
       boxShadow="0 2px 8px rgba(0, 0, 0, 0.12)"
-      position="relative"
-      zIndex={1}
+      position="sticky"
+      top={0}
+      zIndex={30}
     >
       {/* LEFT: MOBILE MENU + TITLE */}
 
@@ -142,12 +124,7 @@ export default function Header({
             {title}
           </Text>
 
-          <Text
-            mt={1}
-            fontSize="xs"
-            color={colors.muted}
-            truncate
-          >
+          <Text mt={1} fontSize="xs" color={colors.muted} truncate>
             {config?.label ?? "Account"}
           </Text>
         </Box>
@@ -155,70 +132,44 @@ export default function Header({
 
       {/* RIGHT: TOKEN + USER + LOGOUT */}
 
-      <HStack
-        gap={{ base: 2, md: 4 }}
-        flexShrink={0}
-      >
+      <HStack gap={{ base: 2, md: 4 }} flexShrink={0}>
         {/* DEVELOPMENT-ONLY TOKEN BUTTON */}
 
-        {ENABLE_TOKEN_COPY &&
-          ["admin", "super_admin"].includes(
-            user.role
-          ) && (
-            <Box textAlign="center">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                borderColor={
-                  copied
-                    ? "#86EFAC"
-                    : colors.gold
-                }
-                color={
-                  copied
-                    ? "#86EFAC"
-                    : colors.gold
-                }
-                bg="transparent"
-                disabled={
-                  copying || !isSignedIn
-                }
-                loading={copying}
-                onClick={handleCopySessionToken}
-                _hover={{
-                  bg: colors.hover,
+        {ENABLE_TOKEN_COPY && ["admin", "super_admin"].includes(user.role) && (
+          <Box textAlign="center">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              borderColor={copied ? "#86EFAC" : colors.gold}
+              color={copied ? "#86EFAC" : colors.gold}
+              bg="transparent"
+              disabled={copying || !isSignedIn}
+              loading={copying}
+              onClick={handleCopySessionToken}
+              _hover={{
+                bg: colors.hover,
+              }}
+            >
+              {copied ? <FaCheck /> : <FaCopy />}
+
+              <Text
+                display={{
+                  base: "none",
+                  md: "inline",
                 }}
               >
-                {copied ? (
-                  <FaCheck />
-                ) : (
-                  <FaCopy />
-                )}
+                {copied ? "Copied!" : "Copy Token"}
+              </Text>
+            </Button>
 
-                <Text
-                  display={{
-                    base: "none",
-                    md: "inline",
-                  }}
-                >
-                  {copied
-                    ? "Copied!"
-                    : "Copy Token"}
-                </Text>
-              </Button>
-
-              {copyError && (
-                <Text
-                  fontSize="2xs"
-                  color="#FCA5A5"
-                  maxW="180px"
-                >
-                  {copyError}
-                </Text>
-              )}
-            </Box>
-          )}
+            {copyError && (
+              <Text fontSize="2xs" color="#FCA5A5" maxW="180px">
+                {copyError}
+              </Text>
+            )}
+          </Box>
+        )}
 
         {/* USER INFORMATION */}
 
@@ -229,18 +180,11 @@ export default function Header({
           }}
           textAlign="right"
         >
-          <Text
-            fontSize="sm"
-            fontWeight="600"
-            color={colors.white}
-          >
+          <Text fontSize="sm" fontWeight="600" color={colors.white}>
             {user.firstName} {user.lastName}
           </Text>
 
-          <Text
-            fontSize="xs"
-            color={colors.muted}
-          >
+          <Text fontSize="xs" color={colors.muted}>
             {config?.label ?? "Account"}
           </Text>
         </Box>
