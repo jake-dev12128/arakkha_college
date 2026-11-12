@@ -12,7 +12,15 @@ import ProgramEnrollment from "../models/programEnrollment.model.js";
 import Cohort from "../models/cohort.model.js";
 import Student from "../models/student.model.js";
 import Teacher from "../models/teacher.model.js";
-const fail = (message, status = 409, code = "COURSE_VIDEO_ERROR") => {
+import {
+  requireLessonManageAccess,
+} from "./courseLesson.service.js";
+
+const fail = (
+  message,
+  status = 409,
+  code = "COURSE_VIDEO_ERROR"
+) => {
   throw new AppError(message, status, code);
 };
 
@@ -21,9 +29,13 @@ const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
 
 const signingSecret = () => {
   const secret = cloudinary.config().api_secret;
+
   if (!secret) {
-    throw new Error("Cloudinary signing secret is missing.");
+    throw new Error(
+      "Cloudinary signing secret is missing."
+    );
   }
+
   return secret;
 };
 
@@ -42,29 +54,52 @@ const encodeIntent = (data) => {
 };
 
 const decodeIntent = (token) => {
-  if (typeof token !== "string" || token.length > 4096) {
-    fail("Invalid upload intent.", 400, "INVALID_UPLOAD_INTENT");
+  if (
+    typeof token !== "string" ||
+    token.length > 4096
+  ) {
+    fail(
+      "Invalid upload intent.",
+      400,
+      "INVALID_UPLOAD_INTENT"
+    );
   }
 
   const parts = token.split(".");
+
   if (parts.length !== 2) {
-    fail("Invalid upload intent.", 400, "INVALID_UPLOAD_INTENT");
+    fail(
+      "Invalid upload intent.",
+      400,
+      "INVALID_UPLOAD_INTENT"
+    );
   }
 
   const [payload, signature] = parts;
 
   if (!/^[a-f0-9]{64}$/.test(signature)) {
-    fail("Invalid upload signature.", 403, "INVALID_UPLOAD_SIGNATURE");
+    fail(
+      "Invalid upload signature.",
+      403,
+      "INVALID_UPLOAD_SIGNATURE"
+    );
   }
 
   const actual = Buffer.from(signature, "hex");
-  const expected = Buffer.from(signIntent(payload), "hex");
+  const expected = Buffer.from(
+    signIntent(payload),
+    "hex"
+  );
 
   if (
     actual.length !== expected.length ||
     !crypto.timingSafeEqual(actual, expected)
   ) {
-    fail("Invalid upload signature.", 403, "INVALID_UPLOAD_SIGNATURE");
+    fail(
+      "Invalid upload signature.",
+      403,
+      "INVALID_UPLOAD_SIGNATURE"
+    );
   }
 
   let data;
@@ -74,7 +109,11 @@ const decodeIntent = (token) => {
       Buffer.from(payload, "base64url").toString("utf8")
     );
   } catch {
-    fail("Invalid upload intent.", 400, "INVALID_UPLOAD_INTENT");
+    fail(
+      "Invalid upload intent.",
+      400,
+      "INVALID_UPLOAD_INTENT"
+    );
   }
 
   if (
@@ -83,13 +122,20 @@ const decodeIntent = (token) => {
     !Number.isSafeInteger(data.expiresAt) ||
     Date.now() > data.expiresAt
   ) {
-    fail("Upload intent expired or invalid.", 403, "UPLOAD_INTENT_EXPIRED");
+    fail(
+      "Upload intent expired or invalid.",
+      403,
+      "UPLOAD_INTENT_EXPIRED"
+    );
   }
 
   return data;
 };
 
-// Existing Cloudinary signature pattern retained.
+// ==========================================
+// CLOUDINARY VIDEO SIGNATURE
+// ==========================================
+
 export const createVideoSignature = (courseId) => {
   const timestamp = Math.floor(Date.now() / 1000);
 
@@ -100,10 +146,11 @@ export const createVideoSignature = (courseId) => {
     type: "authenticated",
   };
 
-  const signature = cloudinary.utils.api_sign_request(
-    params,
-    signingSecret()
-  );
+  const signature =
+    cloudinary.utils.api_sign_request(
+      params,
+      signingSecret()
+    );
 
   return {
     ...params,
@@ -113,28 +160,50 @@ export const createVideoSignature = (courseId) => {
   };
 };
 
-// Generate a signature for one specific lesson and uploader.
+// ==========================================
+// ISSUE LESSON VIDEO UPLOAD
+// ==========================================
+
 export const issueLessonVideoUpload = async (
   courseId,
   lessonId,
-  actorId
+  actor
 ) => {
+  const actorId = actor?._id;
+
   if (
     !mongoose.isObjectIdOrHexString(courseId) ||
     !mongoose.isObjectIdOrHexString(lessonId) ||
     !mongoose.isObjectIdOrHexString(actorId)
   ) {
-    fail("Invalid resource ID.", 400, "INVALID_ID");
+    fail(
+      "Invalid resource ID.",
+      400,
+      "INVALID_ID"
+    );
   }
 
-  const course = await Course.findById(courseId).lean();
+  await requireLessonManageAccess(
+    courseId,
+    actor
+  );
+
+  const course = await Course.findById(
+    courseId
+  ).lean();
 
   if (!course) {
-    fail("Course not found.", 404, "COURSE_NOT_FOUND");
+    fail(
+      "Course not found.",
+      404,
+      "COURSE_NOT_FOUND"
+    );
   }
 
   if (!course.isActive) {
-    fail("Archived course cannot be modified.");
+    fail(
+      "Archived course cannot be modified."
+    );
   }
 
   const lesson = await CourseLesson.findOne({
@@ -143,20 +212,28 @@ export const issueLessonVideoUpload = async (
   }).lean();
 
   if (!lesson) {
-    fail("Lesson not found.", 404, "LESSON_NOT_FOUND");
+    fail(
+      "Lesson not found.",
+      404,
+      "LESSON_NOT_FOUND"
+    );
   }
 
   const upload = createVideoSignature(courseId);
 
-  const publicId = `${upload.folder}/${upload.public_id}`;
+  const publicId =
+    `${upload.folder}/${upload.public_id}`;
+
+  const issuedAt = Date.now();
 
   const intent = encodeIntent({
     courseId: String(courseId),
     lessonId: String(lessonId),
     actorId: String(actorId),
     publicId,
-    issuedAt: Date.now(),
-    expiresAt: Date.now() + UPLOAD_TTL_SECONDS * 1000,
+    issuedAt,
+    expiresAt:
+      issuedAt + UPLOAD_TTL_SECONDS * 1000,
   });
 
   return {
@@ -166,14 +243,24 @@ export const issueLessonVideoUpload = async (
   };
 };
 
-const verifyUploadedVideo = async (publicId, issuedAt) => {
+// ==========================================
+// VERIFY CLOUDINARY VIDEO
+// ==========================================
+
+const verifyUploadedVideo = async (
+  publicId,
+  issuedAt
+) => {
   let resource;
 
   try {
-    resource = await cloudinary.api.resource(publicId, {
-      resource_type: "video",
-      type: "authenticated",
-    });
+    resource = await cloudinary.api.resource(
+      publicId,
+      {
+        resource_type: "video",
+        type: "authenticated",
+      }
+    );
   } catch {
     fail(
       "Uploaded video could not be verified.",
@@ -198,7 +285,9 @@ const verifyUploadedVideo = async (publicId, issuedAt) => {
     );
   }
 
-  const uploadedAt = Date.parse(resource.created_at);
+  const uploadedAt = Date.parse(
+    resource.created_at
+  );
 
   if (
     !Number.isFinite(uploadedAt) ||
@@ -215,12 +304,33 @@ const verifyUploadedVideo = async (publicId, issuedAt) => {
   return resource;
 };
 
+// ==========================================
+// COMPLETE LESSON VIDEO UPLOAD
+// ==========================================
+
 export const completeLessonVideoUpload = async ({
   courseId,
   lessonId,
   actorId,
+  actor,
   intent,
 }) => {
+  if (
+    !actor?._id ||
+    String(actor._id) !== String(actorId)
+  ) {
+    fail(
+      "Upload actor mismatch.",
+      403,
+      "UPLOAD_ACTOR_MISMATCH"
+    );
+  }
+
+  await requireLessonManageAccess(
+    courseId,
+    actor
+  );
+
   const verifiedIntent = decodeIntent(intent);
 
   if (
@@ -235,16 +345,22 @@ export const completeLessonVideoUpload = async ({
     );
   }
 
-  const expectedPrefix = `acc/courses/videos/${courseId}/`;
+  const expectedPrefix =
+    `acc/courses/videos/${courseId}/`;
 
   if (
     typeof verifiedIntent.publicId !== "string" ||
-    !verifiedIntent.publicId.startsWith(expectedPrefix)
+    !verifiedIntent.publicId.startsWith(
+      expectedPrefix
+    )
   ) {
-    fail("Invalid video location.", 403, "INVALID_VIDEO_LOCATION");
+    fail(
+      "Invalid video location.",
+      403,
+      "INVALID_VIDEO_LOCATION"
+    );
   }
 
-  // Verify with Cloudinary, not with client-provided metadata.
   const resource = await verifyUploadedVideo(
     verifiedIntent.publicId,
     verifiedIntent.issuedAt
@@ -252,179 +368,228 @@ export const completeLessonVideoUpload = async ({
 
   let result;
 
-  await mongoose.connection.transaction(async (session) => {
-    const course = await Course.findById(courseId).session(session);
-
-    if (!course) {
-      fail("Course not found.", 404, "COURSE_NOT_FOUND");
-    }
-
-    if (!course.isActive) {
-      fail("Archived course cannot be modified.");
-    }
-
-    const lesson = await CourseLesson.findOne({
-      _id: lessonId,
-      courseId,
-    }).session(session);
-
-    if (!lesson) {
-      fail("Lesson not found.", 404, "LESSON_NOT_FOUND");
-    }
-
-    // A replacement must first detach the previous video.
-    if (lesson.videoMediaId) {
-      fail(
-        "Detach the current video before attaching another.",
-        409,
-        "LESSON_VIDEO_ALREADY_ATTACHED"
+  await mongoose.connection.transaction(
+    async (session) => {
+      await requireLessonManageAccess(
+        courseId,
+        actor,
+        session
       );
-    }
 
-    const existing = await MediaAsset.exists({
-      publicId: resource.public_id,
-    }).session(session);
+      const course = await Course.findById(
+        courseId
+      ).session(session);
 
-    if (existing) {
-      fail(
-        "This video has already been registered.",
-        409,
-        "VIDEO_ALREADY_REGISTERED"
-      );
-    }
+      if (!course) {
+        fail(
+          "Course not found.",
+          404,
+          "COURSE_NOT_FOUND"
+        );
+      }
 
-    const [media] = await MediaAsset.create(
-      [{
+      if (!course.isActive) {
+        fail(
+          "Archived course cannot be modified."
+        );
+      }
+
+      const lesson = await CourseLesson.findOne({
+        _id: lessonId,
+        courseId,
+      }).session(session);
+
+      if (!lesson) {
+        fail(
+          "Lesson not found.",
+          404,
+          "LESSON_NOT_FOUND"
+        );
+      }
+
+      if (lesson.videoMediaId) {
+        fail(
+          "Detach the current video before attaching another.",
+          409,
+          "LESSON_VIDEO_ALREADY_ATTACHED"
+        );
+      }
+
+      const existing = await MediaAsset.exists({
         publicId: resource.public_id,
-        resourceType: "video",
-        secureUrl: resource.secure_url,
-        category: "course-videos",
-        bytes: resource.bytes,
-        width: resource.width,
-        height: resource.height,
-        duration: resource.duration,
-        format: resource.format,
-        uploadedBy: actorId,
-        status: "attached",
-        attachedTo: {
-          model: "CourseLesson",
-          documentId: lesson._id,
-        },
-      }],
-      { session }
-    );
+      }).session(session);
 
-    lesson.videoMediaId = media._id;
+      if (existing) {
+        fail(
+          "This video has already been registered.",
+          409,
+          "VIDEO_ALREADY_REGISTERED"
+        );
+      }
 
-    // Upload completion does not automatically publish a lesson.
-    lesson.isPublished = false;
+      const [media] = await MediaAsset.create(
+        [
+          {
+            publicId: resource.public_id,
+            resourceType: "video",
+            secureUrl: resource.secure_url,
+            category: "course-videos",
+            bytes: resource.bytes,
+            width: resource.width,
+            height: resource.height,
+            duration: resource.duration,
+            format: resource.format,
+            uploadedBy: actorId,
+            status: "attached",
+            attachedTo: {
+              model: "CourseLesson",
+              documentId: lesson._id,
+            },
+          },
+        ],
+        { session }
+      );
 
-    await lesson.save({ session });
+      lesson.videoMediaId = media._id;
 
-    result = {
-      lessonId: lesson._id,
-      mediaId: media._id,
-      duration: media.duration,
-      bytes: media.bytes,
-      format: media.format,
-      isPublished: lesson.isPublished,
-    };
-  });
+      // Upload does not automatically publish.
+      lesson.isPublished = false;
+
+      await lesson.save({ session });
+
+      result = {
+        lessonId: lesson._id,
+        mediaId: media._id,
+        duration: media.duration,
+        bytes: media.bytes,
+        format: media.format,
+        isPublished: lesson.isPublished,
+      };
+    }
+  );
 
   return result;
 };
 
-// Unpublish and schedule cleanup of an attached video.
+// ==========================================
+// DETACH LESSON VIDEO
+// ==========================================
+
 export const detachLessonVideo = async ({
   courseId,
   lessonId,
+  actor,
 }) => {
   let result;
 
-  await mongoose.connection.transaction(async (session) => {
-    const course = await Course.findById(courseId).session(session);
+  await mongoose.connection.transaction(
+    async (session) => {
+      await requireLessonManageAccess(
+        courseId,
+        actor,
+        session
+      );
 
-    if (!course) {
-      fail("Course not found.", 404, "COURSE_NOT_FOUND");
-    }
+      const course = await Course.findById(
+        courseId
+      ).session(session);
 
-    if (!course.isActive) {
-      fail("Archived course cannot be modified.");
-    }
+      if (!course) {
+        fail(
+          "Course not found.",
+          404,
+          "COURSE_NOT_FOUND"
+        );
+      }
 
-    const lesson = await CourseLesson.findOne({
-      _id: lessonId,
-      courseId,
-    }).session(session);
+      if (!course.isActive) {
+        fail(
+          "Archived course cannot be modified."
+        );
+      }
 
-    if (!lesson) {
-      fail("Lesson not found.", 404, "LESSON_NOT_FOUND");
-    }
+      const lesson = await CourseLesson.findOne({
+        _id: lessonId,
+        courseId,
+      }).session(session);
 
-    if (!lesson.videoMediaId) {
+      if (!lesson) {
+        fail(
+          "Lesson not found.",
+          404,
+          "LESSON_NOT_FOUND"
+        );
+      }
+
+      if (!lesson.videoMediaId) {
+        result = {
+          detached: false,
+          lessonId: lesson._id,
+        };
+
+        return;
+      }
+
+      const now = new Date();
+
+      const update = await MediaAsset.updateOne(
+        {
+          _id: lesson.videoMediaId,
+          category: "course-videos",
+          resourceType: "video",
+          status: "attached",
+          "attachedTo.model": "CourseLesson",
+          "attachedTo.documentId": lesson._id,
+        },
+        {
+          $set: {
+            status: "pending",
+            cleanupRequestedAt: now,
+            cleanupNextRetryAt: now,
+            cleanupAttempts: 0,
+            cleanupLastError: null,
+            cleanupLockedAt: null,
+            cleanupLockToken: null,
+          },
+          $unset: {
+            attachedTo: "",
+          },
+        },
+        { session }
+      );
+
+      if (update.matchedCount !== 1) {
+        fail(
+          "Video attachment state conflict.",
+          409,
+          "VIDEO_DETACH_CONFLICT"
+        );
+      }
+
+      lesson.videoMediaId = null;
+      lesson.isPublished = false;
+
+      await lesson.save({ session });
+
       result = {
-        detached: false,
+        detached: true,
         lessonId: lesson._id,
       };
-      return;
     }
-
-    const now = new Date();
-
-    const update = await MediaAsset.updateOne(
-      {
-        _id: lesson.videoMediaId,
-        category: "course-videos",
-        resourceType: "video",
-        status: "attached",
-        "attachedTo.model": "CourseLesson",
-        "attachedTo.documentId": lesson._id,
-      },
-      {
-        $set: {
-          status: "pending",
-          cleanupRequestedAt: now,
-          cleanupNextRetryAt: now,
-          cleanupAttempts: 0,
-          cleanupLastError: null,
-          cleanupLockedAt: null,
-          cleanupLockToken: null,
-        },
-        $unset: {
-          attachedTo: "",
-        },
-      },
-      { session }
-    );
-
-    if (update.matchedCount !== 1) {
-      fail(
-        "Video attachment state conflict.",
-        409,
-        "VIDEO_DETACH_CONFLICT"
-      );
-    }
-
-    lesson.videoMediaId = null;
-    lesson.isPublished = false;
-
-    await lesson.save({ session });
-
-    result = {
-      detached: true,
-      lessonId: lesson._id,
-    };
-  });
+  );
 
   return result;
 };
 
-
+// ==========================================
+// SECURE PLAYBACK CONFIGURATION
+// ==========================================
 
 const PLAYBACK_TTL_SECONDS = 300;
 
 const isAdministrator = (role) =>
-  role === "super_admin" || role === "admin";
+  role === "super_admin" ||
+  role === "admin";
 
 // ==========================================
 // VERIFY COURSE PLAYBACK ACCESS
@@ -435,7 +600,11 @@ export const verifyCoursePlaybackAccess = async (
   user
 ) => {
   if (!mongoose.isObjectIdOrHexString(courseId)) {
-    fail("Invalid course ID.", 400, "INVALID_COURSE_ID");
+    fail(
+      "Invalid course ID.",
+      400,
+      "INVALID_COURSE_ID"
+    );
   }
 
   if (!user?._id || !user.isActive) {
@@ -446,12 +615,18 @@ export const verifyCoursePlaybackAccess = async (
     );
   }
 
-  const course = await Course.findById(courseId)
+  const course = await Course.findById(
+    courseId
+  )
     .select("_id isActive")
     .lean();
 
   if (!course) {
-    fail("Course not found.", 404, "COURSE_NOT_FOUND");
+    fail(
+      "Course not found.",
+      404,
+      "COURSE_NOT_FOUND"
+    );
   }
 
   if (isAdministrator(user.role)) {
@@ -463,23 +638,21 @@ export const verifyCoursePlaybackAccess = async (
   }
 
   if (!course.isActive) {
-    fail("Course is unavailable.", 403, "COURSE_INACTIVE");
+    fail(
+      "Course is unavailable.",
+      403,
+      "COURSE_INACTIVE"
+    );
   }
 
   // ========================================
-  // TEACHER
+  // TEACHER — PUBLISHED READ ACCESS
   // ========================================
 
-  // ========================================
-  // TEACHER — FULL PUBLISHED READ ACCESS
-  // ========================================
-
-  // Teachers may view published lessons and
-  // videos of any active course, regardless
-  // of course assignments or cohort membership.
-  //
+  // Teachers can view published lessons
+  // of any active course.
   // Draft lessons remain restricted.
-  // This does not grant upload/edit/delete rights.
+  // This does not grant edit/upload rights.
 
   if (user.role === "teacher") {
     return {
@@ -488,7 +661,6 @@ export const verifyCoursePlaybackAccess = async (
       canPreviewDraft: false,
     };
   }
-
 
   // ========================================
   // STUDENT
@@ -502,41 +674,51 @@ export const verifyCoursePlaybackAccess = async (
       .lean();
 
     if (!student) {
-      fail("Student profile not found.");
+      fail(
+        "Student profile not found."
+      );
     }
 
-    const assignments = await CourseAssignment.find({
-      course: course._id,
-      students: student._id,
-      isActive: true,
-    })
-      .select("cohort")
-      .lean();
+    const assignments =
+      await CourseAssignment.find({
+        course: course._id,
+        students: student._id,
+        isActive: true,
+      })
+        .select("cohort")
+        .lean();
 
     if (!assignments.length) {
-      fail("You are not assigned to this course.");
+      fail(
+        "You are not assigned to this course."
+      );
     }
 
     const cohortIds = assignments.map(
       (assignment) => assignment.cohort
     );
 
-    const enrollments = await ProgramEnrollment.find({
-      student: student._id,
-      cohort: { $in: cohortIds },
-      status: "active",
-    })
-      .select("cohort program")
-      .lean();
+    const enrollments =
+      await ProgramEnrollment.find({
+        student: student._id,
+        cohort: { $in: cohortIds },
+        status: "active",
+      })
+        .select("cohort program")
+        .lean();
 
     if (!enrollments.length) {
-      fail("Active enrollment is required.");
+      fail(
+        "Active enrollment is required."
+      );
     }
 
-    const validPairs = enrollments.map((enrollment) => ({
-      _id: enrollment.cohort,
-      program: enrollment.program,
-    }));
+    const validPairs = enrollments.map(
+      (enrollment) => ({
+        _id: enrollment.cohort,
+        program: enrollment.program,
+      })
+    );
 
     const activeCohort = await Cohort.exists({
       status: "active",
@@ -544,7 +726,9 @@ export const verifyCoursePlaybackAccess = async (
     });
 
     if (!activeCohort) {
-      fail("An active matching cohort is required.");
+      fail(
+        "An active matching cohort is required."
+      );
     }
 
     return {
@@ -565,10 +749,11 @@ export const getAccessibleCourseLessons = async (
   courseId,
   user
 ) => {
-  const access = await verifyCoursePlaybackAccess(
-    courseId,
-    user
-  );
+  const access =
+    await verifyCoursePlaybackAccess(
+      courseId,
+      user
+    );
 
   const filter = {
     courseId: access.courseId,
@@ -579,11 +764,16 @@ export const getAccessibleCourseLessons = async (
     filter.videoMediaId = { $ne: null };
   }
 
-  const lessons = await CourseLesson.find(filter)
+  const lessons = await CourseLesson.find(
+    filter
+  )
     .select(
       "_id courseId title description order isPublished videoMediaId"
     )
-    .sort({ order: 1, _id: 1 })
+    .sort({
+      order: 1,
+      _id: 1,
+    })
     .lean();
 
   return lessons.map((lesson) => ({
@@ -607,13 +797,18 @@ export const getCourseLessonPlayback = async ({
   user,
 }) => {
   if (!mongoose.isObjectIdOrHexString(lessonId)) {
-    fail("Invalid lesson ID.", 400, "INVALID_LESSON_ID");
+    fail(
+      "Invalid lesson ID.",
+      400,
+      "INVALID_LESSON_ID"
+    );
   }
 
-  const access = await verifyCoursePlaybackAccess(
-    courseId,
-    user
-  );
+  const access =
+    await verifyCoursePlaybackAccess(
+      courseId,
+      user
+    );
 
   const lessonFilter = {
     _id: lessonId,
@@ -624,12 +819,18 @@ export const getCourseLessonPlayback = async ({
     lessonFilter.isPublished = true;
   }
 
-  const lesson = await CourseLesson.findOne(lessonFilter)
+  const lesson = await CourseLesson.findOne(
+    lessonFilter
+  )
     .select("_id title videoMediaId")
     .lean();
 
   if (!lesson) {
-    fail("Lesson not found.", 404, "LESSON_NOT_FOUND");
+    fail(
+      "Lesson not found.",
+      404,
+      "LESSON_NOT_FOUND"
+    );
   }
 
   if (!lesson.videoMediaId) {

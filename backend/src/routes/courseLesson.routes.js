@@ -39,96 +39,175 @@ import {
   getLessonPlayback,
 } from "../controllers/courseVideo.controller.js";
 
-// ==========================================
-// ADMIN COURSE LESSON ROUTER
-// ==========================================
+// ==================================================
+// COURSE LESSON MANAGEMENT ROUTER
+// ==================================================
 
 const router = Router();
 
+// All lesson management endpoints require
+// an authenticated user.
+
 router.use(requireAuthentication);
 
+// Administrators may manage all courses.
+// Teachers may manage only courses assigned
+// to them, as enforced by the service layer.
+
 router.use(
-  requireRole("super_admin", "admin")
+  requireRole(
+    "super_admin",
+    "admin",
+    "teacher"
+  )
 );
 
-// ==========================================
-// ADMIN LESSON CRUD
-// ==========================================
+// ==================================================
+// LIST COURSE LESSONS
+// ==================================================
 
 router.get(
   "/:courseId/lessons",
-  validate(courseLessonParamsSchema, "params"),
-  validate(courseLessonListSchema, "query"),
+  validate(
+    courseLessonParamsSchema,
+    "params"
+  ),
+  validate(
+    courseLessonListSchema,
+    "query"
+  ),
   listLessons
 );
 
+// ==================================================
+// CREATE COURSE LESSON
+// ==================================================
+
 router.post(
   "/:courseId/lessons",
-  validate(courseLessonParamsSchema, "params"),
-  validate(createCourseLessonSchema, "body"),
+  validate(
+    courseLessonParamsSchema,
+    "params"
+  ),
+  validate(
+    createCourseLessonSchema,
+    "body"
+  ),
   createLesson
 );
 
+// ==================================================
+// UPDATE COURSE LESSON
+// ==================================================
+
 router.patch(
   "/:courseId/lessons/:lessonId",
-  validate(courseLessonIdParamsSchema, "params"),
-  validate(updateCourseLessonSchema, "body"),
+  validate(
+    courseLessonIdParamsSchema,
+    "params"
+  ),
+  validate(
+    updateCourseLessonSchema,
+    "body"
+  ),
   updateLesson
 );
 
+// ==================================================
+// PUBLISH / UNPUBLISH COURSE LESSON
+// ==================================================
+
 router.patch(
   "/:courseId/lessons/:lessonId/publication",
-  validate(courseLessonIdParamsSchema, "params"),
-  validate(courseLessonPublicationSchema, "body"),
+  validate(
+    courseLessonIdParamsSchema,
+    "params"
+  ),
+  validate(
+    courseLessonPublicationSchema,
+    "body"
+  ),
   setLessonPublication
 );
 
+// ==================================================
+// DELETE COURSE LESSON
+// ==================================================
+
 router.delete(
   "/:courseId/lessons/:lessonId",
-  validate(courseLessonIdParamsSchema, "params"),
+  validate(
+    courseLessonIdParamsSchema,
+    "params"
+  ),
   deleteLesson
 );
 
-// ==========================================
-// ADMIN VIDEO UPLOAD VALIDATION
-// ==========================================
+// ==================================================
+// VIDEO UPLOAD COMPLETION SCHEMA
+// ==================================================
 
 const completeVideoSchema = z
   .object({
-    intent: z.string().min(20).max(4096),
+    intent: z
+      .string()
+      .min(20)
+      .max(4096),
   })
   .strict();
 
-// ==========================================
-// ADMIN VIDEO UPLOAD ROUTES
-// ==========================================
+// ==================================================
+// REQUEST SIGNED VIDEO UPLOAD
+// ==================================================
 
 router.post(
   "/:courseId/lessons/:lessonId/video/signature",
-  validate(courseLessonIdParamsSchema, "params"),
+  validate(
+    courseLessonIdParamsSchema,
+    "params"
+  ),
   getVideoUploadSignature
 );
 
+// ==================================================
+// COMPLETE VIDEO UPLOAD
+// ==================================================
+
 router.post(
   "/:courseId/lessons/:lessonId/video/complete",
-  validate(courseLessonIdParamsSchema, "params"),
-  validate(completeVideoSchema, "body"),
+  validate(
+    courseLessonIdParamsSchema,
+    "params"
+  ),
+  validate(
+    completeVideoSchema,
+    "body"
+  ),
   completeVideoUpload
 );
 
+// ==================================================
+// DETACH LESSON VIDEO
+// ==================================================
+
 router.delete(
   "/:courseId/lessons/:lessonId/video",
-  validate(courseLessonIdParamsSchema, "params"),
+  validate(
+    courseLessonIdParamsSchema,
+    "params"
+  ),
   removeLessonVideo
 );
 
-// ==========================================
+// ==================================================
 // AUTHENTICATED PLAYBACK ROUTER
-// ==========================================
+// ==================================================
 
 export const coursePlaybackRouter = Router();
 
-coursePlaybackRouter.use(requireAuthentication);
+coursePlaybackRouter.use(
+  requireAuthentication
+);
 
 coursePlaybackRouter.use(
   requireRole(
@@ -139,23 +218,29 @@ coursePlaybackRouter.use(
   )
 );
 
-// ==========================================
-// ACCESSIBLE LESSON LIST
-// ==========================================
+// ==================================================
+// LIST ACCESSIBLE COURSE LESSONS
+// ==================================================
 
 coursePlaybackRouter.get(
   "/:courseId/lessons",
-  validate(courseLessonParamsSchema, "params"),
+  validate(
+    courseLessonParamsSchema,
+    "params"
+  ),
   listMyCourseLessons
 );
 
-// ==========================================
-// SIGNED VIDEO PLAYBACK
-// ==========================================
+// ==================================================
+// GET SECURE VIDEO PLAYBACK
+// ==================================================
 
 coursePlaybackRouter.get(
   "/:courseId/lessons/:lessonId/playback",
-  validate(courseLessonIdParamsSchema, "params"),
+  validate(
+    courseLessonIdParamsSchema,
+    "params"
+  ),
   getLessonPlayback
 );
 

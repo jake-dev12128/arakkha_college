@@ -1,4 +1,9 @@
+
 import mongoose from "mongoose";
+
+// ==================================================
+// COURSE LESSON SCHEMA
+// ==================================================
 
 const courseLessonSchema = new mongoose.Schema(
   {
@@ -13,18 +18,25 @@ const courseLessonSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      minlength: 2,
       maxlength: 200,
     },
 
     description: {
       type: String,
+      trim: true,
+      maxlength: 5000,
       default: "",
     },
 
     order: {
       type: Number,
       required: true,
-      min: 0,
+      min: 1,
+      validate: {
+        validator: Number.isInteger,
+        message: "Lesson order must be an integer.",
+      },
     },
 
     videoMediaId: {
@@ -43,10 +55,23 @@ const courseLessonSchema = new mongoose.Schema(
   }
 );
 
+// ==================================================
+// UNIQUE LESSON ORDER PER COURSE
+// ==================================================
+
 courseLessonSchema.index(
-  { courseId: 1, order: 1 },
-  { unique: true }
+  {
+    courseId: 1,
+    order: 1,
+  },
+  {
+    unique: true,
+  }
 );
+
+// ==================================================
+// MODEL EXPORT
+// ==================================================
 
 export default mongoose.model(
   "CourseLesson",

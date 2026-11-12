@@ -64,22 +64,37 @@ export const courseLessonService = {
     );
   },
 
-  async uploadVideo(courseId, lessonId, file, onProgress) {
+  async uploadVideo(
+    courseId,
+    lessonId,
+    file,
+    onProgress,
+    onStageChange
+  ) {
     if (!(file instanceof File)) {
       throw new Error("Select a video file.");
     }
 
-    if (!file.type.startsWith("video/")) {
+    if (
+      !file.type.startsWith("video/") ||
+      file.size === 0
+    ) {
       throw new Error("Only video files are supported.");
     }
 
-    // Direct Cloudinary upload is limited here to 90 MB.
-    // Larger files need a separately implemented chunked flow.
+    // Direct Cloudinary upload is limited to 90 MB.
+    // Larger files require a chunked upload flow.
     if (file.size > 90 * 1024 * 1024) {
       throw new Error(
         "Maximum supported video size is 90 MB."
       );
     }
+
+    // ==========================================
+    // STEP 1: REQUEST SIGNATURE
+    // ==========================================
+
+    onStageChange?.("signing");
 
     const signed = unwrap(
       await api.post(
@@ -95,21 +110,35 @@ export const courseLessonService = {
       !upload?.signature ||
       !intent
     ) {
-      throw new Error("Invalid upload signature response.");
+      throw new Error(
+        "Invalid upload signature response."
+      );
     }
+
+    // ==========================================
+    // STEP 2: PREPARE CLOUDINARY FORM
+    // ==========================================
 
     const form = new FormData();
 
     form.append("file", file);
     form.append("api_key", upload.apiKey);
-    form.append("timestamp", String(upload.timestamp));
+    form.append(
+      "timestamp",
+      String(upload.timestamp)
+    );
     form.append("folder", upload.folder);
     form.append("public_id", upload.public_id);
     form.append("type", upload.type);
     form.append("signature", upload.signature);
 
-    // This request goes directly to Cloudinary.
-    // Do not send Clerk Authorization or API headers.
+    // ==========================================
+    // STEP 3: DIRECT CLOUDINARY UPLOAD
+    // ==========================================
+
+    // Do not send Clerk Authorization headers.
+    onStageChange?.("uploading");
+
     await axios.post(
       `https://api.cloudinary.com/v1_1/${encodeURIComponent(
         upload.cloudName
@@ -117,22 +146,31 @@ export const courseLessonService = {
       form,
       {
         timeout: 10 * 60 * 1000,
+
         onUploadProgress: (event) => {
           if (!event.total) return;
 
-          onProgress?.(
-            Math.min(
-              100,
-              Math.round(
-                (event.loaded / event.total) * 100
-              )
+          const percentage = Math.min(
+            100,
+            Math.round(
+              (event.loaded / event.total) * 100
             )
           );
+
+          onProgress?.(percentage);
         },
       }
     );
 
-    // Backend independently verifies Cloudinary resource.
+    // ==========================================
+    // STEP 4: BACKEND VIDEO VERIFICATION
+    // ==========================================
+
+    onProgress?.(100);
+    onStageChange?.("verifying");
+
+    // Backend independently verifies the
+    // uploaded Cloudinary resource.
     return unwrap(
       await api.post(
         `${videoUrl(courseId, lessonId)}/complete`,
@@ -142,7 +180,10 @@ export const courseLessonService = {
     );
   },
 
-  // Requires Phase 14.7 backend integration.
+  // ==========================================
+  // ACCESSIBLE LESSONS
+  // ==========================================
+
   async listAccessible(courseId) {
     return unwrap(
       await api.get(
@@ -150,6 +191,10 @@ export const courseLessonService = {
       )
     );
   },
+
+  // ==========================================
+  // SECURE VIDEO PLAYBACK
+  // ==========================================
 
   async getPlayback(courseId, lessonId) {
     return unwrap(

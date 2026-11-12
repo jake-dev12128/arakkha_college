@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 
 import {
@@ -19,12 +20,15 @@ import {
   useLocation,
 } from "react-router-dom";
 
-import { MdDarkMode, MdOutlineLightMode } from "react-icons/md";
+import {
+  MdDarkMode,
+  MdOutlineLightMode,
+} from "react-icons/md";
 
 import { useThemeMode } from "../../context/ThemeContext.jsx";
 
 // ==================================================
-// NAVIGATION LINKS
+// PUBLIC NAVIGATION
 // ==================================================
 
 const links = [
@@ -37,7 +41,7 @@ const links = [
   { label: "Contact", to: "/contact" },
 ];
 
-const academicLinks = [
+const admissionLinks = [
   {
     label: "2026 Academic Year Entrance Information",
     to: "/academic/entrance-information",
@@ -47,46 +51,96 @@ const academicLinks = [
     to: "/academic/entrance-students",
   },
 ];
+
+// ==================================================
+// ROUTE ACTIVE HELPERS
+// ==================================================
+
+const normalizePath = (path) => {
+  if (!path || path === "/") return "/";
+
+  return path.replace(/\/+$/, "");
+};
+
+const isProgramsRoute = (pathname) => {
+  const path = normalizePath(pathname);
+
+  return (
+    path === "/programs" ||
+    path === "/academic/courses" ||
+    path.startsWith("/academic/courses/")
+  );
+};
+
+const isAdmissionRoute = (pathname) => {
+  const path = normalizePath(pathname);
+
+  return (
+    path === "/academic/entrance-information" ||
+    path === "/academic/entrance-students" ||
+    path === "/academic/entrance-list"
+  );
+};
+
 // ==================================================
 // NAVIGATION ITEM
 // ==================================================
 
-function NavItem({ to, children, onClick, isDark = false }) {
- const activeColor = isDark ? "#79B9FF" : "#2563EB";
-const activeBg = isDark ? "#344A63" : "#EFF6FF";
-const normalColor = isDark ? "#F3F7FF" : "#374151";
+function NavItem({
+  to,
+  children,
+  onClick,
+  isDark = false,
+  activeOverride,
+}) {
+  const activeColor = isDark ? "#79B9FF" : "#2563EB";
+  const activeBg = isDark ? "#344A63" : "#EFF6FF";
+  const normalColor = isDark ? "#F3F7FF" : "#374151";
 
   return (
     <NavLink
       to={to}
-      end={to === "/"}
+      end
       onClick={onClick}
-      style={({ isActive }) => ({
-        color: isActive ? activeColor : normalColor,
-        backgroundColor: isActive ? activeBg : "transparent",
-        fontWeight: 600,
-        borderRadius: "8px",
-        padding: "8px 12px",
-        textDecoration: "none",
-        display: "inline-flex",
-        alignItems: "center",
-        transition: "all 0.2s ease",
-      })}
+      style={({ isActive }) => {
+        const active =
+          activeOverride !== undefined
+            ? activeOverride
+            : isActive;
+
+        return {
+          color: active ? activeColor : normalColor,
+          backgroundColor: active
+            ? activeBg
+            : "transparent",
+          fontWeight: 600,
+          borderRadius: "8px",
+          padding: "8px 12px",
+          textDecoration: "none",
+          display: "inline-flex",
+          alignItems: "center",
+          transition: "all 0.2s ease",
+        };
+      }}
       onMouseEnter={(event) => {
         event.currentTarget.style.color = activeColor;
-        event.currentTarget.style.backgroundColor = activeBg;
+        event.currentTarget.style.backgroundColor =
+          activeBg;
       }}
       onMouseLeave={(event) => {
-        const isActive =
-          event.currentTarget.getAttribute("aria-current") === "page";
+        const active =
+          activeOverride !== undefined
+            ? activeOverride
+            : event.currentTarget.getAttribute(
+                "aria-current"
+              ) === "page";
 
-        event.currentTarget.style.color = isActive
+        event.currentTarget.style.color = active
           ? activeColor
           : normalColor;
 
-        event.currentTarget.style.backgroundColor = isActive
-          ? activeBg
-          : "transparent";
+        event.currentTarget.style.backgroundColor =
+          active ? activeBg : "transparent";
       }}
     >
       {children}
@@ -95,12 +149,12 @@ const normalColor = isDark ? "#F3F7FF" : "#374151";
 }
 
 // ==================================================
-// ACADEMIC MENU
+// ADMISSION DROPDOWN
 // ==================================================
 
-function AcademicMenu({ isDark, isActive }) {
-  const activeColor = isDark ? "#93c5fd" : "#2563eb";
-  const activeBg = isDark ? "#1e3a5f" : "#eff6ff";
+function AdmissionMenu({ isDark, isActive }) {
+  const activeColor = isDark ? "#93C5FD" : "#2563EB";
+  const activeBg = isDark ? "#1E3A5F" : "#EFF6FF";
 
   return (
     <Menu.Root>
@@ -114,18 +168,18 @@ function AcademicMenu({ isDark, isActive }) {
             isActive
               ? activeColor
               : isDark
-                ? "gray.100"
-                : "gray.700"
+                ? "#F3F7FF"
+                : "#374151"
           }
           bg={isActive ? activeBg : "transparent"}
           _hover={{
-            bg: isDark ? "gray.800" : "gray.100",
-            color: isDark ? "blue.200" : "blue.600",
+            bg: isDark ? "#344A63" : "#EFF6FF",
+            color: activeColor,
             textDecoration: "none",
           }}
           _focusVisible={{
             outline: "2px solid",
-            outlineColor: isDark ? "blue.300" : "blue.500",
+            outlineColor: activeColor,
             outlineOffset: "2px",
           }}
         >
@@ -138,15 +192,17 @@ function AcademicMenu({ isDark, isActive }) {
 
       <Menu.Positioner>
         <Menu.Content
-          minW="220px"
+          minW="260px"
           p="1"
-          bg={isDark ? "#172C49" : "white"}
-color={isDark ? "#F3F7FF" : "#172B45"}
-borderColor={isDark ? "#405772" : "#DCE5EF"}
+          bg={isDark ? "#172C49" : "#FFFFFF"}
+          color={isDark ? "#F3F7FF" : "#172B45"}
+          borderColor={
+            isDark ? "#405772" : "#DCE5EF"
+          }
           borderRadius="xl"
           boxShadow="lg"
         >
-          {academicLinks.map((link) => (
+          {admissionLinks.map((link) => (
             <Menu.Item
               key={link.to}
               value={link.to}
@@ -154,11 +210,12 @@ borderColor={isDark ? "#405772" : "#DCE5EF"}
               p="0"
               borderRadius="md"
               _hover={{
-                bg: isDark ? "gray.800" : "gray.100",
+                bg: isDark ? "#344A63" : "#EFF6FF",
               }}
             >
               <NavLink
                 to={link.to}
+                end
                 style={({ isActive }) => ({
                   display: "flex",
                   alignItems: "center",
@@ -169,7 +226,7 @@ borderColor={isDark ? "#405772" : "#DCE5EF"}
                   color: isActive
                     ? activeColor
                     : isDark
-                      ? "#f3f4f6"
+                      ? "#F3F7FF"
                       : "#374151",
                   backgroundColor: isActive
                     ? activeBg
@@ -191,22 +248,42 @@ borderColor={isDark ? "#405772" : "#DCE5EF"}
 // THEME TOGGLE
 // ==================================================
 
-function ThemeToggle({ isDark, toggleTheme, mobile = false }) {
+function ThemeToggle({
+  isDark,
+  toggleTheme,
+  mobile = false,
+}) {
   return (
     <IconButton
-      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      aria-label={
+        isDark
+          ? "Switch to light mode"
+          : "Switch to dark mode"
+      }
+      title={
+        isDark
+          ? "Switch to light mode"
+          : "Switch to dark mode"
+      }
       variant="ghost"
       size="sm"
-      color={isDark ? "gray.100" : "gray.700"}
+      color={isDark ? "#F3F7FF" : "#374151"}
       borderRadius="lg"
       _hover={{
-        bg: isDark ? "gray.800" : "gray.100",
+        bg: isDark ? "#344A63" : "#EFF6FF",
       }}
       onClick={toggleTheme}
-      display={mobile ? { base: "inline-flex", lg: "none" } : undefined}
+      display={
+        mobile
+          ? { base: "inline-flex", lg: "none" }
+          : undefined
+      }
     >
-      {isDark ? <MdOutlineLightMode /> : <MdDarkMode />}
+      {isDark ? (
+        <MdOutlineLightMode />
+      ) : (
+        <MdDarkMode />
+      )}
     </IconButton>
   );
 }
@@ -222,13 +299,33 @@ export default function Navbar() {
   const isDark = theme === "dark";
 
   const location = useLocation();
+  const pathname = location.pathname;
 
-  // Academic remains active for all academic child routes.
-  const isAcademicActive = location.pathname.startsWith("/academic/");
+  const isProgramsActive =
+    isProgramsRoute(pathname);
+
+  const isAdmissionActive =
+    isAdmissionRoute(pathname);
 
   const closeMobileMenu = () => {
     setOpen(false);
   };
+
+  const renderNavItem = (link, mobile = false) => (
+    <NavItem
+      key={link.to}
+      to={link.to}
+      isDark={isDark}
+      onClick={mobile ? closeMobileMenu : undefined}
+      activeOverride={
+        link.to === "/programs"
+          ? isProgramsActive
+          : undefined
+      }
+    >
+      {link.label}
+    </NavItem>
+  );
 
   return (
     <Box
@@ -236,15 +333,22 @@ export default function Navbar() {
       position="sticky"
       top="0"
       zIndex="1000"
-      bg={isDark ? "gray.950" : "white"}
-      color={isDark ? "gray.100" : "gray.800"}
+      bg={isDark ? "#172C49" : "#FFFFFF"}
+      color={isDark ? "#F3F7FF" : "#172B45"}
       borderBottomWidth="1px"
-      borderColor={isDark ? "gray.700" : "gray.200"}
+      borderColor={
+        isDark ? "#405772" : "#DCE5EF"
+      }
       boxShadow="sm"
       transition="background 0.2s ease, color 0.2s ease"
     >
       <Container maxW="1280px">
-        <Flex minH="76px" align="center" justify="space-between" gap="4">
+        <Flex
+          minH="76px"
+          align="center"
+          justify="space-between"
+          gap="4"
+        >
           {/* LOGO AND COLLEGE NAME */}
 
           <Link
@@ -257,7 +361,9 @@ export default function Navbar() {
             }}
             _focusVisible={{
               outline: "2px solid",
-              outlineColor: isDark ? "blue.300" : "blue.500",
+              outlineColor: isDark
+                ? "#93C5FD"
+                : "#2563EB",
               outlineOffset: "3px",
               borderRadius: "md",
             }}
@@ -285,8 +391,9 @@ export default function Navbar() {
                 <Text
                   fontWeight="900"
                   lineHeight="1.2"
-                  color={isDark ? "white" : "gray.900"}
-                  textDecoration="none"
+                  color={
+                    isDark ? "#FFFFFF" : "#172B45"
+                  }
                 >
                   ARAKKHA
                 </Text>
@@ -294,10 +401,11 @@ export default function Navbar() {
                 <Text
                   fontSize="xs"
                   fontWeight="600"
-                  color={isDark ? "gray.400" : "gray.500"}
+                  color={
+                    isDark ? "#B9CBE0" : "#64748B"
+                  }
                   mt="1"
                   letterSpacing="0.3px"
-                  textDecoration="none"
                 >
                   COMPUTER COLLEGE
                 </Text>
@@ -312,33 +420,21 @@ export default function Navbar() {
             gap={{ lg: "2", xl: "3" }}
             align="center"
           >
-            <NavItem to="/" isDark={isDark}>
-              Home
-            </NavItem>
+            {renderNavItem(links[0])}
+            {renderNavItem(links[1])}
 
-            <NavItem to="/about" isDark={isDark}>
-              About Us
-            </NavItem>
-
-            <AcademicMenu
+            <AdmissionMenu
               isDark={isDark}
-              isActive={isAcademicActive}
+              isActive={isAdmissionActive}
             />
 
             {links
               .filter(
                 (link) =>
-                  link.to !== "/" && link.to !== "/about",
+                  link.to !== "/" &&
+                  link.to !== "/about"
               )
-              .map((link) => (
-                <NavItem
-                  key={link.to}
-                  to={link.to}
-                  isDark={isDark}
-                >
-                  {link.label}
-                </NavItem>
-              ))}
+              .map((link) => renderNavItem(link))}
 
             <ThemeToggle
               isDark={isDark}
@@ -348,7 +444,10 @@ export default function Navbar() {
 
           {/* MOBILE CONTROLS */}
 
-          <HStack gap="2" display={{ base: "flex", lg: "none" }}>
+          <HStack
+            gap="2"
+            display={{ base: "flex", lg: "none" }}
+          >
             <ThemeToggle
               isDark={isDark}
               toggleTheme={toggleTheme}
@@ -356,12 +455,26 @@ export default function Navbar() {
             />
 
             <IconButton
-              aria-label={open ? "Close navigation" : "Open navigation"}
-              title={open ? "Close navigation" : "Open navigation"}
+              aria-label={
+                open
+                  ? "Close navigation"
+                  : "Open navigation"
+              }
+              title={
+                open
+                  ? "Close navigation"
+                  : "Open navigation"
+              }
               variant="outline"
-              color={isDark ? "gray.100" : "gray.700"}
-              borderColor={isDark ? "gray.600" : "gray.300"}
-              onClick={() => setOpen((value) => !value)}
+              color={
+                isDark ? "#F3F7FF" : "#374151"
+              }
+              borderColor={
+                isDark ? "#526984" : "#DCE5EF"
+              }
+              onClick={() =>
+                setOpen((value) => !value)
+              }
             >
               {open ? "✕" : "☰"}
             </IconButton>
@@ -377,39 +490,34 @@ export default function Navbar() {
             gap="3"
             py="5"
             borderTopWidth="1px"
-            borderColor={isDark ? "gray.700" : "gray.200"}
+            borderColor={
+              isDark ? "#405772" : "#DCE5EF"
+            }
           >
-            {links.map((link) => (
-              <NavItem
-                key={link.to}
-                to={link.to}
-                onClick={closeMobileMenu}
-                isDark={isDark}
-              >
-                {link.label}
-              </NavItem>
-            ))}
+            {links.map((link) =>
+              renderNavItem(link, true)
+            )}
 
-            {/* MOBILE ACADEMIC LINKS */}
+            {/* MOBILE ADMISSION LINKS */}
 
             <Box>
               <Text
                 fontSize="sm"
                 fontWeight="700"
                 color={
-                  isAcademicActive
+                  isAdmissionActive
                     ? isDark
-                      ? "#93c5fd"
-                      : "#2563eb"
+                      ? "#93C5FD"
+                      : "#2563EB"
                     : isDark
-                      ? "gray.400"
-                      : "gray.500"
+                      ? "#B9CBE0"
+                      : "#64748B"
                 }
                 bg={
-                  isAcademicActive
+                  isAdmissionActive
                     ? isDark
-                      ? "#1e3a5f"
-                      : "#eff6ff"
+                      ? "#1E3A5F"
+                      : "#EFF6FF"
                     : "transparent"
                 }
                 borderRadius="md"
@@ -417,16 +525,24 @@ export default function Navbar() {
                 py="2"
                 mb="2"
               >
-                Academic
+                Admission
               </Text>
 
-              <VStack align="stretch" gap="2" pl="4">
-                {academicLinks.map((link) => (
+              <VStack
+                align="stretch"
+                gap="2"
+                pl="4"
+              >
+                {admissionLinks.map((link) => (
                   <NavItem
                     key={link.to}
                     to={link.to}
                     onClick={closeMobileMenu}
                     isDark={isDark}
+                    activeOverride={
+                      normalizePath(pathname) ===
+                      link.to
+                    }
                   >
                     {link.label}
                   </NavItem>
@@ -439,4 +555,3 @@ export default function Navbar() {
     </Box>
   );
 }
-

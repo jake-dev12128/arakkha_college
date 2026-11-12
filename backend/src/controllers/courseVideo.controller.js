@@ -16,7 +16,8 @@ const send = (res, data, status = 200) =>
   });
 
 // ==========================================
-// VIDEO UPLOAD SIGNATURE — ADMIN
+// VIDEO UPLOAD SIGNATURE
+// SUPER ADMIN / ADMIN / ASSIGNED TEACHER
 // ==========================================
 
 export const getVideoUploadSignature = asyncHandler(
@@ -24,7 +25,7 @@ export const getVideoUploadSignature = asyncHandler(
     const result = await issueLessonVideoUpload(
       req.params.courseId,
       req.params.lessonId,
-      req.user._id
+      req.user
     );
 
     return send(res, result);
@@ -32,7 +33,8 @@ export const getVideoUploadSignature = asyncHandler(
 );
 
 // ==========================================
-// COMPLETE VIDEO UPLOAD — ADMIN
+// COMPLETE VIDEO UPLOAD
+// SUPER ADMIN / ADMIN / ASSIGNED TEACHER
 // ==========================================
 
 export const completeVideoUpload = asyncHandler(
@@ -41,6 +43,7 @@ export const completeVideoUpload = asyncHandler(
       courseId: req.params.courseId,
       lessonId: req.params.lessonId,
       actorId: req.user._id,
+      actor: req.user,
       intent: req.body.intent,
     });
 
@@ -49,7 +52,8 @@ export const completeVideoUpload = asyncHandler(
 );
 
 // ==========================================
-// DETACH VIDEO — ADMIN
+// DETACH VIDEO
+// SUPER ADMIN / ADMIN / ASSIGNED TEACHER
 // ==========================================
 
 export const removeLessonVideo = asyncHandler(
@@ -57,6 +61,7 @@ export const removeLessonVideo = asyncHandler(
     const result = await detachLessonVideo({
       courseId: req.params.courseId,
       lessonId: req.params.lessonId,
+      actor: req.user,
     });
 
     return send(res, result);
@@ -64,7 +69,8 @@ export const removeLessonVideo = asyncHandler(
 );
 
 // ==========================================
-// ACCESSIBLE LESSONS — AUTHENTICATED USERS
+// ACCESSIBLE LESSONS
+// AUTHENTICATED USERS
 // ==========================================
 
 export const listMyCourseLessons = asyncHandler(

@@ -9,51 +9,85 @@ const send = (res, data, status = 200) =>
     data,
   });
 
-export const listLessons = asyncHandler(async (req, res) => {
-  const result = await lessons.listCourseLessons(
-    req.params.courseId,
-    req.query
-  );
+// ==========================================
+// LIST COURSE LESSONS
+// ==========================================
 
-  return send(res, result);
-});
-
-export const createLesson = asyncHandler(async (req, res) => {
-  const result = await lessons.createCourseLesson(
-    req.params.courseId,
-    req.body
-  );
-
-  return send(res, result, 201);
-});
-
-export const updateLesson = asyncHandler(async (req, res) => {
-  const result = await lessons.updateCourseLesson(
-    req.params.courseId,
-    req.params.lessonId,
-    req.body
-  );
-
-  return send(res, result);
-});
-
-export const setLessonPublication = asyncHandler(
+export const listLessons = asyncHandler(
   async (req, res) => {
-    const result = await lessons.setCourseLessonPublication(
+    const result = await lessons.listCourseLessons(
       req.params.courseId,
-      req.params.lessonId,
-      req.body.isPublished
+      req.query,
+      req.user
     );
 
     return send(res, result);
   }
 );
 
-export const deleteLesson = asyncHandler(async (req, res) => {
-  const result = await lessons.deleteCourseLesson(
-    req.params.courseId,
-    req.params.lessonId
-  );
+// ==========================================
+// CREATE COURSE LESSON
+// ==========================================
 
-  return send(res, result);
-});
+export const createLesson = asyncHandler(
+  async (req, res) => {
+    const result = await lessons.createCourseLesson(
+      req.params.courseId,
+      req.body,
+      req.user
+    );
+
+    return send(res, result, 201);
+  }
+);
+
+// ==========================================
+// UPDATE COURSE LESSON
+// ==========================================
+
+export const updateLesson = asyncHandler(
+  async (req, res) => {
+    const result = await lessons.updateCourseLesson(
+      req.params.courseId,
+      req.params.lessonId,
+      req.body,
+      req.user
+    );
+
+    return send(res, result);
+  }
+);
+
+// ==========================================
+// PUBLISH / UNPUBLISH LESSON
+// ==========================================
+
+export const setLessonPublication = asyncHandler(
+  async (req, res) => {
+    const result =
+      await lessons.setCourseLessonPublication(
+        req.params.courseId,
+        req.params.lessonId,
+        req.body.isPublished,
+        req.user
+      );
+
+    return send(res, result);
+  }
+);
+
+// ==========================================
+// DELETE COURSE LESSON
+// ==========================================
+
+export const deleteLesson = asyncHandler(
+  async (req, res) => {
+    const result = await lessons.deleteCourseLesson(
+      req.params.courseId,
+      req.params.lessonId,
+      req.user
+    );
+
+    return send(res, result);
+  }
+);

@@ -27,40 +27,50 @@ import {
   courseAccessService,
 } from "../../services/courseAccess.service.js";
 
-import { coursePlaybackService } from "../../services/coursePlayback.service.js";
+import {
+  coursePlaybackService,
+} from "../../services/coursePlayback.service.js";
+
+import {
+  courseLessonService,
+} from "../../services/courseLesson.service.js";
+
 import SecureLessonVideoPlayer from "../../components/dashboard/academic/SecureLessonVideoPlayer.jsx";
+
 import CourseLessonPlaylist from "../../components/dashboard/academic/CourseLessonPlaylist.jsx";
+
+import CourseVideoUploader from "../../components/dashboard/academic/CourseVideoUploader.jsx";
 
 // ==================================================
 // HELPERS
 // ==================================================
 
-const getErrorMessage = (error) => {
-  return (
-    error?.response?.data?.message ||
-    error?.message ||
-    "Unable to load course information."
-  );
-};
+const getErrorMessage = (error) =>
+  error?.response?.data?.message ||
+  error?.message ||
+  "Unable to complete the request.";
 
-const isCanceledRequest = (error) => {
-  return (
-    error?.code === "ERR_CANCELED" ||
-    error?.name === "CanceledError" ||
-    error?.name === "AbortError"
-  );
-};
+const isCanceledRequest = (error) =>
+  error?.code === "ERR_CANCELED" ||
+  error?.name === "CanceledError" ||
+  error?.name === "AbortError";
 
-const getStudentName = (student) => {
-  return (
-    [
-      student?.firstName,
-      student?.lastName,
-    ]
-      .filter(Boolean)
-      .join(" ") || "Unknown Student"
-  );
-};
+const getStudentName = (student) =>
+  [student?.firstName, student?.lastName]
+    .filter(Boolean)
+    .join(" ") || "Unknown Student";
+
+const emptyLessonForm = () => ({
+  title: "",
+  description: "",
+  order: 1,
+});
+
+const getCourseId = (course) =>
+  course?._id || course?.id;
+
+const getLessonId = (lesson) =>
+  lesson?._id || lesson?.id;
 
 // ==================================================
 // COURSE CARD
@@ -77,6 +87,7 @@ function CourseCard({
   rosterError,
   onToggleRoster,
   onOpenLessons,
+  onManageLessons,
 }) {
   if (!course) return null;
 
@@ -134,9 +145,28 @@ function CourseCard({
           )}
 
           {!rosterOnly && (
-            <Button size="sm" colorPalette="blue" variant="outline" alignSelf="flex-start" onClick={() => onOpenLessons(course)}>
-              Watch Lessons
-            </Button>
+            <HStack gap={2} flexWrap="wrap">
+              <Button
+                size="sm"
+                colorPalette="blue"
+                variant="outline"
+                onClick={() => onOpenLessons(course)}
+              >
+                Watch Lessons
+              </Button>
+
+              {isTeacher && (
+                <Button
+                  size="sm"
+                  colorPalette="blue"
+                  onClick={() =>
+                    onManageLessons(course)
+                  }
+                >
+                  Manage Lessons
+                </Button>
+              )}
+            </HStack>
           )}
 
           {isTeacher && assignmentId && (
@@ -170,13 +200,15 @@ function CourseCard({
                   py={3}
                 >
                   <Spinner size="sm" />
-
                   <Text fontSize="sm">
                     Loading students...
                   </Text>
                 </Flex>
               ) : rosterError ? (
-                <Text color="red.500" fontSize="sm">
+                <Text
+                  color="red.500"
+                  fontSize="sm"
+                >
                   {rosterError}
                 </Text>
               ) : students.length === 0 ? (
@@ -240,42 +272,33 @@ function CourseCard({
 export default function MyCourses({
   rosterOnly = false,
 }) {
-  // ==================================================
-  // AUTHENTICATED USER
-  // ==================================================
-
   const context = useOutletContext();
-
   const user = context?.user;
 
   const role = user?.role;
-
   const isTeacher = role === "teacher";
   const isStudent = role === "student";
 
   // ==================================================
-  // COURSES STATE
+  // COURSE STATE
   // ==================================================
 
   const [courses, setCourses] = useState([]);
-
   const [loading, setLoading] = useState(true);
-
   const [error, setError] = useState("");
-
   const [search, setSearch] = useState("");
-
   const [reloadKey, setReloadKey] = useState(0);
 
   // ==================================================
-  // ROSTER STATE
+  // STUDENT ROSTER STATE
   // ==================================================
 
-  const [expandedAssignmentId, setExpandedAssignmentId] =
-    useState(null);
+  const [
+    expandedAssignmentId,
+    setExpandedAssignmentId,
+  ] = useState(null);
 
   const [rosters, setRosters] = useState({});
-
   const [rosterLoadingId, setRosterLoadingId] =
     useState(null);
 
@@ -283,18 +306,71 @@ export default function MyCourses({
     useState({});
 
   // ==================================================
-  // SECURE COURSE LESSON PLAYBACK
+  // SECURE PLAYBACK STATE
   // ==================================================
 
-  const [lessonCourse, setLessonCourse] = useState(null);
-  const [courseLessons, setCourseLessons] = useState([]);
-  const [lessonsLoading, setLessonsLoading] = useState(false);
-  const [lessonsError, setLessonsError] = useState("");
-  const [activeLessonId, setActiveLessonId] = useState(null);
+  const [lessonCourse, setLessonCourse] =
+    useState(null);
+
+  const [courseLessons, setCourseLessons] =
+    useState([]);
+
+  const [lessonsLoading, setLessonsLoading] =
+    useState(false);
+
+  const [lessonsError, setLessonsError] =
+    useState("");
+
+  const [activeLessonId, setActiveLessonId] =
+    useState(null);
+
   const [playback, setPlayback] = useState(null);
-  const [playbackLoading, setPlaybackLoading] = useState(false);
-  const [playbackError, setPlaybackError] = useState("");
-  const [playbackRefreshKey, setPlaybackRefreshKey] = useState(0);
+
+  const [playbackLoading, setPlaybackLoading] =
+    useState(false);
+
+  const [playbackError, setPlaybackError] =
+    useState("");
+
+  const [
+    playbackRefreshKey,
+    setPlaybackRefreshKey,
+  ] = useState(0);
+
+  // ==================================================
+  // TEACHER LESSON MANAGEMENT STATE
+  // ==================================================
+
+  const [manageCourse, setManageCourse] =
+    useState(null);
+
+  const [managedLessons, setManagedLessons] =
+    useState([]);
+
+  const [manageLoading, setManageLoading] =
+    useState(false);
+
+  const [manageBusy, setManageBusy] =
+    useState(false);
+
+  const [videoUploading, setVideoUploading] =
+    useState(false);
+
+  const [manageError, setManageError] =
+    useState("");
+
+  const [manageSuccess, setManageSuccess] =
+    useState("");
+
+  const [lessonForm, setLessonForm] =
+    useState(emptyLessonForm);
+
+  const [editingLessonId, setEditingLessonId] =
+    useState(null);
+
+  // ==================================================
+  // CLOSE SECURE LESSON PLAYER
+  // ==================================================
 
   const closeLessonPlayer = () => {
     setLessonCourse(null);
@@ -305,59 +381,107 @@ export default function MyCourses({
     setPlaybackError("");
   };
 
+  // ==================================================
+  // LOAD ACCESSIBLE LESSONS
+  // ==================================================
+
   useEffect(() => {
     if (!lessonCourse?._id) return;
+
     const controller = new AbortController();
+
     setLessonsLoading(true);
     setLessonsError("");
     setCourseLessons([]);
     setActiveLessonId(null);
     setPlayback(null);
 
-    coursePlaybackService.listAccessible(lessonCourse._id, controller.signal)
+    coursePlaybackService
+      .listAccessible(
+        lessonCourse._id,
+        controller.signal
+      )
       .then((result) => {
         if (controller.signal.aborted) return;
+
         const list = Array.isArray(result)
           ? result
           : Array.isArray(result?.lessons)
             ? result.lessons
             : [];
+
         setCourseLessons(list);
       })
       .catch((err) => {
-        if (!controller.signal.aborted && !isCanceledRequest(err)) {
-          setLessonsError(getErrorMessage(err));
+        if (
+          !controller.signal.aborted &&
+          !isCanceledRequest(err)
+        ) {
+          setLessonsError(
+            getErrorMessage(err)
+          );
         }
       })
       .finally(() => {
-        if (!controller.signal.aborted) setLessonsLoading(false);
+        if (!controller.signal.aborted) {
+          setLessonsLoading(false);
+        }
       });
 
     return () => controller.abort();
   }, [lessonCourse?._id]);
 
+  // ==================================================
+  // LOAD SECURE VIDEO PLAYBACK
+  // ==================================================
+
   useEffect(() => {
-    if (!lessonCourse?._id || !activeLessonId) return;
+    if (
+      !lessonCourse?._id ||
+      !activeLessonId
+    ) {
+      return;
+    }
+
     const controller = new AbortController();
+
     setPlaybackLoading(true);
     setPlayback(null);
     setPlaybackError("");
 
-    coursePlaybackService.getPlayback(lessonCourse._id, activeLessonId, controller.signal)
+    coursePlaybackService
+      .getPlayback(
+        lessonCourse._id,
+        activeLessonId,
+        controller.signal
+      )
       .then((result) => {
-        if (!controller.signal.aborted) setPlayback(result);
+        if (!controller.signal.aborted) {
+          setPlayback(result);
+        }
       })
       .catch((err) => {
-        if (!controller.signal.aborted && !isCanceledRequest(err)) {
-          setPlaybackError(getErrorMessage(err));
+        if (
+          !controller.signal.aborted &&
+          !isCanceledRequest(err)
+        ) {
+          setPlaybackError(
+            getErrorMessage(err)
+          );
         }
       })
       .finally(() => {
-        if (!controller.signal.aborted) setPlaybackLoading(false);
+        if (!controller.signal.aborted) {
+          setPlaybackLoading(false);
+        }
       });
 
     return () => controller.abort();
-  }, [lessonCourse?._id, activeLessonId, playbackRefreshKey]);
+  }, [
+    lessonCourse?._id,
+    activeLessonId,
+    playbackRefreshKey,
+  ]);
 
   // ==================================================
   // LOAD COURSES
@@ -379,16 +503,16 @@ export default function MyCourses({
       try {
         const result = isTeacher
           ? await courseAccessService.getTeacherCourses(
-              controller.signal,
+              controller.signal
             )
           : await courseAccessService.getStudentCourses(
-              controller.signal,
+              controller.signal
             );
 
         if (controller.signal.aborted) return;
 
         setCourses(
-          Array.isArray(result) ? result : [],
+          Array.isArray(result) ? result : []
         );
 
         setExpandedAssignmentId(null);
@@ -414,10 +538,14 @@ export default function MyCourses({
     loadCourses();
 
     return () => controller.abort();
-  }, [isTeacher, isStudent, reloadKey]);
+  }, [
+    isTeacher,
+    isStudent,
+    reloadKey,
+  ]);
 
   // ==================================================
-  // REFRESH
+  // REFRESH COURSES
   // ==================================================
 
   const refreshCourses = useCallback(() => {
@@ -447,7 +575,7 @@ export default function MyCourses({
   }, [courses, isTeacher]);
 
   // ==================================================
-  // SEARCH
+  // SEARCH COURSES
   // ==================================================
 
   const filteredCourses = useMemo(() => {
@@ -455,7 +583,9 @@ export default function MyCourses({
       .trim()
       .toLowerCase();
 
-    if (!keyword) return normalizedCourses;
+    if (!keyword) {
+      return normalizedCourses;
+    }
 
     return normalizedCourses.filter(
       ({ course }) => {
@@ -469,9 +599,12 @@ export default function MyCourses({
           .toLowerCase();
 
         return text.includes(keyword);
-      },
+      }
     );
-  }, [normalizedCourses, search]);
+  }, [
+    normalizedCourses,
+    search,
+  ]);
 
   // ==================================================
   // LOAD STUDENT ROSTER
@@ -479,21 +612,25 @@ export default function MyCourses({
 
   const handleToggleRoster = useCallback(
     async (assignmentId) => {
-      if (!isTeacher || !assignmentId) return;
+      if (!isTeacher || !assignmentId) {
+        return;
+      }
 
-      if (expandedAssignmentId === assignmentId) {
+      if (
+        expandedAssignmentId === assignmentId
+      ) {
         setExpandedAssignmentId(null);
         return;
       }
 
       setExpandedAssignmentId(assignmentId);
 
-      // Reuse already fetched roster.
-
-      if (Object.prototype.hasOwnProperty.call(
-        rosters,
-        assignmentId,
-      )) {
+      if (
+        Object.prototype.hasOwnProperty.call(
+          rosters,
+          assignmentId
+        )
+      ) {
         return;
       }
 
@@ -508,7 +645,7 @@ export default function MyCourses({
         const students =
           await courseAccessService
             .getTeacherCourseStudents(
-              assignmentId,
+              assignmentId
             );
 
         setRosters((previous) => ({
@@ -529,8 +666,407 @@ export default function MyCourses({
       isTeacher,
       expandedAssignmentId,
       rosters,
-    ],
+    ]
   );
+
+  // ==================================================
+  // LOAD MANAGED LESSONS
+  // ==================================================
+
+  const loadManagedLessons = useCallback(
+    async (courseId, { clearOnError = false } = {}) => {
+      if (!courseId) return false;
+
+      setManageLoading(true);
+      setManageError("");
+
+      try {
+        const allLessons = [];
+        const pageSize = 100;
+        let page = 1;
+        let totalPages = 1;
+
+        do {
+          const result = await courseLessonService.list(courseId, {
+            page,
+            limit: pageSize,
+          });
+
+          if (!Array.isArray(result?.lessons)) {
+            throw new Error("Unexpected lesson list response.");
+          }
+
+          allLessons.push(...result.lessons);
+
+          const reportedPages = Number(result?.pagination?.totalPages);
+          if (!Number.isSafeInteger(reportedPages) || reportedPages < 0) {
+            throw new Error("Invalid lesson pagination response.");
+          }
+          totalPages = reportedPages;
+          page += 1;
+        } while (page <= totalPages);
+
+        setManagedLessons(allLessons);
+        return true;
+      } catch (err) {
+        if (clearOnError) setManagedLessons([]);
+        setManageError(getErrorMessage(err));
+        return false;
+      } finally {
+        setManageLoading(false);
+      }
+    },
+    []
+  );
+
+  // ==================================================
+  // OPEN LESSON MANAGER
+  // ==================================================
+
+  const openLessonManager = async (course) => {
+    if (
+      !isTeacher ||
+      rosterOnly ||
+      !getCourseId(course)
+    ) {
+      return;
+    }
+
+    setManageCourse(course);
+    setManagedLessons([]);
+    setEditingLessonId(null);
+    setLessonForm(emptyLessonForm());
+    setManageError("");
+    setManageSuccess("");
+
+    await loadManagedLessons(
+      getCourseId(course),
+      { clearOnError: true }
+    );
+  };
+
+  // ==================================================
+  // CLOSE LESSON MANAGER
+  // ==================================================
+
+  const closeLessonManager = () => {
+    if (manageBusy || videoUploading) return;
+
+    setManageCourse(null);
+    setManagedLessons([]);
+    setEditingLessonId(null);
+    setLessonForm(emptyLessonForm());
+    setManageError("");
+    setManageSuccess("");
+  };
+
+  // ==================================================
+  // SAVE LESSON
+  // ==================================================
+
+  const saveLesson = async () => {
+    const courseId =
+      getCourseId(manageCourse);
+
+    if (
+      !isTeacher ||
+      !courseId ||
+      manageBusy ||
+      videoUploading
+    ) {
+      return;
+    }
+
+    const title = lessonForm.title.trim();
+
+    const order = Number(
+      lessonForm.order
+    );
+
+    if (title.length < 2 || title.length > 200) {
+      setManageError(
+        "Lesson title must contain 2–200 characters."
+      );
+      return;
+    }
+
+    if (lessonForm.description.trim().length > 5000) {
+      setManageError(
+        "Lesson description cannot exceed 5000 characters."
+      );
+      return;
+    }
+
+    if (
+      !Number.isSafeInteger(order) ||
+      order < 1
+    ) {
+      setManageError(
+        "Lesson order must be a positive integer."
+      );
+      return;
+    }
+
+    setManageBusy(true);
+    setManageError("");
+    setManageSuccess("");
+
+    try {
+      const payload = {
+        title,
+        description:
+          lessonForm.description.trim(),
+        order,
+      };
+
+      if (editingLessonId) {
+        await courseLessonService.update(
+          courseId,
+          editingLessonId,
+          payload
+        );
+
+        setManageSuccess(
+          "Lesson updated successfully."
+        );
+      } else {
+        await courseLessonService.create(
+          courseId,
+          payload
+        );
+
+        setManageSuccess(
+          "Lesson created successfully."
+        );
+      }
+
+      setEditingLessonId(null);
+      setLessonForm(emptyLessonForm());
+
+      const refreshed = await loadManagedLessons(courseId);
+      if (!refreshed) {
+        setManageError("Lesson saved, but refreshing the list failed. Retry loading lessons.");
+      }
+    } catch (err) {
+      setManageError(
+        getErrorMessage(err)
+      );
+    } finally {
+      setManageBusy(false);
+    }
+  };
+
+  // ==================================================
+  // EDIT LESSON
+  // ==================================================
+
+  const startEditingLesson = (lesson) => {
+    setEditingLessonId(
+      getLessonId(lesson)
+    );
+
+    setLessonForm({
+      title: lesson.title || "",
+      description:
+        lesson.description || "",
+      order: lesson.order ?? 1,
+    });
+
+    setManageError("");
+    setManageSuccess("");
+  };
+
+  const cancelEditingLesson = () => {
+    setEditingLessonId(null);
+    setLessonForm(emptyLessonForm());
+  };
+
+  // ==================================================
+  // PUBLISH / UNPUBLISH
+  // ==================================================
+
+  const changeLessonPublication = async (
+    lesson
+  ) => {
+    const courseId =
+      getCourseId(manageCourse);
+
+    const lessonId =
+      getLessonId(lesson);
+
+    if (
+      !courseId ||
+      !lessonId ||
+      manageBusy ||
+      videoUploading
+    ) {
+      return;
+    }
+
+    setManageBusy(true);
+    setManageError("");
+    setManageSuccess("");
+
+    try {
+      await courseLessonService.setPublication(
+        courseId,
+        lessonId,
+        !lesson.isPublished
+      );
+
+      const refreshed = await loadManagedLessons(courseId);
+      if (!refreshed) {
+        setManageError("Action succeeded, but refreshing lessons failed. Retry loading lessons.");
+      }
+
+      setManageSuccess(
+        lesson.isPublished
+          ? "Lesson unpublished successfully."
+          : "Lesson published successfully."
+      );
+    } catch (err) {
+      setManageError(
+        getErrorMessage(err)
+      );
+    } finally {
+      setManageBusy(false);
+    }
+  };
+
+  // ==================================================
+  // DETACH LESSON VIDEO
+  // ==================================================
+
+  const detachManagedVideo = async (
+    lesson
+  ) => {
+    const courseId =
+      getCourseId(manageCourse);
+
+    const lessonId =
+      getLessonId(lesson);
+
+    if (
+      !courseId ||
+      !lessonId ||
+      manageBusy ||
+      videoUploading
+    ) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Detach this video? The lesson will also be unpublished."
+    );
+
+    if (!confirmed) return;
+
+    setManageBusy(true);
+    setManageError("");
+    setManageSuccess("");
+
+    try {
+      await courseLessonService.detachVideo(
+        courseId,
+        lessonId
+      );
+
+      const refreshed = await loadManagedLessons(courseId);
+      if (!refreshed) {
+        setManageError("Action succeeded, but refreshing lessons failed. Retry loading lessons.");
+      }
+
+      setManageSuccess(
+        "Video detached successfully."
+      );
+    } catch (err) {
+      setManageError(
+        getErrorMessage(err)
+      );
+    } finally {
+      setManageBusy(false);
+    }
+  };
+
+  // ==================================================
+  // DELETE LESSON
+  // ==================================================
+
+  const deleteManagedLesson = async (
+    lesson
+  ) => {
+    const courseId =
+      getCourseId(manageCourse);
+
+    const lessonId =
+      getLessonId(lesson);
+
+    if (
+      !courseId ||
+      !lessonId ||
+      manageBusy ||
+      videoUploading
+    ) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete lesson "${lesson.title}"?`
+    );
+
+    if (!confirmed) return;
+
+    setManageBusy(true);
+    setManageError("");
+    setManageSuccess("");
+
+    try {
+      await courseLessonService.remove(
+        courseId,
+        lessonId
+      );
+
+      if (
+        String(editingLessonId) ===
+        String(lessonId)
+      ) {
+        cancelEditingLesson();
+      }
+
+      const refreshed = await loadManagedLessons(courseId);
+      if (!refreshed) {
+        setManageError("Action succeeded, but refreshing lessons failed. Retry loading lessons.");
+      }
+
+      setManageSuccess(
+        "Lesson deleted successfully."
+      );
+    } catch (err) {
+      setManageError(
+        getErrorMessage(err)
+      );
+    } finally {
+      setManageBusy(false);
+    }
+  };
+
+  // ==================================================
+  // VIDEO UPLOAD SUCCESS
+  // ==================================================
+
+  const handleVideoUploaded = async () => {
+    const courseId =
+      getCourseId(manageCourse);
+
+    if (!courseId) return;
+
+    const refreshed = await loadManagedLessons(courseId);
+    setManageSuccess(
+      refreshed
+        ? "Video uploaded successfully. Publish the lesson when ready."
+        : "Video uploaded successfully, but the lesson list could not be refreshed."
+    );
+  };
 
   // ==================================================
   // PAGE TITLE
@@ -543,7 +1079,7 @@ export default function MyCourses({
   const pageDescription = rosterOnly
     ? "View students enrolled in your assigned courses."
     : isTeacher
-      ? "View courses assigned to you and manage student rosters."
+      ? "View assigned courses, manage lessons, upload videos and view student rosters."
       : "View the courses assigned to your account.";
 
   // ==================================================
@@ -558,8 +1094,8 @@ export default function MyCourses({
         </Heading>
 
         <Text color="fg.muted" mt={2}>
-          This page is available only to teachers
-          and students.
+          This page is available only to
+          teachers and students.
         </Text>
       </Box>
     );
@@ -573,8 +1109,8 @@ export default function MyCourses({
         </Heading>
 
         <Text color="fg.muted" mt={2}>
-          Student rosters are available only
-          to assigned teachers.
+          Student rosters are available
+          only to assigned teachers.
         </Text>
       </Box>
     );
@@ -585,13 +1121,8 @@ export default function MyCourses({
   // ==================================================
 
   return (
-    <VStack
-      align="stretch"
-      gap={6}
-    >
-      {/* ========================================== */}
+    <VStack align="stretch" gap={6}>
       {/* HEADER */}
-      {/* ========================================== */}
 
       <Flex
         justify="space-between"
@@ -622,9 +1153,7 @@ export default function MyCourses({
         </Button>
       </Flex>
 
-      {/* ========================================== */}
-      {/* ERROR */}
-      {/* ========================================== */}
+      {/* COURSE ERROR */}
 
       {error && (
         <Box
@@ -639,9 +1168,7 @@ export default function MyCourses({
         </Box>
       )}
 
-      {/* ========================================== */}
       {/* SUMMARY */}
-      {/* ========================================== */}
 
       <Card.Root>
         <Card.Body>
@@ -680,9 +1207,7 @@ export default function MyCourses({
         </Card.Body>
       </Card.Root>
 
-      {/* ========================================== */}
       {/* SEARCH */}
-      {/* ========================================== */}
 
       <Input
         placeholder="Search courses by code, title or description..."
@@ -692,9 +1217,7 @@ export default function MyCourses({
         }
       />
 
-      {/* ========================================== */}
       {/* COURSES */}
-      {/* ========================================== */}
 
       {loading ? (
         <Flex
@@ -743,7 +1266,7 @@ export default function MyCourses({
               <CourseCard
                 key={
                   assignmentId ||
-                  course._id
+                  getCourseId(course)
                 }
                 course={course}
                 assignmentId={assignmentId}
@@ -766,63 +1289,119 @@ export default function MyCourses({
                 onToggleRoster={
                   handleToggleRoster
                 }
-                onOpenLessons={setLessonCourse}
+                onOpenLessons={
+                  setLessonCourse
+                }
+                onManageLessons={
+                  openLessonManager
+                }
               />
-            ),
+            )
           )}
         </Box>
       )}
-      {/* Secure lesson playback — URL is issued by backend after authorization. */}
+
+      {/* ====================================== */}
+      {/* SECURE LESSON PLAYBACK DRAWER */}
+      {/* ====================================== */}
+
       <Drawer.Root
         open={Boolean(lessonCourse)}
         onOpenChange={(details) => {
-          if (!details.open) closeLessonPlayer();
+          if (!details.open) {
+            closeLessonPlayer();
+          }
         }}
         placement="end"
         size="lg"
       >
         <Drawer.Backdrop />
+
         <Drawer.Positioner>
           <Drawer.Content>
             <Drawer.Header>
               <Drawer.Title>
-                {lessonCourse?.code ? `${lessonCourse.code} — ` : ""}
-                {lessonCourse?.title || "Course Lessons"}
+                {lessonCourse?.code
+                  ? `${lessonCourse.code} — `
+                  : ""}
+                {lessonCourse?.title ||
+                  "Course Lessons"}
               </Drawer.Title>
             </Drawer.Header>
+
             <Drawer.Body>
-              <VStack align="stretch" gap={4}>
+              <VStack
+                align="stretch"
+                gap={4}
+              >
                 {lessonsLoading ? (
-                  <Flex gap={2} align="center" py={4}>
+                  <Flex
+                    gap={2}
+                    align="center"
+                    py={4}
+                  >
                     <Spinner size="sm" />
-                    <Text>Loading lessons...</Text>
+
+                    <Text>
+                      Loading lessons...
+                    </Text>
                   </Flex>
                 ) : lessonsError ? (
-                  <Text color="red.500" role="alert">{lessonsError}</Text>
+                  <Text
+                    color="red.500"
+                    role="alert"
+                  >
+                    {lessonsError}
+                  </Text>
                 ) : courseLessons.length === 0 ? (
-                  <Text color="fg.muted">No published lessons with videos are available.</Text>
+                  <Text color="fg.muted">
+                    No published lessons with videos
+                    are available.
+                  </Text>
                 ) : (
                   <CourseLessonPlaylist
                     lessons={courseLessons}
-                    activeLessonId={activeLessonId}
+                    activeLessonId={
+                      activeLessonId
+                    }
                     onSelect={(lesson) => {
-                      const id = String(lesson.id || lesson._id);
-                      if (String(activeLessonId) === id) {
+                      const id = String(
+                        getLessonId(lesson)
+                      );
+
+                      if (
+                        String(activeLessonId) ===
+                        id
+                      ) {
                         setActiveLessonId(null);
                         setPlayback(null);
                         setPlaybackError("");
                         return;
                       }
+
                       setActiveLessonId(id);
                     }}
                     renderPlayer={() => (
-                      <Box borderWidth="1px" borderRadius="lg" p={3}>
+                      <Box
+                        borderWidth="1px"
+                        borderRadius="lg"
+                        p={3}
+                      >
                         <SecureLessonVideoPlayer
                           playback={playback}
-                          loading={playbackLoading}
-                          error={playbackError}
-                          onRetry={() => setPlaybackRefreshKey((key) => key + 1)}
+                          loading={
+                            playbackLoading
+                          }
+                          error={
+                            playbackError
+                          }
+                          onRetry={() =>
+                            setPlaybackRefreshKey(
+                              (key) => key + 1
+                            )
+                          }
                         />
+
                         <Button
                           size="xs"
                           variant="outline"
@@ -841,12 +1420,531 @@ export default function MyCourses({
                 )}
               </VStack>
             </Drawer.Body>
+
             <Drawer.Footer>
-              <Button variant="outline" onClick={closeLessonPlayer}>Close</Button>
+              <Button
+                variant="outline"
+                onClick={
+                  closeLessonPlayer
+                }
+              >
+                Close
+              </Button>
             </Drawer.Footer>
           </Drawer.Content>
         </Drawer.Positioner>
       </Drawer.Root>
+
+      {/* ====================================== */}
+      {/* TEACHER LESSON MANAGEMENT DRAWER */}
+      {/* ====================================== */}
+
+      {isTeacher && !rosterOnly && (
+        <Drawer.Root
+          open={Boolean(manageCourse)}
+          onOpenChange={(details) => {
+            if (!details.open) {
+              closeLessonManager();
+            }
+          }}
+          placement="end"
+          size="lg"
+        >
+          <Drawer.Backdrop />
+
+          <Drawer.Positioner>
+            <Drawer.Content>
+              <Drawer.Header>
+                <Drawer.Title>
+                  Manage Lessons
+                  {manageCourse?.code
+                    ? ` — ${manageCourse.code}`
+                    : ""}
+                </Drawer.Title>
+              </Drawer.Header>
+
+              <Drawer.Body>
+                <VStack
+                  align="stretch"
+                  gap={5}
+                >
+                  {/* COURSE INFORMATION */}
+
+                  <Box>
+                    <Heading size="md">
+                      {manageCourse?.title ||
+                        "Course"}
+                    </Heading>
+
+                    <Text
+                      fontSize="sm"
+                      color="fg.muted"
+                      mt={1}
+                    >
+                      Create, edit, publish and
+                      manage lesson videos.
+                    </Text>
+                  </Box>
+
+                  {/* ERROR */}
+
+                  {manageError && (
+                    <Box
+                      borderWidth="1px"
+                      borderColor="red.400"
+                      borderRadius="md"
+                      p={3}
+                    >
+                      <Text
+                        color="red.500"
+                        fontSize="sm"
+                      >
+                        {manageError}
+                      </Text>
+                    </Box>
+                  )}
+
+                  {/* SUCCESS */}
+
+                  {manageSuccess && (
+                    <Text
+                      color="green.500"
+                      fontSize="sm"
+                    >
+                      {manageSuccess}
+                    </Text>
+                  )}
+
+                  {/* LESSON FORM */}
+
+                  <Card.Root>
+                    <Card.Header>
+                      <Heading size="sm">
+                        {editingLessonId
+                          ? "Edit Lesson"
+                          : "Create Lesson"}
+                      </Heading>
+                    </Card.Header>
+
+                    <Card.Body>
+                      <VStack
+                        align="stretch"
+                        gap={3}
+                      >
+                        <Box>
+                          <Text
+                            fontSize="sm"
+                            mb={2}
+                            fontWeight="medium"
+                          >
+                            Lesson Title
+                          </Text>
+
+                          <Input
+                            placeholder="Enter lesson title"
+                            value={
+                              lessonForm.title
+                            }
+                            onChange={(event) =>
+                              setLessonForm(
+                                (previous) => ({
+                                  ...previous,
+                                  title:
+                                    event.target.value,
+                                })
+                              )
+                            }
+                          />
+                        </Box>
+
+                        <Box>
+                          <Text
+                            fontSize="sm"
+                            mb={2}
+                            fontWeight="medium"
+                          >
+                            Description
+                          </Text>
+
+                          <Input
+                            placeholder="Enter description"
+                            value={
+                              lessonForm.description
+                            }
+                            onChange={(event) =>
+                              setLessonForm(
+                                (previous) => ({
+                                  ...previous,
+                                  description:
+                                    event.target.value,
+                                })
+                              )
+                            }
+                          />
+                        </Box>
+
+                        <Box>
+                          <Text
+                            fontSize="sm"
+                            mb={2}
+                            fontWeight="medium"
+                          >
+                            Lesson Order
+                          </Text>
+
+                          <Input
+                            type="number"
+                            min={1}
+                            step={1}
+                            value={
+                              lessonForm.order
+                            }
+                            onChange={(event) =>
+                              setLessonForm(
+                                (previous) => ({
+                                  ...previous,
+                                  order:
+                                    event.target.value,
+                                })
+                              )
+                            }
+                          />
+                        </Box>
+
+                        <HStack
+                          gap={2}
+                          flexWrap="wrap"
+                        >
+                          <Button
+                            colorPalette="blue"
+                            disabled={
+                              manageBusy ||
+                              manageLoading
+                            }
+                            onClick={saveLesson}
+                          >
+                            {manageBusy
+                              ? "Saving..."
+                              : editingLessonId
+                                ? "Save Changes"
+                                : "Create Lesson"}
+                          </Button>
+
+                          {editingLessonId && (
+                            <Button
+                              variant="outline"
+                              disabled={manageBusy}
+                              onClick={
+                                cancelEditingLesson
+                              }
+                            >
+                              Cancel Edit
+                            </Button>
+                          )}
+                        </HStack>
+                      </VStack>
+                    </Card.Body>
+                  </Card.Root>
+
+                  {/* LESSON LIST HEADER */}
+
+                  <Flex
+                    align="center"
+                    justify="space-between"
+                    gap={3}
+                  >
+                    <Heading size="sm">
+                      Course Lessons
+                    </Heading>
+
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      disabled={
+                        manageLoading ||
+                        manageBusy
+                      }
+                      onClick={() =>
+                        loadManagedLessons(
+                          getCourseId(
+                            manageCourse
+                          )
+                        )
+                      }
+                    >
+                      Reload Lessons
+                    </Button>
+                  </Flex>
+
+                  {/* LOADING */}
+
+                  {manageLoading ? (
+                    <Flex
+                      align="center"
+                      gap={2}
+                      py={4}
+                    >
+                      <Spinner size="sm" />
+
+                      <Text fontSize="sm">
+                        Loading lessons...
+                      </Text>
+                    </Flex>
+                  ) : managedLessons.length === 0 ? (
+                    <Text
+                      color="fg.muted"
+                      fontSize="sm"
+                    >
+                      No lessons found. Create
+                      your first lesson above.
+                    </Text>
+                  ) : (
+                    <VStack
+                      align="stretch"
+                      gap={4}
+                    >
+                      {managedLessons.map(
+                        (lesson) => {
+                          const lessonId =
+                            getLessonId(lesson);
+
+                          const hasVideo =
+                            Boolean(
+                              lesson.videoMediaId ||
+                              lesson.hasVideo
+                            );
+
+                          return (
+                            <Card.Root
+                              key={lessonId}
+                              borderWidth="1px"
+                              borderRadius="lg"
+                            >
+                              <Card.Body>
+                                <VStack
+                                  align="stretch"
+                                  gap={3}
+                                >
+                                  <Flex
+                                    justify="space-between"
+                                    align="flex-start"
+                                    gap={2}
+                                  >
+                                    <Box flex="1">
+                                      <Heading
+                                        size="sm"
+                                      >
+                                        {lesson.order}.
+                                        {" "}
+                                        {lesson.title}
+                                      </Heading>
+
+                                      {lesson.description && (
+                                        <Text
+                                          fontSize="sm"
+                                          color="fg.muted"
+                                          mt={2}
+                                        >
+                                          {lesson.description}
+                                        </Text>
+                                      )}
+                                    </Box>
+
+                                    <Badge
+                                      colorPalette={
+                                        lesson.isPublished
+                                          ? "green"
+                                          : "gray"
+                                      }
+                                    >
+                                      {lesson.isPublished
+                                        ? "Published"
+                                        : "Draft"}
+                                    </Badge>
+                                  </Flex>
+
+                                  <HStack
+                                    gap={2}
+                                    flexWrap="wrap"
+                                  >
+                                    <Badge
+                                      variant="outline"
+                                      colorPalette={
+                                        hasVideo
+                                          ? "green"
+                                          : "orange"
+                                      }
+                                    >
+                                      {hasVideo
+                                        ? "Video Attached"
+                                        : "No Video"}
+                                    </Badge>
+                                  </HStack>
+
+                                  {/* CRUD ACTIONS */}
+
+                                  <HStack
+                                    gap={2}
+                                    flexWrap="wrap"
+                                  >
+                                    <Button
+                                      size="xs"
+                                      variant="outline"
+                                      disabled={
+                                        manageBusy
+                                      }
+                                      onClick={() =>
+                                        startEditingLesson(
+                                          lesson
+                                        )
+                                      }
+                                    >
+                                      Edit
+                                    </Button>
+
+                                    <Button
+                                      size="xs"
+                                      colorPalette={
+                                        lesson.isPublished
+                                          ? "orange"
+                                          : "green"
+                                      }
+                                      variant="outline"
+                                      disabled={
+                                        manageBusy ||
+                                        (!lesson.isPublished &&
+                                          !hasVideo)
+                                      }
+                                      onClick={() =>
+                                        changeLessonPublication(
+                                          lesson
+                                        )
+                                      }
+                                    >
+                                      {lesson.isPublished
+                                        ? "Unpublish"
+                                        : "Publish"}
+                                    </Button>
+
+                                    <Button
+                                      size="xs"
+                                      colorPalette="red"
+                                      variant="outline"
+                                      disabled={
+                                        manageBusy ||
+                                        hasVideo
+                                      }
+                                      onClick={() =>
+                                        deleteManagedLesson(
+                                          lesson
+                                        )
+                                      }
+                                    >
+                                      Delete
+                                    </Button>
+                                  </HStack>
+
+                                  {/* VIDEO MANAGEMENT */}
+
+                                  <Box
+                                    borderTopWidth="1px"
+                                    pt={3}
+                                  >
+                                    <Heading
+                                      size="xs"
+                                      mb={3}
+                                    >
+                                      Lesson Video
+                                    </Heading>
+
+                                    {hasVideo ? (
+                                      <VStack
+                                        align="stretch"
+                                        gap={2}
+                                      >
+                                        <Text
+                                          color="fg.muted"
+                                          fontSize="sm"
+                                        >
+                                          This lesson has
+                                          an attached video.
+                                        </Text>
+
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          colorPalette="red"
+                                          alignSelf="flex-start"
+                                          disabled={
+                                            manageBusy
+                                          }
+                                          onClick={() =>
+                                            detachManagedVideo(
+                                              lesson
+                                            )
+                                          }
+                                        >
+                                          Detach Video
+                                        </Button>
+
+                                        <Text
+                                          fontSize="xs"
+                                          color="fg.muted"
+                                        >
+                                          Detach the existing
+                                          video before uploading
+                                          a replacement.
+                                        </Text>
+                                      </VStack>
+                                    ) : (
+                                      <CourseVideoUploader
+                                        key={lessonId}
+                                        courseId={
+                                          getCourseId(
+                                            manageCourse
+                                          )
+                                        }
+                                        lessonId={
+                                          lessonId
+                                        }
+                                        disabled={
+                                          manageBusy || videoUploading
+                                        }
+                                        onUploadingChange={
+                                          setVideoUploading
+                                        }
+                                        onUploaded={
+                                          handleVideoUploaded
+                                        }
+                                      />
+                                    )}
+                                  </Box>
+                                </VStack>
+                              </Card.Body>
+                            </Card.Root>
+                          );
+                        }
+                      )}
+                    </VStack>
+                  )}
+                </VStack>
+              </Drawer.Body>
+
+              <Drawer.Footer>
+                <Button
+                  variant="outline"
+                  disabled={manageBusy || videoUploading}
+                  onClick={
+                    closeLessonManager
+                  }
+                >
+                  Close
+                </Button>
+              </Drawer.Footer>
+            </Drawer.Content>
+          </Drawer.Positioner>
+        </Drawer.Root>
+      )}
     </VStack>
   );
 }

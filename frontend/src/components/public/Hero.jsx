@@ -63,7 +63,7 @@ export default function Hero() {
 
               <Button
                 as={RouterLink}
-                to="/academic/entrance-list"
+                to="/academic/entrance-students"
                 size="lg"
                 variant="outline"
                 borderColor="whiteAlpha.700"

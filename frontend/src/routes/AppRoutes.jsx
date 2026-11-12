@@ -19,10 +19,8 @@ import RequireCourseAccess from "../components/public/RequireCourseAccess.jsx";
 
 import Home from "../pages/public/Home.jsx";
 import About from "../pages/public/About.jsx";
-import Organization from "../pages/public/Organization.jsx";
 import Courses from "../pages/public/Courses.jsx";
 import CourseDetail from "../pages/public/CourseDetail.jsx";
-import Students from "../pages/public/Students.jsx";
 import EntranceInformation from "../pages/public/EntranceInformation.jsx";
 
 import EntranceStudentLists from "../pages/public/EntranceStudentLists.jsx";
@@ -151,10 +149,6 @@ export default function AppRoutes() {
           <Route path="/" element={<Home />} />
 
           <Route path="/about" element={<About />} />
-
-          <Route path="/organization" element={<Organization />} />
-
-          <Route path="/academic/students" element={<Students />} />
 
           <Route
             path="/academic/courses"
