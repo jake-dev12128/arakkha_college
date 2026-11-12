@@ -34,6 +34,7 @@ import ManagementToolbar from "../../components/dashboard/ManagementToolbar.jsx"
 import ImageUploader from "../../components/common/ImageUploader.jsx";
 import CourseVideoUploader from "../../components/dashboard/academic/CourseVideoUploader.jsx";
 import { courseLessonService } from "../../services/courseLesson.service.js";
+import { courseAccessService } from "../../services/courseAccess.service.js";
 import { coursePlaybackService } from "../../services/coursePlayback.service.js";
 
 import CurriculumSemesterEditor, {
@@ -934,7 +935,43 @@ export default function AcademicManagement({
   const { user } = useOutletContext() ?? {};
   const canManage = ["super_admin", "admin"].includes(user?.role);
   // Lesson actions are permitted for teachers only on backend-verified assigned courses.
-  const canManageLessons = ["super_admin", "admin", "teacher"].includes(user?.role);
+  const isTeacherRole = user?.role === "teacher";
+  const [assignedCourseIds, setAssignedCourseIds] = useState(new Set());
+  const [assignmentsLoading, setAssignmentsLoading] = useState(false);
+  const [assignmentsError, setAssignmentsError] = useState("");
+
+  useEffect(() => {
+    if (!isTeacherRole) {
+      setAssignedCourseIds(new Set());
+      setAssignmentsError("");
+      setAssignmentsLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    setAssignmentsLoading(true);
+    setAssignmentsError("");
+    setAssignedCourseIds(new Set());
+    courseAccessService.getTeacherCourses(controller.signal)
+      .then((items) => {
+        if (controller.signal.aborted) return;
+        setAssignedCourseIds(new Set(items.map((item) =>
+          String(item?.course?._id ?? item?.course?.id ?? "")
+        ).filter(Boolean)));
+      })
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        setAssignmentsError(getError(error));
+        setAssignedCourseIds(new Set());
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setAssignmentsLoading(false);
+      });
+    return () => controller.abort();
+  }, [isTeacherRole]);
+
+  const canManageCourseLessons = (course) =>
+    canManage || (isTeacherRole && !assignmentsLoading &&
+      !assignmentsError && assignedCourseIds.has(String(getId(course) ?? "")));
   const isReadOnly = user?.role === "teacher";
   // ==================================================
   // STATE
@@ -1037,6 +1074,7 @@ const [cloneError, setCloneError] = useState("");
   const [lessonsOpen, setLessonsOpen] = useState(false);
   const [lessonEditorOpen, setLessonEditorOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const canManageLessons = canManageCourseLessons(selectedCourse);
   const [lessons, setLessons] = useState([]);
   const [lessonsLoading, setLessonsLoading] = useState(false);
   const [lessonSaving, setLessonSaving] = useState(false);
@@ -1934,7 +1972,7 @@ const performAction = async (record, action) => {
     setLessonsLoading(true);
     setLessonError("");
     try {
-      const result = canManageLessons
+      const result = canManageCourseLessons({ _id: courseId })
         ? await courseLessonService.list(courseId, { page: 1, limit: 100 })
         : await coursePlaybackService.listAccessible(courseId);
       const items = result?.lessons ?? result?.data?.lessons ?? result?.data ?? result;
@@ -2832,7 +2870,7 @@ if (
 
                       {resource === "courses" && (
                         <Button size="xs" variant="outline" colorPalette="blue" onClick={() => openLessons(record)}>
-                          Lessons
+                          {canManageCourseLessons(record) ? "Manage Lessons" : "View Lessons"}
                         </Button>
                       )}
 
