@@ -1,3 +1,4 @@
+
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -7,7 +8,9 @@ import { clerkMiddleware } from "@clerk/express";
 import { env } from "./config/env.js";
 import { getDependencyHealth } from "./config/health.js";
 import { isShuttingDown } from "./utils/runtime.js";
+
 import imageUploadRoutes from "./routes/imageUpload.routes.js";
+
 // ==================================================
 // MIDDLEWARE
 // ==================================================
@@ -31,7 +34,11 @@ import webhookRoutes from "./routes/webhook.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 
 import adminRoutes from "./routes/admin.routes.js";
-import courseLessonRoutes,{coursePlaybackRouter} from "./routes/courseLesson.routes.js";
+
+import courseLessonRoutes, {
+  coursePlaybackRouter,
+} from "./routes/courseLesson.routes.js";
+
 import userSessionRoutes from "./routes/userSession.routes.js";
 
 import courseAccessRoutes from "./routes/courseAccess.routes.js";
@@ -47,7 +54,10 @@ import {
   adminEntranceRouter,
 } from "./routes/entrance.routes.js";
 
-import { publicAboutRouter, adminAboutRouter } from "./routes/about.routes.js";
+import {
+  publicAboutRouter,
+  adminAboutRouter,
+} from "./routes/about.routes.js";
 
 // ==================================================
 // FACULTIES & STAFF CMS ROUTES
@@ -57,11 +67,17 @@ import {
   publicFacultyRoutes,
   adminFacultyRoutes,
 } from "./routes/facultyMember.routes.js";
+
 import {
   publicCollaborationRoutes,
   adminCollaborationRoutes,
 } from "./routes/collaborationPartner.routes.js";
-import { publicNewsRoutes, adminNewsRoutes } from "./routes/news.routes.js";
+
+import {
+  publicNewsRoutes,
+  adminNewsRoutes,
+} from "./routes/news.routes.js";
+
 // ==================================================
 // EXPRESS APP
 // ==================================================
@@ -152,58 +168,138 @@ app.use("/api/v1/public", publicAcademicRoutes);
 app.use("/api/v1/public", publicEntranceRouter);
 
 // Faculties & Staff
-app.use("/api/v1/public/faculty-members", publicFacultyRoutes);
-//collaboration
-app.use("/api/v1/public/collaborations", publicCollaborationRoutes);
-app.use("/api/v1/public/news", publicNewsRoutes);
+app.use(
+  "/api/v1/public/faculty-members",
+  publicFacultyRoutes,
+);
+
+// Collaboration
+app.use(
+  "/api/v1/public/collaborations",
+  publicCollaborationRoutes,
+);
+
+// News
+app.use(
+  "/api/v1/public/news",
+  publicNewsRoutes,
+);
+
+// ==================================================
+// COURSE LESSON MANAGEMENT
+// AUTHENTICATION + ROLE + COURSE ASSIGNMENT
+// ==================================================
+//
+// IMPORTANT:
+// Register this router before academicAdminRoutes.
+//
+// The academic admin router can reject teacher
+// POST/PATCH/DELETE requests before the lesson
+// router gets a chance to process them.
+//
+// The lesson router must still enforce authentication,
+// allowed roles and course-assignment authorization.
+// ==================================================
+
+app.use(
+  "/api/v1/admin/courses",
+  courseLessonRoutes,
+);
+
+// ==================================================
+// AUTHENTICATED COURSE PLAYBACK
+// ==================================================
+
+app.use(
+  "/api/v1/my/courses",
+  coursePlaybackRouter,
+);
+
 // ==================================================
 // ADMIN API ROUTES
 // AUTHENTICATION + RBAC
 // ==================================================
 
 // About Us Management
-app.use("/api/v1/admin", adminAboutRouter);
+app.use(
+  "/api/v1/admin",
+  adminAboutRouter,
+);
 
 // Academic Management
-app.use("/api/v1/admin", academicAdminRoutes);
+app.use(
+  "/api/v1/admin",
+  academicAdminRoutes,
+);
 
 // Academic Safe Delete
-app.use("/api/v1/admin/academic-delete", academicSafeDeleteRoutes);
 app.use(
-  "/api/v1/admin/courses",
-  courseLessonRoutes
-);app.use(
-  "/api/v1/my/courses",
-  coursePlaybackRouter
+  "/api/v1/admin/academic-delete",
+  academicSafeDeleteRoutes,
 );
+
 // General Admin
-app.use("/api/v1/admin", adminRoutes);
+app.use(
+  "/api/v1/admin",
+  adminRoutes,
+);
 
 // Entrance Management
-app.use("/api/v1/admin", adminEntranceRouter);
+app.use(
+  "/api/v1/admin",
+  adminEntranceRouter,
+);
 
 // Faculties & Staff Management
-app.use("/api/v1/admin/faculty-members", adminFacultyRoutes);
-app.use("/api/v1/admin/collaborations", adminCollaborationRoutes);
-app.use("/api/v1/admin/news", adminNewsRoutes);
-app.use("/api/v1/admin/images", imageUploadRoutes);
+app.use(
+  "/api/v1/admin/faculty-members",
+  adminFacultyRoutes,
+);
+
+// Collaboration Management
+app.use(
+  "/api/v1/admin/collaborations",
+  adminCollaborationRoutes,
+);
+
+// News Management
+app.use(
+  "/api/v1/admin/news",
+  adminNewsRoutes,
+);
+
+// Image Upload
+app.use(
+  "/api/v1/admin/images",
+  imageUploadRoutes,
+);
+
 // ==================================================
 // COURSE ACCESS
 // ==================================================
 
-app.use("/api/v1", courseAccessRoutes);
+app.use(
+  "/api/v1",
+  courseAccessRoutes,
+);
 
 // ==================================================
 // AUTHENTICATION ROUTES
 // ==================================================
 
-app.use("/api/v1/auth", authRoutes);
+app.use(
+  "/api/v1/auth",
+  authRoutes,
+);
 
 // ==================================================
 // USER SESSION ROUTES
 // ==================================================
 
-app.use("/api/v1/sessions", userSessionRoutes);
+app.use(
+  "/api/v1/sessions",
+  userSessionRoutes,
+);
 
 // ==================================================
 // HEALTH CHECK
