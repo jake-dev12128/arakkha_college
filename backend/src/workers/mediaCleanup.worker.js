@@ -14,6 +14,10 @@ import {
   recoverStuckProgramMedia,
   deleteDetachedCourseImage,
   recoverStuckCourseMedia,
+
+  // NEW: Organization Chart Cleanup
+  deleteDetachedOrganizationChartImage,
+  recoverStuckOrganizationChartMedia,
 } from "../services/mediaCleanup.service.js";
 
 import {
@@ -81,6 +85,18 @@ const CLEANUP_CATEGORIES = [
     deleteImage: deleteDetachedCourseImage,
     recoverStuck: recoverStuckCourseMedia,
   },
+
+  // ======================================
+  // NEW: ORGANIZATION CHART
+  // ======================================
+  {
+    category: "organization-charts",
+    resourceType: "image",
+    label: "Organization Chart",
+    deleteImage: deleteDetachedOrganizationChartImage,
+    recoverStuck: recoverStuckOrganizationChartMedia,
+  },
+
   {
     category: "course-videos",
     resourceType: "video",

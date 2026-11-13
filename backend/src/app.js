@@ -60,6 +60,15 @@ import {
 } from "./routes/about.routes.js";
 
 // ==================================================
+// ORGANIZATION CHART ROUTES — NEW
+// ==================================================
+
+import {
+  publicOrganizationChartRouter,
+  adminOrganizationChartRouter,
+} from "./routes/organizationChart.routes.js";
+
+// ==================================================
 // FACULTIES & STAFF CMS ROUTES
 // ==================================================
 
@@ -167,6 +176,12 @@ app.use("/api/v1/public", publicAcademicRoutes);
 // Entrance
 app.use("/api/v1/public", publicEntranceRouter);
 
+// Organization Chart — NEW
+app.use(
+  "/api/v1/public",
+  publicOrganizationChartRouter,
+);
+
 // Faculties & Staff
 app.use(
   "/api/v1/public/faculty-members",
@@ -224,6 +239,12 @@ app.use(
 app.use(
   "/api/v1/admin",
   adminAboutRouter,
+);
+
+// Organization Chart Management — NEW
+app.use(
+  "/api/v1/admin",
+  adminOrganizationChartRouter,
 );
 
 // Academic Management

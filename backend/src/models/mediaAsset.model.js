@@ -31,6 +31,9 @@ const mediaAssetSchema = new mongoose.Schema(
         "users",
         "thumbnails",
         "course-videos",
+
+        // Organization Chart Image
+        "organization-charts",
       ],
       required: true,
     },

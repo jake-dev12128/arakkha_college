@@ -29,6 +29,9 @@ const ADMIN_IMAGE_CATEGORIES = new Set([
   "faculties",
   "collaborations",
   "thumbnails",
+
+  // Organization Chart
+  "organization-charts",
 ]);
 
 // ==========================================
@@ -38,14 +41,13 @@ const ADMIN_IMAGE_CATEGORIES = new Set([
 const validateImageCategory = (req, res, next) => {
   const category = req.params.category;
 
-  // All authenticated roles can upload
-  // profile images to the users category.
- if (category === "users") {
-  return requireRole(
-    "super_admin",
-    "admin"
-  )(req, res, next);
-}
+  // Preserve existing users category permissions.
+  if (category === "users") {
+    return requireRole(
+      "super_admin",
+      "admin"
+    )(req, res, next);
+  }
 
   if (!ADMIN_IMAGE_CATEGORIES.has(category)) {
     return res.status(400).json({

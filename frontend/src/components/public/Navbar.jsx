@@ -31,15 +31,24 @@ import { useThemeMode } from "../../context/ThemeContext.jsx";
 // PUBLIC NAVIGATION
 // ==================================================
 
+
 const links = [
   { label: "Home", to: "/" },
   { label: "About Us", to: "/about" },
+
+  // NEW: Public Organization Chart
+  {
+    label: "Organization Chart",
+    to: "/organization-chart",
+  },
+
   { label: "Faculties & Staff", to: "/faculties-staff" },
   { label: "Collaboration", to: "/collaboration" },
   { label: "News", to: "/news" },
   { label: "Programs", to: "/programs" },
   { label: "Contact", to: "/contact" },
 ];
+
 
 const admissionLinks = [
   {

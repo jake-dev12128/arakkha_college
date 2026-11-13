@@ -11,6 +11,10 @@ import Program from "../models/program.model.js";
 import cloudinary from "../config/cloudinary.js";
 import logger from "../utils/logger.js";
 import Course from "../models/course.model.js";
+
+// NEW: Organization Chart Model
+import OrganizationChart from "../models/organizationChart.model.js";
+
 // ==========================================
 // CONFIGURATION
 // ==========================================
@@ -43,15 +47,39 @@ const CATEGORY_CONFIG = {
     Model: CollaborationPartner,
     mediaIdField: "logoMediaId",
     urlField: "logo",
-  },programs: {
-  Model: Program,
-  mediaIdField: "imageMediaId",
-  urlField: "imageUrl",
-},thumbnails: {
-  Model: Course,
-  mediaIdField: "coverImageMediaId",
-  urlField: "coverImage",
-},
+  },
+
+  programs: {
+    Model: Program,
+    mediaIdField: "imageMediaId",
+    urlField: "imageUrl",
+  },
+
+  thumbnails: {
+    Model: Course,
+    mediaIdField: "coverImageMediaId",
+    urlField: "coverImage",
+  },
+
+  // ======================================
+  // NEW: ORGANIZATION CHART
+  // ======================================
+
+  "organization-charts": {
+    Model: OrganizationChart,
+
+    // Both draft and published images
+    // must be checked before deletion.
+    referenceFields: [
+      "draftImage.mediaId",
+      "publishedImage.mediaId",
+    ],
+
+    urlFields: [
+      "draftImage.url",
+      "publishedImage.url",
+    ],
+  },
 };
 
 // ==========================================
@@ -117,6 +145,35 @@ const isMediaReferenced = async (media) => {
       `Unsupported media category: ${media.category}`
     );
   }
+
+  // ======================================
+  // NEW: MULTIPLE REFERENCE FIELDS
+  // Organization Chart supports both
+  // draft and published images.
+  // ======================================
+
+  if (config.referenceFields) {
+    const referenceConditions = [
+      ...config.referenceFields.map((field) => ({
+        [field]: media._id,
+      })),
+
+      ...config.urlFields.map((field) => ({
+        [field]: media.secureUrl,
+      })),
+    ];
+
+    const referenced = await config.Model.exists({
+      $or: referenceConditions,
+    });
+
+    return Boolean(referenced);
+  }
+
+  // ======================================
+  // ORIGINAL REFERENCE CHECK
+  // Existing categories unchanged.
+  // ======================================
 
   const referenceFilter = {
     $or: [
@@ -530,6 +587,7 @@ export const recoverStuckCollaborationMedia =
       "collaborations"
     );
   };
+
 // ==========================================
 // PROGRAM IMAGE CLEANUP
 // ==========================================
@@ -545,7 +603,9 @@ export const deleteDetachedProgramImage = async (
 
 export const recoverStuckProgramMedia = async () => {
   return recoverStuckMedia("programs");
-};// ==========================================
+};
+
+// ==========================================
 // COURSE COVER IMAGE CLEANUP
 // ==========================================
 
@@ -562,5 +622,28 @@ export const recoverStuckCourseMedia =
   async () => {
     return recoverStuckMedia(
       "thumbnails"
+    );
+  };
+
+// ==========================================
+// NEW: ORGANIZATION CHART IMAGE CLEANUP
+// ==========================================
+
+export const deleteDetachedOrganizationChartImage =
+  async (mediaId) => {
+    return deleteDetachedImage(
+      mediaId,
+      "organization-charts"
+    );
+  };
+
+// ==========================================
+// NEW: ORGANIZATION CHART LOCK RECOVERY
+// ==========================================
+
+export const recoverStuckOrganizationChartMedia =
+  async () => {
+    return recoverStuckMedia(
+      "organization-charts"
     );
   };

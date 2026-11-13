@@ -1,6 +1,11 @@
+
 import sharp from "sharp";
 import { Readable } from "node:stream";
 import cloudinary from "../config/cloudinary.js";
+
+// ==========================================
+// IMAGE FOLDERS
+// ==========================================
 
 const IMAGE_FOLDERS = Object.freeze({
   news: "acc/news/images",
@@ -10,7 +15,40 @@ const IMAGE_FOLDERS = Object.freeze({
   students: "acc/students/profiles",
   users: "acc/users/profiles",
   thumbnails: "acc/courses/thumbnails",
+
+  // Organization Chart
+  "organization-charts": "acc/organization-charts/images",
 });
+
+// ==========================================
+// IMAGE PROCESSING CONFIGURATION
+// ==========================================
+
+const DEFAULT_IMAGE_OPTIONS = Object.freeze({
+  maxWidth: 2000,
+  maxHeight: 2000,
+  quality: 82,
+  limitInputPixels: 25_000_000,
+});
+
+const ORGANIZATION_CHART_IMAGE_OPTIONS = Object.freeze({
+  maxWidth: 5000,
+  maxHeight: 5000,
+  quality: 95,
+  limitInputPixels: 25_000_000,
+});
+
+const getImageOptions = (category) => {
+  if (category === "organization-charts") {
+    return ORGANIZATION_CHART_IMAGE_OPTIONS;
+  }
+
+  return DEFAULT_IMAGE_OPTIONS;
+};
+
+// ==========================================
+// UPLOAD IMAGE TO CLOUDINARY
+// ==========================================
 
 export const uploadImageToCloudinary = async (
   file,
@@ -25,19 +63,23 @@ export const uploadImageToCloudinary = async (
     throw error;
   }
 
+  const options = getImageOptions(category);
+
   let buffer;
 
   try {
     buffer = await sharp(file.buffer, {
-      limitInputPixels: 25_000_000,
+      limitInputPixels: options.limitInputPixels,
       failOn: "error",
     })
       .rotate()
-      .resize(2000, 2000, {
+      .resize(options.maxWidth, options.maxHeight, {
         fit: "inside",
         withoutEnlargement: true,
       })
-      .webp({ quality: 82 })
+      .webp({
+        quality: options.quality,
+      })
       .toBuffer();
   } catch {
     const error = new Error("Invalid image content.");
