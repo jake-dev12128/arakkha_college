@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import {
   Badge,
@@ -56,14 +55,10 @@ function NewsCard({ article }) {
         outlineOffset: "3px",
       }}
     >
-      <Box
-        h="220px"
-        bg="var(--public-surface-alt)"
-        overflow="hidden"
-      >
+      <Box h="220px" bg="var(--public-surface-alt)" overflow="hidden">
         {article.coverImage ? (
           <Image
-            src={article.coverImage}
+            src={article.coverImageDeliveryUrl || article.coverImage}
             alt={article.title}
             w="100%"
             h="100%"
@@ -86,22 +81,12 @@ function NewsCard({ article }) {
 
       <VStack align="stretch" gap={4} p={6}>
         <Flex gap={2} wrap="wrap">
-          <Badge colorPalette="blue">
-            {article.category}
-          </Badge>
+          <Badge colorPalette="blue">{article.category}</Badge>
 
-          {article.isFeatured && (
-            <Badge colorPalette="purple">
-              Featured
-            </Badge>
-          )}
+          {article.isFeatured && <Badge colorPalette="purple">Featured</Badge>}
         </Flex>
 
-        <Heading
-          size="md"
-          color="var(--public-text)"
-          lineHeight="1.5"
-        >
+        <Heading size="md" color="var(--public-text)" lineHeight="1.5">
           {article.title}
         </Heading>
 
@@ -114,10 +99,7 @@ function NewsCard({ article }) {
           {truncateText(article.summary)}
         </Text>
 
-        <Text
-          fontSize="xs"
-          color="var(--public-muted)"
-        >
+        <Text fontSize="xs" color="var(--public-muted)">
           {formatDate(article.publishedAt)}
         </Text>
       </VStack>
@@ -160,13 +142,9 @@ export default function News() {
     };
   }, []);
 
-  const featured = articles.filter(
-    (article) => article.isFeatured
-  );
+  const featured = articles.filter((article) => article.isFeatured);
 
-  const regular = articles.filter(
-    (article) => !article.isFeatured
-  );
+  const regular = articles.filter((article) => !article.isFeatured);
 
   return (
     <>
@@ -182,10 +160,7 @@ export default function News() {
       >
         {loading && (
           <Flex justify="center" py={16}>
-            <Spinner
-              size="lg"
-              color="var(--public-accent)"
-            />
+            <Spinner size="lg" color="var(--public-accent)" />
           </Flex>
         )}
 
@@ -196,11 +171,7 @@ export default function News() {
         )}
 
         {!loading && !error && articles.length === 0 && (
-          <Text
-            textAlign="center"
-            color="var(--public-muted)"
-            py={10}
-          >
+          <Text textAlign="center" color="var(--public-muted)" py={10}>
             No published news is currently available.
           </Text>
         )}
@@ -209,23 +180,13 @@ export default function News() {
           <VStack align="stretch" gap={12}>
             {featured.length > 0 && (
               <Box>
-                <Heading
-                  size="xl"
-                  mb={6}
-                  color="var(--public-text)"
-                >
+                <Heading size="xl" mb={6} color="var(--public-text)">
                   Featured News
                 </Heading>
 
-                <SimpleGrid
-                  columns={{ base: 1, md: 2, lg: 3 }}
-                  gap={6}
-                >
+                <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={6}>
                   {featured.map((article) => (
-                    <NewsCard
-                      key={article._id}
-                      article={article}
-                    />
+                    <NewsCard key={article._id} article={article} />
                   ))}
                 </SimpleGrid>
               </Box>
@@ -233,23 +194,13 @@ export default function News() {
 
             {regular.length > 0 && (
               <Box>
-                <Heading
-                  size="xl"
-                  mb={6}
-                  color="var(--public-text)"
-                >
+                <Heading size="xl" mb={6} color="var(--public-text)">
                   Latest News
                 </Heading>
 
-                <SimpleGrid
-                  columns={{ base: 1, md: 2, lg: 3 }}
-                  gap={6}
-                >
+                <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap={6}>
                   {regular.map((article) => (
-                    <NewsCard
-                      key={article._id}
-                      article={article}
-                    />
+                    <NewsCard key={article._id} article={article} />
                   ))}
                 </SimpleGrid>
               </Box>

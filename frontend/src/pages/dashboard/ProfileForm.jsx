@@ -250,6 +250,7 @@ export default function ProfileForm({
     useState("");
 
   const [profileImage, setProfileImage] = useState(null);
+  const [profileImageDeliveryUrl, setProfileImageDeliveryUrl] = useState(null);
   const [uploadedImage, setUploadedImage] = useState(null);
   const [imageUploading, setImageUploading] = useState(false);
   const [removeImagePending, setRemoveImagePending] = useState(false);
@@ -281,6 +282,7 @@ export default function ProfileForm({
       setProfileId(null);
       setForm(createEmptyForm());
       setProfileImage(null);
+      setProfileImageDeliveryUrl(null);
       setUploadedImage(null);
       setImageError("");
       setImageSuccess("");
@@ -349,6 +351,9 @@ export default function ProfileForm({
         setProfileId(profile._id);
         setForm(loadedForm);
         setProfileImage(user.profileImage || null);
+        setProfileImageDeliveryUrl(
+          user.profileImageDeliveryUrl || user.profileImage || null
+        );
         setUploadedImage(null);
         setImageError("");
         setImageSuccess("");
@@ -430,6 +435,7 @@ export default function ProfileForm({
     if (removeImagePending) {
       await mediaService.updateManagedProfileImage(id, null);
       setProfileImage(null);
+      setProfileImageDeliveryUrl(null);
       setUploadedImage(null);
       setRemoveImagePending(false);
       return true;
@@ -442,7 +448,17 @@ export default function ProfileForm({
         throw new Error("Uploaded media ID is missing.");
       }
       const result = await mediaService.updateManagedProfileImage(id, mediaId);
-      setProfileImage(result?.user?.profileImage || uploadedImage.url || uploadedImage.secureUrl || null);
+      const originalUrl =
+        result?.user?.profileImage ||
+        uploadedImage.url ||
+        uploadedImage.secureUrl ||
+        null;
+      const deliveryUrl =
+        result?.user?.profileImageDeliveryUrl ||
+        uploadedImage.deliveryUrl ||
+        originalUrl;
+      setProfileImage(originalUrl);
+      setProfileImageDeliveryUrl(deliveryUrl);
       setUploadedImage(null);
       return true;
     }
@@ -968,7 +984,16 @@ const createdUser = createdUserId
               )}
               <ImageUploader
                 category="users"
-                value={removeImagePending ? "" : (uploadedImage?.url || uploadedImage?.secureUrl || profileImage || "")}
+                value={
+                  removeImagePending
+                    ? ""
+                    : uploadedImage?.deliveryUrl ||
+                      uploadedImage?.url ||
+                      uploadedImage?.secureUrl ||
+                      profileImageDeliveryUrl ||
+                      profileImage ||
+                      ""
+                }
                 onUploaded={(image) => {
                   if (createdUserId) return;
                   setUploadedImage(image);

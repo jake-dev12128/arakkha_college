@@ -268,7 +268,7 @@ export default function ProfileDetails({ role }) {
             >
               {user.profileImage ? (
                 <Image
-                  src={user.profileImage}
+                  src={user.profileImageDeliveryUrl || user.profileImage}
                   alt={`${fullName} profile photo`}
                   w="full"
                   h="full"

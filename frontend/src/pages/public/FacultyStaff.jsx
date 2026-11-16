@@ -143,7 +143,7 @@ export default function FacultyStaff() {
                   >
                     {person.image ? (
                       <Image
-                        src={person.image}
+                        src={person.imageDeliveryUrl || person.image}
                         alt={person.name}
                         w="100%"
                         h="100%"

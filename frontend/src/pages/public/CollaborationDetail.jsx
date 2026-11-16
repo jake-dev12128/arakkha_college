@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import {
   Box,
@@ -13,10 +12,7 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import { FaArrowLeft, FaBuilding } from "react-icons/fa";
-import {
-  Link as RouterLink,
-  useParams,
-} from "react-router-dom";
+import { Link as RouterLink, useParams } from "react-router-dom";
 import DOMPurify from "dompurify";
 
 import PageHero from "../../components/common/PageHero.jsx";
@@ -25,9 +21,7 @@ import { collaborationPartnerService } from "../../services/collaborationPartner
 const safeWebsite = (value) => {
   try {
     const url = new URL(value);
-    return ["https:", "http:"].includes(url.protocol)
-      ? url.href
-      : null;
+    return ["https:", "http:"].includes(url.protocol) ? url.href : null;
   } catch {
     return null;
   }
@@ -50,11 +44,9 @@ export default function CollaborationDetail() {
 
     async function loadPartner() {
       try {
-        const data =
-          await collaborationPartnerService.getPublicById(
-            id,
-            { signal: controller.signal }
-          );
+        const data = await collaborationPartnerService.getPublicById(id, {
+          signal: controller.signal,
+        });
 
         if (active) {
           setPartner(data.partner || null);
@@ -64,7 +56,7 @@ export default function CollaborationDetail() {
           setError(
             err?.response?.status === 404
               ? "This collaboration profile is not available."
-              : "Unable to load collaboration details."
+              : "Unable to load collaboration details.",
           );
         }
       } finally {
@@ -109,10 +101,7 @@ export default function CollaborationDetail() {
 
           {loading && (
             <Flex justify="center" py={16}>
-              <Spinner
-                size="lg"
-                color="var(--public-accent)"
-              />
+              <Spinner size="lg" color="var(--public-accent)" />
             </Flex>
           )}
 
@@ -124,17 +113,11 @@ export default function CollaborationDetail() {
               borderRadius="2xl"
               textAlign="center"
             >
-              <Heading
-                size="lg"
-                color="var(--public-text)"
-              >
+              <Heading size="lg" color="var(--public-text)">
                 Profile Unavailable
               </Heading>
 
-              <Text
-                mt={3}
-                color="var(--public-muted)"
-              >
+              <Text mt={3} color="var(--public-muted)">
                 {error || "Collaboration partner not found."}
               </Text>
             </Box>
@@ -170,7 +153,7 @@ export default function CollaborationDetail() {
                   >
                     {partner.logo ? (
                       <Image
-                        src={partner.logo}
+                        src={partner.logoDeliveryUrl || partner.logo}
                         alt={`${partner.name} logo`}
                         w="100%"
                         h="100%"
@@ -181,22 +164,12 @@ export default function CollaborationDetail() {
                     )}
                   </Flex>
 
-                  <Box
-                    flex="1"
-                    textAlign={{ base: "center", md: "left" }}
-                  >
-                    <Text
-                      color="var(--public-accent)"
-                      fontWeight="bold"
-                      mb={2}
-                    >
+                  <Box flex="1" textAlign={{ base: "center", md: "left" }}>
+                    <Text color="var(--public-accent)" fontWeight="bold" mb={2}>
                       {partner.type}
                     </Text>
 
-                    <Heading
-                      size="2xl"
-                      color="var(--public-text)"
-                    >
+                    <Heading size="2xl" color="var(--public-text)">
                       {partner.name}
                     </Heading>
 
@@ -225,10 +198,7 @@ export default function CollaborationDetail() {
                     )}
 
                     {partner.email && (
-                      <Text
-                        mt={3}
-                        color="var(--public-muted)"
-                      >
+                      <Text mt={3} color="var(--public-muted)">
                         Email:{" "}
                         <Link
                           href={`mailto:${partner.email}`}
@@ -247,11 +217,7 @@ export default function CollaborationDetail() {
                     borderColor="var(--public-border)"
                     pt={8}
                   >
-                    <Heading
-                      size="lg"
-                      mb={5}
-                      color="var(--public-text)"
-                    >
+                    <Heading size="lg" mb={5} color="var(--public-text)">
                       About Our Collaboration
                     </Heading>
 
@@ -281,9 +247,7 @@ export default function CollaborationDetail() {
                         },
                       }}
                       dangerouslySetInnerHTML={{
-                        __html: DOMPurify.sanitize(
-                          partner.description
-                        ),
+                        __html: DOMPurify.sanitize(partner.description),
                       }}
                     />
                   </Box>

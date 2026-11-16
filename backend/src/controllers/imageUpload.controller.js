@@ -7,6 +7,10 @@ import {
   uploadImageToCloudinary,
 } from "../services/imageUpload.service.js";
 
+import {
+  toPublicImageUrl,
+} from "../utils/imageDelivery.js";
+
 // ==========================================
 // ROLLBACK CLOUDINARY UPLOAD
 // ==========================================
@@ -137,6 +141,18 @@ export const uploadImageController = async (
     mediaAssetSaved = true;
 
     // --------------------------------------
+    // IMAGE DELIVERY REPRESENTATION
+    // --------------------------------------
+
+    // The original Cloudinary URL must remain
+    // unchanged for ownership verification,
+    // attachment and media cleanup.
+
+    const deliveryUrl = toPublicImageUrl(
+      mediaAsset.secureUrl
+    );
+
+    // --------------------------------------
     // SUCCESS RESPONSE
     // --------------------------------------
 
@@ -145,7 +161,13 @@ export const uploadImageController = async (
       message: "Image uploaded successfully.",
       data: {
         mediaId: mediaAsset._id,
+
+        // Original URL: preserve existing logic.
         url: mediaAsset.secureUrl,
+
+        // Display URL: configurable delivery.
+        deliveryUrl,
+
         publicId: mediaAsset.publicId,
         resourceType: mediaAsset.resourceType,
         category: mediaAsset.category,

@@ -368,7 +368,7 @@ export default function RoleManagement({ role }) {
                           {user.profileImage ? (
                             <Box
                               as="img"
-                              src={user.profileImage}
+                              src={user.profileImageDeliveryUrl || user.profileImage}
                               alt={`${user.firstName || ""} ${user.lastName || ""}`.trim()}
                               width="100%"
                               height="100%"

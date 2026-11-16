@@ -4,24 +4,48 @@ import mongoose from "mongoose";
 import User from "../models/user.model.js";
 import Student from "../models/student.model.js";
 import Teacher from "../models/teacher.model.js";
+
 import {
   updateManagedProfileImage,
 } from "../services/user.service.js";
+
 import AppError from "../utils/AppError.js";
+import { toPublicImageUrl } from "../utils/imageDelivery.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+
 import {
   deactivateUserLifecycle,
 } from "../services/userLifecycle.service.js";
+
 // ==================================================
 // CONSTANTS
 // ==================================================
 
 const USER_PUBLIC_FIELDS =
-"_id firstName lastName email studentId role isActive createdAt profileImage profileImageMediaId";
+  "_id firstName lastName email studentId role isActive createdAt profileImage profileImageMediaId";
+
 const PROFILE_ROLES = new Set([
   "student",
   "teacher",
 ]);
+
+// ==================================================
+// IMAGE DELIVERY MAPPING
+// ==================================================
+
+// Display-only mapping.
+// Never overwrite original profileImage or mediaId.
+
+const withProfileImageDelivery = (user) => {
+  if (!user) return user;
+
+  return {
+    ...user,
+    profileImageDeliveryUrl: user.profileImage
+      ? toPublicImageUrl(user.profileImage)
+      : null,
+  };
+};
 
 // ==================================================
 // MODEL RESOLVER
@@ -127,18 +151,14 @@ export const listProfiles = (role) =>
       role,
     };
 
-    // ----------------------------------------------
     // STATUS FILTER
-    // ----------------------------------------------
 
     if (status !== "all") {
       filter.isActive =
         status === "active";
     }
 
-    // ----------------------------------------------
     // SEARCH FILTER
-    // ----------------------------------------------
 
     if (search) {
       const regex = new RegExp(
@@ -157,9 +177,7 @@ export const listProfiles = (role) =>
       ];
     }
 
-    // ----------------------------------------------
     // PAGINATION
-    // ----------------------------------------------
 
     const skip = (page - 1) * limit;
 
@@ -178,9 +196,7 @@ export const listProfiles = (role) =>
         User.countDocuments(filter),
       ]);
 
-    // ----------------------------------------------
     // FETCH RELATED PROFILES
-    // ----------------------------------------------
 
     const userIds = users.map(
       (user) => user._id
@@ -197,9 +213,7 @@ export const listProfiles = (role) =>
           .lean()
       : [];
 
-    // ----------------------------------------------
     // PROFILE LOOKUP
-    // ----------------------------------------------
 
     const profileMap = new Map(
       profiles.map((profile) => [
@@ -208,9 +222,7 @@ export const listProfiles = (role) =>
       ])
     );
 
-    // ----------------------------------------------
     // ENRICH USERS
-    // ----------------------------------------------
 
     const enrichedUsers = users.map(
       (user) => {
@@ -220,7 +232,7 @@ export const listProfiles = (role) =>
           ) ?? null;
 
         return {
-          ...user,
+          ...withProfileImageDelivery(user),
           profileId,
           hasProfile: Boolean(profileId),
         };
@@ -267,7 +279,7 @@ export const getProfile = (role) =>
       success: true,
       data: {
         profile,
-        user,
+        user: withProfileImageDelivery(user),
       },
     });
   });
@@ -285,9 +297,6 @@ export const getProfileByUserId = (role) =>
       req.params.userId
     );
 
-    // IMPORTANT:
-    // Return complete public identity fields.
-    //
     // ProfileForm edit mode needs:
     // firstName, lastName, email.
 
@@ -314,7 +323,7 @@ export const getProfileByUserId = (role) =>
       success: true,
       data: {
         profile,
-        user,
+        user: withProfileImageDelivery(user),
       },
     });
   });
@@ -338,9 +347,7 @@ export const updateProfile = (role) =>
       existing.userId
     );
 
-    // ----------------------------------------------
     // VERIFY ACCOUNT STATUS
-    // ----------------------------------------------
 
     if (!user.isActive) {
       throw new AppError(
@@ -350,17 +357,14 @@ export const updateProfile = (role) =>
       );
     }
 
-    // ----------------------------------------------
     // ALLOWED PERSONAL FIELDS
-    // ----------------------------------------------
-    //
+
     // Never allow client-provided:
     // userId, role, email, firstName,
     // lastName, studentId or isActive.
     //
-    // Identity changes are handled by the
-    // User Management Service.
-    // ----------------------------------------------
+    // Identity changes are handled by
+    // the User Management Service.
 
     const allowedFields = [
       "address",
@@ -405,9 +409,7 @@ export const updateProfile = (role) =>
       );
     }
 
-    // ----------------------------------------------
     // UPDATE PROFILE
-    // ----------------------------------------------
 
     const profile = await modelFor(role)
       .findOneAndUpdate(
@@ -439,7 +441,7 @@ export const updateProfile = (role) =>
         "Profile updated successfully.",
       data: {
         profile,
-        user,
+        user: withProfileImageDelivery(user),
       },
     });
   });
@@ -450,18 +452,10 @@ export const updateProfile = (role) =>
 // PATCH /api/v1/admin/students/:id/deactivate
 // PATCH /api/v1/admin/teachers/:id/deactivate
 // ==================================================
-//
-// SAFETY:
-//
-// Account deactivation must use one central
-// lifecycle service.
-//
-// The previous implementation only changed
-// User.isActive and did not revoke sessions.
-//
-// Keep this legacy endpoint unavailable until
-// the shared lifecycle service is complete.
-// ==================================================
+
+// Account deactivation must use the central
+// lifecycle service to handle sessions.
+
 export const deactivateProfile = (role) =>
   asyncHandler(async (req, res) => {
     const profile = await findProfile(
@@ -491,12 +485,16 @@ export const deactivateProfile = (role) =>
       data: result,
     });
   });
-/**
- * PATCH /api/v1/admin/users/:userId/profile-image
- *
- * Attach / Replace: { mediaId: "..." }
- * Remove:           { mediaId: null }
- */
+
+// ==================================================
+// UPDATE MANAGED PROFILE IMAGE
+//
+// PATCH /api/v1/admin/users/:userId/profile-image
+//
+// Attach / Replace: { mediaId: "..." }
+// Remove:           { mediaId: null }
+// ==================================================
+
 export const updateManagedProfileImageController =
   asyncHandler(async (req, res) => {
     const { userId } = req.params;
@@ -549,6 +547,9 @@ export const updateManagedProfileImageController =
         mediaId === null
           ? "Profile image removed successfully."
           : "Profile image updated successfully.",
-      data: result,
+      data: {
+        ...result,
+        user: withProfileImageDelivery(result.user),
+      },
     });
   });

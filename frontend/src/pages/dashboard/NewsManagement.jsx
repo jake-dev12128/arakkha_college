@@ -126,11 +126,11 @@ export default function NewsManagement() {
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
 
- const [loading, setLoading] = useState(true);
-const [busy, setBusy] = useState(false);
-const [imageUploading, setImageUploading] = useState(false);
-const [error, setError] = useState("");
-const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const loadNews = useCallback(async () => {
     try {
@@ -168,33 +168,33 @@ const [success, setSuccess] = useState("");
     setEditingId(article._id);
 
     setForm({
-  title: article.title || "",
-  summary: article.summary || "",
-  content: article.content || "",
-  coverImage: article.coverImage || "",
-  coverImageMediaId: article.coverImageMediaId || null,
-  category: article.category || "General",
-  isFeatured: Boolean(article.isFeatured),
-});
+      title: article.title || "",
+      summary: article.summary || "",
+      content: article.content || "",
+      coverImage: article.coverImage || "",
+      coverImageMediaId: article.coverImageMediaId || null,
+      category: article.category || "General",
+      isFeatured: Boolean(article.isFeatured),
+    });
 
     setError("");
     setSuccess("");
     setFormOpen(true);
   };
-const closeForm = () => {
-  if (busy || imageUploading) return;
+  const closeForm = () => {
+    if (busy || imageUploading) return;
 
-  setFormOpen(false);
-  setEditingId(null);
-  setError("");
-};
+    setFormOpen(false);
+    setEditingId(null);
+    setError("");
+  };
   const handleSave = async (event) => {
     if (!canManage) return;
     event.preventDefault();
-  if (busy || imageUploading) return;
+    if (busy || imageUploading) return;
 
-  setError("");
-  setSuccess("");
+    setError("");
+    setSuccess("");
 
     if (form.title.trim().length < 3) {
       setError("Title must contain at least 3 characters.");
@@ -212,15 +212,14 @@ const closeForm = () => {
     }
 
     const payload = {
-  title: form.title.trim(),
-  summary: form.summary.trim(),
-  content: form.content,
-  coverImage: form.coverImage.trim(),
-  coverImageMediaId:
-    form.coverImageMediaId || null,
-  category: form.category,
-  isFeatured: form.isFeatured,
-};
+      title: form.title.trim(),
+      summary: form.summary.trim(),
+      content: form.content,
+      coverImage: form.coverImage.trim(),
+      coverImageMediaId: form.coverImageMediaId || null,
+      category: form.category,
+      isFeatured: form.isFeatured,
+    };
 
     setBusy(true);
 
@@ -364,15 +363,17 @@ const closeForm = () => {
             <Heading size="xl">News Management</Heading>
 
             <Text mt="1" color="fg.muted">
-              {isReadOnly ? "View college news (read-only)." : "Create, publish and manage college news."}
+              {isReadOnly
+                ? "View college news (read-only)."
+                : "Create, publish and manage college news."}
             </Text>
           </Box>
 
           {canManage && (
-<Button colorPalette="blue" onClick={openCreate} disabled={busy}>
-            + Add News
-          </Button>
-)}
+            <Button colorPalette="blue" onClick={openCreate} disabled={busy}>
+              + Add News
+            </Button>
+          )}
         </Flex>
 
         {error && !formOpen && (
@@ -481,7 +482,10 @@ const closeForm = () => {
                         <Flex align="center" gap="3" minW="240px">
                           {article.coverImage ? (
                             <Image
-                              src={article.coverImage}
+                              src={
+                                article.coverImageDeliveryUrl ||
+                                article.coverImage
+                              }
                               alt={article.title}
                               boxSize="56px"
                               objectFit="cover"
@@ -528,48 +532,48 @@ const closeForm = () => {
                       <Table.Cell textAlign="end">
                         <Flex justify="flex-end" gap="2" wrap="wrap">
                           <Button
+                            size="xs"
+                            variant="outline"
+                            disabled={busy}
+                            onClick={() => handleView(article)}
+                          >
+                            View
+                          </Button>
+
+                          {canManage && (
+                            <Button
                               size="xs"
                               variant="outline"
                               disabled={busy}
-                              onClick={() => handleView(article)}
+                              onClick={() => openEdit(article)}
                             >
-                              View
+                              Edit
                             </Button>
+                          )}
 
                           {canManage && (
-<Button
-                            size="xs"
-                            variant="outline"
-                            disabled={busy}
-                            onClick={() => openEdit(article)}
-                          >
-                            Edit
-                          </Button>
-)}
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              colorPalette="blue"
+                              disabled={busy}
+                              onClick={() => handlePublication(article)}
+                            >
+                              {article.isPublished ? "Unpublish" : "Publish"}
+                            </Button>
+                          )}
 
                           {canManage && (
-<Button
-                            size="xs"
-                            variant="outline"
-                            colorPalette="blue"
-                            disabled={busy}
-                            onClick={() => handlePublication(article)}
-                          >
-                            {article.isPublished ? "Unpublish" : "Publish"}
-                          </Button>
-)}
-
-                          {canManage && (
-<Button
-                            size="xs"
-                            variant="outline"
-                            colorPalette="red"
-                            disabled={busy}
-                            onClick={() => handleDelete(article)}
-                          >
-                            Delete
-                          </Button>
-)}
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              colorPalette="red"
+                              disabled={busy}
+                              onClick={() => handleDelete(article)}
+                            >
+                              Delete
+                            </Button>
+                          )}
                         </Flex>
                       </Table.Cell>
                     </Table.Row>
@@ -584,11 +588,11 @@ const closeForm = () => {
       {/* CREATE / EDIT DRAWER */}
 
       {canManage && formOpen && (
-       <Drawer
-  title={editingId ? "Edit News" : "Create News"}
-  onClose={closeForm}
-  disabled={busy || imageUploading}
->
+        <Drawer
+          title={editingId ? "Edit News" : "Create News"}
+          onClose={closeForm}
+          disabled={busy || imageUploading}
+        >
           <Flex
             p="5"
             align="center"
@@ -648,42 +652,41 @@ const closeForm = () => {
                 </Field.Root>
 
                 <Field.Root>
-  <Field.Label>News Image</Field.Label>
+                  <Field.Label>News Image</Field.Label>
 
-  <ImageUploader
-    category="news"
-    value={form.coverImage}
-    onUploaded={(image) => {
-      setForm((prev) => ({
-        ...prev,
-        coverImage: image.url,
-        coverImageMediaId: image.mediaId,
-      }));
-    }}
-    onUploadingChange={setImageUploading}
-  />
+                  <ImageUploader
+                    category="news"
+                    value={form.coverImage}
+                    onUploaded={(image) => {
+                      setForm((prev) => ({
+                        ...prev,
+                        coverImage: image.url,
+                        coverImageMediaId: image.mediaId,
+                      }));
+                    }}
+                    onUploadingChange={setImageUploading}
+                  />
 
-  {form.coverImage && (
-    <Button
-      type="button"
-      size="sm"
-      variant="outline"
-      colorPalette="red"
-      disabled={busy || imageUploading}
-      onClick={() => {
-        setForm((prev) => ({
-          ...prev,
-          coverImage: "",
-          coverImageMediaId: null,
-        }));
-      }}
-    >
-      Remove Image
-    </Button>
-  )}
-</Field.Root>
+                  {form.coverImage && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      colorPalette="red"
+                      disabled={busy || imageUploading}
+                      onClick={() => {
+                        setForm((prev) => ({
+                          ...prev,
+                          coverImage: "",
+                          coverImageMediaId: null,
+                        }));
+                      }}
+                    >
+                      Remove Image
+                    </Button>
+                  )}
+                </Field.Root>
 
-                
                 <Field.Root>
                   <Field.Label>Category</Field.Label>
 
@@ -742,19 +745,19 @@ const closeForm = () => {
               Cancel
             </Button>
 
-           <Button
-  type="submit"
-  form="news-form"
-  colorPalette="blue"
-  loading={busy}
-  disabled={busy || imageUploading}
->
-  {imageUploading
-    ? "Uploading Image..."
-    : editingId
-      ? "Save Changes"
-      : "Create News"}
-</Button>
+            <Button
+              type="submit"
+              form="news-form"
+              colorPalette="blue"
+              loading={busy}
+              disabled={busy || imageUploading}
+            >
+              {imageUploading
+                ? "Uploading Image..."
+                : editingId
+                  ? "Save Changes"
+                  : "Create News"}
+            </Button>
           </Flex>
         </Drawer>
       )}
@@ -780,7 +783,7 @@ const closeForm = () => {
             <VStack align="stretch" gap="5">
               {preview.coverImage && (
                 <Image
-                  src={preview.coverImage}
+                  src={preview.coverImageDeliveryUrl || preview.coverImage}
                   alt={preview.title}
                   width="100%"
                   maxH="300px"

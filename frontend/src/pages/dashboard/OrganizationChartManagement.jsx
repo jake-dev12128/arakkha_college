@@ -1,10 +1,4 @@
-
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useOutletContext } from "react-router-dom";
 
@@ -31,11 +25,7 @@ import organizationChartService from "../../services/organizationChart.service.j
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
-const ALLOWED_IMAGE_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-];
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 const DEFAULT_TITLE = "Organization Chart";
 
@@ -52,15 +42,10 @@ const formatDate = (value) => {
 
   const date = new Date(value);
 
-  return Number.isNaN(date.getTime())
-    ? "—"
-    : date.toLocaleString();
+  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString();
 };
 
-const getMediaId = (image) =>
-  image?.mediaId
-    ? String(image.mediaId)
-    : null;
+const getMediaId = (image) => (image?.mediaId ? String(image.mediaId) : null);
 
 // ==================================================
 // ORGANIZATION CHART MANAGEMENT
@@ -69,10 +54,7 @@ const getMediaId = (image) =>
 export default function OrganizationChartManagement() {
   const { user } = useOutletContext() ?? {};
 
-  const canManage = [
-    "super_admin",
-    "admin",
-  ].includes(user?.role);
+  const canManage = ["super_admin", "admin"].includes(user?.role);
 
   const isReadOnly = user?.role === "teacher";
 
@@ -88,8 +70,7 @@ export default function OrganizationChartManagement() {
   const [localPreview, setLocalPreview] = useState("");
 
   const [pendingMedia, setPendingMedia] = useState(null);
-  const [removeDraftRequested, setRemoveDraftRequested] =
-    useState(false);
+  const [removeDraftRequested, setRemoveDraftRequested] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -115,12 +96,9 @@ export default function OrganizationChartManagement() {
   const savedDescription = chart?.description ?? "";
 
   const metadataDirty =
-    title.trim() !== savedTitle ||
-    description.trim() !== savedDescription;
+    title.trim() !== savedTitle || description.trim() !== savedDescription;
 
-  const imageDirty =
-    Boolean(pendingMedia) ||
-    removeDraftRequested;
+  const imageDirty = Boolean(pendingMedia) || removeDraftRequested;
 
   const dirty = metadataDirty || imageDirty;
 
@@ -129,12 +107,7 @@ export default function OrganizationChartManagement() {
   const hasUnsavedFile = Boolean(selectedFile);
 
   const canPublish =
-    canManage &&
-    exists &&
-    hasSavedDraft &&
-    !dirty &&
-    !hasUnsavedFile &&
-    !busy;
+    canManage && exists && hasSavedDraft && !dirty && !hasUnsavedFile && !busy;
 
   // ==================================================
   // PREVIEW URL CLEANUP
@@ -172,8 +145,7 @@ export default function OrganizationChartManagement() {
     setSuccess("");
 
     try {
-      const data =
-        await organizationChartService.getAdmin();
+      const data = await organizationChartService.getAdmin();
 
       setChart(data ?? null);
 
@@ -212,9 +184,7 @@ export default function OrganizationChartManagement() {
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
       event.target.value = "";
 
-      setError(
-        "Only JPG, PNG and WebP images are allowed."
-      );
+      setError("Only JPG, PNG and WebP images are allowed.");
 
       return;
     }
@@ -222,9 +192,7 @@ export default function OrganizationChartManagement() {
     if (file.size > MAX_IMAGE_SIZE) {
       event.target.value = "";
 
-      setError(
-        "Image size must not exceed 5 MB."
-      );
+      setError("Image size must not exceed 5 MB.");
 
       return;
     }
@@ -253,15 +221,10 @@ export default function OrganizationChartManagement() {
     setSuccess("");
 
     try {
-      const uploaded =
-        await organizationChartService.uploadImage(
-          selectedFile
-        );
+      const uploaded = await organizationChartService.uploadImage(selectedFile);
 
       if (!uploaded?.mediaId || !uploaded?.url) {
-        throw new Error(
-          "Upload succeeded but media information is missing."
-        );
+        throw new Error("Upload succeeded but media information is missing.");
       }
 
       setPendingMedia({
@@ -275,9 +238,7 @@ export default function OrganizationChartManagement() {
 
       clearLocalPreview();
 
-      setSuccess(
-        "Image uploaded successfully. Click Save Draft to attach it."
-      );
+      setSuccess("Image uploaded successfully. Click Save Draft to attach it.");
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -305,9 +266,7 @@ export default function OrganizationChartManagement() {
 
     setRemoveDraftRequested(true);
 
-    setSuccess(
-      "Draft image removal is pending. Click Save Draft to confirm."
-    );
+    setSuccess("Draft image removal is pending. Click Save Draft to confirm.");
   };
 
   // ==================================================
@@ -318,9 +277,7 @@ export default function OrganizationChartManagement() {
     if (!canManage || busy) return;
 
     if (selectedFile) {
-      setError(
-        "Please upload the selected image before saving."
-      );
+      setError("Please upload the selected image before saving.");
 
       return;
     }
@@ -339,9 +296,7 @@ export default function OrganizationChartManagement() {
     }
 
     if (cleanDescription.length > 2000) {
-      setError(
-        "Description must not exceed 2000 characters."
-      );
+      setError("Description must not exceed 2000 characters.");
       return;
     }
 
@@ -367,9 +322,7 @@ export default function OrganizationChartManagement() {
 
       setChart(saved);
       setTitle(saved?.title ?? cleanTitle);
-      setDescription(
-        saved?.description ?? cleanDescription
-      );
+      setDescription(saved?.description ?? cleanDescription);
 
       setPendingMedia(null);
       setRemoveDraftRequested(false);
@@ -390,7 +343,7 @@ export default function OrganizationChartManagement() {
     if (!canPublish) return;
 
     const confirmed = window.confirm(
-      "Publish this Organization Chart to the public website?"
+      "Publish this Organization Chart to the public website?",
     );
 
     if (!confirmed) return;
@@ -400,14 +353,11 @@ export default function OrganizationChartManagement() {
     setSuccess("");
 
     try {
-      const published =
-        await organizationChartService.publish();
+      const published = await organizationChartService.publish();
 
       setChart(published);
 
-      setSuccess(
-        "Organization Chart published successfully."
-      );
+      setSuccess("Organization Chart published successfully.");
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -423,7 +373,7 @@ export default function OrganizationChartManagement() {
     if (!canManage || busy || !isPublished) return;
 
     const confirmed = window.confirm(
-      "Unpublish the Organization Chart? It will no longer be visible on the public website."
+      "Unpublish the Organization Chart? It will no longer be visible on the public website.",
     );
 
     if (!confirmed) return;
@@ -433,14 +383,11 @@ export default function OrganizationChartManagement() {
     setSuccess("");
 
     try {
-      const updated =
-        await organizationChartService.unpublish();
+      const updated = await organizationChartService.unpublish();
 
       setChart(updated);
 
-      setSuccess(
-        "Organization Chart unpublished successfully."
-      );
+      setSuccess("Organization Chart unpublished successfully.");
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -474,10 +421,11 @@ export default function OrganizationChartManagement() {
   const previewSource = removeDraftRequested
     ? ""
     : localPreview ||
+      pendingMedia?.deliveryUrl ||
       pendingMedia?.url ||
+      draftImage?.deliveryUrl ||
       draftImage?.url ||
       "";
-
   const previewLabel = localPreview
     ? "Selected image — not uploaded"
     : pendingMedia
@@ -500,9 +448,7 @@ export default function OrganizationChartManagement() {
         gap="3"
       >
         <Spinner size="lg" colorPalette="blue" />
-        <Text color="fg.muted">
-          Loading Organization Chart...
-        </Text>
+        <Text color="fg.muted">Loading Organization Chart...</Text>
       </Flex>
     );
   }
@@ -523,25 +469,17 @@ export default function OrganizationChartManagement() {
           direction={{ base: "column", md: "row" }}
         >
           <Box>
-            <Heading size="xl">
-              Organization Chart
-            </Heading>
+            <Heading size="xl">Organization Chart</Heading>
 
-            <Text
-              color="fg.muted"
-              fontSize="sm"
-              mt="2"
-            >
-              Manage the official organizational
-              structure of ACC Computer College.
+            <Text color="fg.muted" fontSize="sm" mt="2">
+              Manage the official organizational structure of ACC Computer
+              College.
             </Text>
           </Box>
 
           <Flex gap="2" align="center" flexWrap="wrap">
             <Badge
-              colorPalette={
-                isPublished ? "green" : "orange"
-              }
+              colorPalette={isPublished ? "green" : "orange"}
               variant="subtle"
               px="3"
               py="1"
@@ -549,11 +487,7 @@ export default function OrganizationChartManagement() {
               {isPublished ? "Published" : "Draft"}
             </Badge>
 
-            {isReadOnly && (
-              <Badge colorPalette="blue">
-                Read-only
-              </Badge>
-            )}
+            {isReadOnly && <Badge colorPalette="blue">Read-only</Badge>}
           </Flex>
         </Flex>
 
@@ -567,10 +501,7 @@ export default function OrganizationChartManagement() {
             p="4"
             role="alert"
           >
-            <Text
-              color="red.500"
-              fontSize="sm"
-            >
+            <Text color="red.500" fontSize="sm">
               {error}
             </Text>
           </Box>
@@ -584,10 +515,7 @@ export default function OrganizationChartManagement() {
             p="4"
             role="status"
           >
-            <Text
-              color="green.500"
-              fontSize="sm"
-            >
+            <Text color="green.500" fontSize="sm">
               {success}
             </Text>
           </Box>
@@ -603,20 +531,14 @@ export default function OrganizationChartManagement() {
           p={{ base: "4", md: "6" }}
         >
           <VStack align="stretch" gap="5">
-            <Heading size="md">
-              Chart Information
-            </Heading>
+            <Heading size="md">Chart Information</Heading>
 
             <Field.Root required>
-              <Field.Label>
-                Title
-              </Field.Label>
+              <Field.Label>Title</Field.Label>
 
               <Input
                 value={title}
-                onChange={(event) =>
-                  setTitle(event.target.value)
-                }
+                onChange={(event) => setTitle(event.target.value)}
                 maxLength={250}
                 readOnly={!canManage || busy}
                 placeholder="Organization Chart"
@@ -624,15 +546,11 @@ export default function OrganizationChartManagement() {
             </Field.Root>
 
             <Field.Root>
-              <Field.Label>
-                Description
-              </Field.Label>
+              <Field.Label>Description</Field.Label>
 
               <Textarea
                 value={description}
-                onChange={(event) =>
-                  setDescription(event.target.value)
-                }
+                onChange={(event) => setDescription(event.target.value)}
                 maxLength={2000}
                 rows={4}
                 readOnly={!canManage || busy}
@@ -662,9 +580,7 @@ export default function OrganizationChartManagement() {
               gap="3"
               flexWrap="wrap"
             >
-              <Heading size="md">
-                Draft Image
-              </Heading>
+              <Heading size="md">Draft Image</Heading>
 
               <Badge
                 colorPalette={
@@ -710,24 +626,16 @@ export default function OrganizationChartManagement() {
                   direction="column"
                   gap="2"
                 >
-                  <Text color="fg.muted">
-                    No draft image selected.
-                  </Text>
+                  <Text color="fg.muted">No draft image selected.</Text>
 
-                  <Text
-                    color="fg.muted"
-                    fontSize="xs"
-                  >
+                  <Text color="fg.muted" fontSize="xs">
                     Upload a JPG, PNG or WebP image.
                   </Text>
                 </Flex>
               )}
             </Box>
 
-            <Text
-              color="fg.muted"
-              fontSize="xs"
-            >
+            <Text color="fg.muted" fontSize="xs">
               {previewLabel}
             </Text>
 
@@ -742,18 +650,11 @@ export default function OrganizationChartManagement() {
                   p="1"
                 />
 
-                <Text
-                  fontSize="xs"
-                  color="fg.muted"
-                >
-                  Supported formats: JPG, PNG, WebP.
-                  Maximum file size: 5 MB.
+                <Text fontSize="xs" color="fg.muted">
+                  Supported formats: JPG, PNG, WebP. Maximum file size: 5 MB.
                 </Text>
 
-                <Flex
-                  gap="3"
-                  flexWrap="wrap"
-                >
+                <Flex gap="3" flexWrap="wrap">
                   <Button
                     colorPalette="blue"
                     variant="outline"
@@ -768,10 +669,7 @@ export default function OrganizationChartManagement() {
                     colorPalette="red"
                     variant="outline"
                     disabled={
-                      busy ||
-                      (!draftImage &&
-                        !pendingMedia &&
-                        !selectedFile)
+                      busy || (!draftImage && !pendingMedia && !selectedFile)
                     }
                     onClick={handleRemoveDraft}
                   >
@@ -793,28 +691,17 @@ export default function OrganizationChartManagement() {
           p={{ base: "4", md: "6" }}
         >
           <VStack align="stretch" gap="4">
-            <Flex
-              justify="space-between"
-              align="center"
-            >
-              <Heading size="md">
-                Published Image
-              </Heading>
+            <Flex justify="space-between" align="center">
+              <Heading size="md">Published Image</Heading>
 
-              <Badge
-                colorPalette={
-                  isPublished ? "green" : "gray"
-                }
-              >
-                {isPublished
-                  ? "Publicly visible"
-                  : "Not public"}
+              <Badge colorPalette={isPublished ? "green" : "gray"}>
+                {isPublished ? "Publicly visible" : "Not public"}
               </Badge>
             </Flex>
 
             {publishedImage?.url ? (
               <Image
-                src={publishedImage.url}
+                src={publishedImage.deliveryUrl || publishedImage.url}
                 alt="Published Organization Chart"
                 width="100%"
                 maxH="600px"
@@ -829,41 +716,26 @@ export default function OrganizationChartManagement() {
                 bg="bg.subtle"
                 borderRadius="lg"
               >
-                <Text color="fg.muted">
-                  No published image yet.
-                </Text>
+                <Text color="fg.muted">No published image yet.</Text>
               </Flex>
             )}
 
-            <Text
-              color="fg.muted"
-              fontSize="xs"
-            >
-              Last published:{" "}
-              {formatDate(chart?.publishedAt)}
+            <Text color="fg.muted" fontSize="xs">
+              Last published: {formatDate(chart?.publishedAt)}
             </Text>
 
-            {isPublished &&
-              draftMediaId !== publishedMediaId && (
-                <Text
-                  color="orange.500"
-                  fontSize="sm"
-                >
-                  A different draft image is saved.
-                  Publish again to update the public image.
-                </Text>
-              )}
+            {isPublished && draftMediaId !== publishedMediaId && (
+              <Text color="orange.500" fontSize="sm">
+                A different draft image is saved. Publish again to update the
+                public image.
+              </Text>
+            )}
           </VStack>
         </Box>
 
         {/* ACTIONS */}
 
-        <Flex
-          justify="flex-end"
-          align="center"
-          flexWrap="wrap"
-          gap="3"
-        >
+        <Flex justify="flex-end" align="center" flexWrap="wrap" gap="3">
           <Button
             variant="outline"
             colorPalette="gray"
@@ -885,11 +757,7 @@ export default function OrganizationChartManagement() {
 
               <Button
                 colorPalette="blue"
-                disabled={
-                  busy ||
-                  hasUnsavedFile ||
-                  (exists && !dirty)
-                }
+                disabled={busy || hasUnsavedFile || (exists && !dirty)}
                 loading={busy}
                 onClick={handleSaveDraft}
               >
@@ -942,50 +810,27 @@ export default function OrganizationChartManagement() {
           p="4"
           bg="bg.subtle"
         >
-          <VStack
-            align="stretch"
-            gap="2"
-          >
-            <Text
-              fontWeight="semibold"
-              fontSize="sm"
-            >
+          <VStack align="stretch" gap="2">
+            <Text fontWeight="semibold" fontSize="sm">
               Organization Chart Status
             </Text>
 
-            <Text
-              fontSize="sm"
-              color="fg.muted"
-            >
-              Record:{" "}
-              {exists ? "Created" : "Not created"}
+            <Text fontSize="sm" color="fg.muted">
+              Record: {exists ? "Created" : "Not created"}
             </Text>
 
-            <Text
-              fontSize="sm"
-              color="fg.muted"
-            >
-              Draft Image:{" "}
-              {hasSavedDraft ? "Saved" : "Missing"}
+            <Text fontSize="sm" color="fg.muted">
+              Draft Image: {hasSavedDraft ? "Saved" : "Missing"}
             </Text>
 
-            <Text
-              fontSize="sm"
-              color="fg.muted"
-            >
-              Publication:{" "}
-              {isPublished
-                ? "Published"
-                : "Unpublished"}
+            <Text fontSize="sm" color="fg.muted">
+              Publication: {isPublished ? "Published" : "Unpublished"}
             </Text>
 
             {isReadOnly && (
-              <Text
-                fontSize="sm"
-                color="fg.muted"
-              >
-                Your account has read-only access
-                to Organization Chart Management.
+              <Text fontSize="sm" color="fg.muted">
+                Your account has read-only access to Organization Chart
+                Management.
               </Text>
             )}
           </VStack>

@@ -181,6 +181,8 @@ function Dashboard() {
       setUser((previous) => ({
         ...previous,
         profileImage: updated.profileImage,
+        profileImageDeliveryUrl:
+          updated.profileImageDeliveryUrl || updated.profileImage,
         profileImageMediaId:
           updated.profileImageMediaId,
       }));
@@ -366,7 +368,7 @@ function Dashboard() {
               >
                 {user.profileImage ? (
                   <Image
-                    src={user.profileImage}
+                    src={user.profileImageDeliveryUrl || user.profileImage}
                     alt="Profile photo"
                     boxSize="100%"
                     objectFit="cover"

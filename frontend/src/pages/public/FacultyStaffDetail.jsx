@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import {
   Box,
@@ -20,10 +19,7 @@ import {
   FaLinkedin,
   FaGraduationCap,
 } from "react-icons/fa";
-import {
-  Link as RouterLink,
-  useParams,
-} from "react-router-dom";
+import { Link as RouterLink, useParams } from "react-router-dom";
 import DOMPurify from "dompurify";
 
 import PageHero from "../../components/common/PageHero.jsx";
@@ -34,9 +30,7 @@ const safeExternalUrl = (value) => {
 
   try {
     const url = new URL(value);
-    return ["https:", "http:"].includes(url.protocol)
-      ? url.href
-      : null;
+    return ["https:", "http:"].includes(url.protocol) ? url.href : null;
   } catch {
     return null;
   }
@@ -59,10 +53,9 @@ export default function FacultyStaffDetail() {
 
     async function loadDetails() {
       try {
-        const data = await facultyMemberService.getPublicById(
-          id,
-          { signal: controller.signal }
-        );
+        const data = await facultyMemberService.getPublicById(id, {
+          signal: controller.signal,
+        });
 
         if (active) {
           setMember(data.member || null);
@@ -72,7 +65,7 @@ export default function FacultyStaffDetail() {
           setError(
             err?.response?.status === 404
               ? "This faculty profile is not available."
-              : "Unable to load faculty details."
+              : "Unable to load faculty details.",
           );
         }
       } finally {
@@ -118,10 +111,7 @@ export default function FacultyStaffDetail() {
 
           {loading && (
             <Flex justify="center" py={16}>
-              <Spinner
-                size="lg"
-                color="var(--public-accent)"
-              />
+              <Spinner size="lg" color="var(--public-accent)" />
             </Flex>
           )}
 
@@ -133,17 +123,11 @@ export default function FacultyStaffDetail() {
               borderRadius="2xl"
               textAlign="center"
             >
-              <Heading
-                size="lg"
-                color="var(--public-text)"
-              >
+              <Heading size="lg" color="var(--public-text)">
                 Profile Unavailable
               </Heading>
 
-              <Text
-                mt={3}
-                color="var(--public-muted)"
-              >
+              <Text mt={3} color="var(--public-muted)">
                 {error || "Faculty profile not found."}
               </Text>
             </Box>
@@ -175,7 +159,7 @@ export default function FacultyStaffDetail() {
                 >
                   {member.image ? (
                     <Image
-                      src={member.image}
+                      src={member.imageDeliveryUrl || member.image}
                       alt={member.name}
                       w="100%"
                       h="100%"
@@ -193,12 +177,7 @@ export default function FacultyStaffDetail() {
                   )}
                 </Box>
 
-                <VStack
-                  align="stretch"
-                  gap={5}
-                  flex="1"
-                  minW={0}
-                >
+                <VStack align="stretch" gap={5} flex="1" minW={0}>
                   <Box>
                     <Text
                       color="var(--public-accent)"
@@ -227,10 +206,7 @@ export default function FacultyStaffDetail() {
                       {member.position}
                     </Text>
 
-                    <Text
-                      mt={2}
-                      color="var(--public-muted)"
-                    >
+                    <Text mt={2} color="var(--public-muted)">
                       {member.department}
                     </Text>
                   </Box>
@@ -284,20 +260,13 @@ export default function FacultyStaffDetail() {
               </Flex>
 
               {member.description && (
-                <Box
-                  px={{ base: 6, md: 10 }}
-                  pb={{ base: 8, md: 12 }}
-                >
+                <Box px={{ base: 6, md: 10 }} pb={{ base: 8, md: 12 }}>
                   <Box
                     borderTopWidth="1px"
                     borderColor="var(--public-border)"
                     pt={8}
                   >
-                    <Heading
-                      size="lg"
-                      color="var(--public-text)"
-                      mb={5}
-                    >
+                    <Heading size="lg" color="var(--public-text)" mb={5}>
                       About {member.name}
                     </Heading>
 
@@ -331,9 +300,7 @@ export default function FacultyStaffDetail() {
                         },
                       }}
                       dangerouslySetInnerHTML={{
-                        __html: DOMPurify.sanitize(
-                          member.description
-                        ),
+                        __html: DOMPurify.sanitize(member.description),
                       }}
                     />
                   </Box>

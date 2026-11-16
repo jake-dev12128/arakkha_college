@@ -12,6 +12,10 @@ import {
   removeOrganizationChartImageSchema,
 } from "../schemas/organizationChart.schema.js";
 
+import {
+  toPublicImageUrl,
+} from "../utils/imageDelivery.js";
+
 // ==========================================
 // RESPONSE HELPERS
 // ==========================================
@@ -25,6 +29,74 @@ const sendSuccess = (
     success: true,
     data,
   });
+};
+
+// ==========================================
+// IMAGE DELIVERY RESPONSE MAPPING
+// ==========================================
+
+// Preserve original Cloudinary URLs.
+// Add delivery URLs for display only.
+// Never mutate the original service result.
+
+const mapImageDelivery = (image) => {
+  if (!image) {
+    return image;
+  }
+
+  const record =
+    typeof image.toObject === "function"
+      ? image.toObject()
+      : image;
+
+  return {
+    ...record,
+    deliveryUrl: record.url
+      ? toPublicImageUrl(record.url)
+      : null,
+  };
+};
+
+const mapAdminChartDelivery = (chart) => {
+  if (!chart) {
+    return chart;
+  }
+
+  const record =
+    typeof chart.toObject === "function"
+      ? chart.toObject()
+      : chart;
+
+  return {
+    ...record,
+
+    draftImage: mapImageDelivery(
+      record.draftImage
+    ),
+
+    publishedImage: mapImageDelivery(
+      record.publishedImage
+    ),
+  };
+};
+
+const mapPublicChartDelivery = (chart) => {
+  if (!chart) {
+    return chart;
+  }
+
+  const record =
+    typeof chart.toObject === "function"
+      ? chart.toObject()
+      : chart;
+
+  return {
+    ...record,
+
+    imageDeliveryUrl: record.imageUrl
+      ? toPublicImageUrl(record.imageUrl)
+      : null,
+  };
 };
 
 // ==========================================
@@ -91,7 +163,7 @@ export const publicOrganizationChart = asyncHandler(
     }
 
     return sendSuccess(res, {
-      chart,
+      chart: mapPublicChartDelivery(chart),
     });
   }
 );
@@ -109,7 +181,7 @@ export const adminOrganizationChart = asyncHandler(
       await organizationChartService.getAdminOrganizationChart();
 
     return sendSuccess(res, {
-      chart: chart ?? null,
+      chart: mapAdminChartDelivery(chart),
     });
   }
 );
@@ -138,7 +210,7 @@ export const createOrganizationChart = asyncHandler(
       res,
       {
         message: "Organization chart created successfully.",
-        chart,
+        chart: mapAdminChartDelivery(chart),
       },
       201
     );
@@ -167,7 +239,7 @@ export const updateOrganizationChart = asyncHandler(
 
     return sendSuccess(res, {
       message: "Organization chart updated successfully.",
-      chart,
+      chart: mapAdminChartDelivery(chart),
     });
   }
 );
@@ -193,7 +265,7 @@ export const publishOrganizationChart = asyncHandler(
 
     return sendSuccess(res, {
       message: "Organization chart published successfully.",
-      chart,
+      chart: mapAdminChartDelivery(chart),
     });
   }
 );
@@ -219,7 +291,7 @@ export const unpublishOrganizationChart = asyncHandler(
 
     return sendSuccess(res, {
       message: "Organization chart unpublished successfully.",
-      chart,
+      chart: mapAdminChartDelivery(chart),
     });
   }
 );
@@ -245,6 +317,6 @@ export const removeOrganizationChartDraftImage =
 
     return sendSuccess(res, {
       message: "Draft image removed successfully.",
-      chart,
+      chart: mapAdminChartDelivery(chart),
     });
   });

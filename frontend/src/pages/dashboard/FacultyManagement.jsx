@@ -570,8 +570,7 @@ export default function FacultyManagement() {
                         >
                           {member.image ? (
                             <Image
-                              src={member.image}
-                              alt={member.name}
+src={member.imageDeliveryUrl || member.image}                              alt={member.name}
                               boxSize="48px"
                               borderRadius="lg"
                               objectFit="cover"
@@ -1004,7 +1003,10 @@ export default function FacultyManagement() {
             >
               {viewMember.image && (
                 <Image
-                  src={viewMember.image}
+                 src={
+  viewMember.imageDeliveryUrl ||
+  viewMember.image
+}
                   alt={viewMember.name}
                   maxH="220px"
                   maxW="220px"

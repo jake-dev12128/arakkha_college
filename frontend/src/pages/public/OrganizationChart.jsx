@@ -52,6 +52,27 @@ const formatDate = (value) => {
 };
 
 // ==========================================
+// IMAGE DELIVERY HELPER
+// ==========================================
+
+// Prefer the configured public delivery URL.
+// Fall back to the original Cloudinary URL
+// for backward compatibility.
+//
+// This function does not modify chart data
+// or the URL stored in MongoDB.
+
+const getChartImageUrl = (chart) => {
+  if (!chart) return "";
+
+  return (
+    chart.imageDeliveryUrl ||
+    chart.imageUrl ||
+    ""
+  );
+};
+
+// ==========================================
 // PUBLIC ORGANIZATION CHART
 // ==========================================
 
@@ -65,6 +86,10 @@ export default function OrganizationChart() {
 
   const [zoom, setZoom] = useState(1);
   const [reloadKey, setReloadKey] = useState(0);
+
+  // Display URL only.
+  // The original chart.imageUrl is preserved.
+  const imageDisplayUrl = getChartImageUrl(chart);
 
   // ========================================
   // LOAD PUBLISHED CHART
@@ -87,7 +112,7 @@ export default function OrganizationChart() {
 
         if (!active) return;
 
-        if (!data?.imageUrl) {
+        if (!getChartImageUrl(data)) {
           setChart(null);
           setUnpublished(true);
           return;
@@ -155,10 +180,10 @@ export default function OrganizationChart() {
   // ========================================
 
   const openFullImage = () => {
-    if (!chart?.imageUrl) return;
+    if (!imageDisplayUrl) return;
 
     window.open(
-      chart.imageUrl,
+      imageDisplayUrl,
       "_blank",
       "noopener,noreferrer"
     );
@@ -169,14 +194,17 @@ export default function OrganizationChart() {
   // ========================================
 
   const downloadImage = () => {
-    if (!chart?.imageUrl) return;
+    if (!imageDisplayUrl) return;
 
-    // Cloudinary is a cross-origin resource.
-    // Opening the image lets users save it
-    // without relying on the HTML download
-    // attribute for cross-origin URLs.
+    // Opening the image in a new tab allows
+    // users to save it without depending on
+    // the HTML download attribute.
+    //
+    // This preserves the existing behavior
+    // for cross-origin image delivery.
+
     window.open(
-      chart.imageUrl,
+      imageDisplayUrl,
       "_blank",
       "noopener,noreferrer"
     );
@@ -456,7 +484,7 @@ export default function OrganizationChart() {
                   transition="width 0.2s ease"
                 >
                   <Image
-                    src={chart.imageUrl}
+                    src={imageDisplayUrl}
                     alt={
                       chart.title ||
                       "ACC Computer College Organization Chart"

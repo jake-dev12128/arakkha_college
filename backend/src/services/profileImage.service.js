@@ -16,8 +16,8 @@ const fail = (message, statusCode = 400) => {
 // ==========================================
 export const updateMyProfileImage = async ({ userId, mediaId }) => {
   if (!mongoose.isObjectIdOrHexString(mediaId)) {
-    throw profileImageError("Invalid media ID.");
-  }
+  throw fail("Invalid media ID.", 400);
+}
 
   let previousMediaId = null;
   let updatedUser = null;

@@ -1,4 +1,6 @@
-import { useState } from "react";
+
+import { useEffect, useState } from "react";
+
 import {
   Box,
   Image,
@@ -9,6 +11,14 @@ import {
 
 import { mediaService } from "../../services/media.service.js";
 
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+
+const ALLOWED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+];
+
 export default function ImageUploader({
   category,
   value,
@@ -18,23 +28,34 @@ export default function ImageUploader({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
+  // Keep the original URL for form attachment,
+  // and the delivery URL for preview only.
+  const [uploadedPreview, setUploadedPreview] =
+    useState(null);
+
+  // Clear an old preview when the uploader
+  // category changes.
+  useEffect(() => {
+    setUploadedPreview(null);
+    setError("");
+  }, [category]);
+
   const handleChange = async (event) => {
     const file = event.target.files?.[0];
+
     if (!file) return;
 
     event.target.value = "";
     setError("");
 
-    if (file.size > 5 * 1024 * 1024) {
+    if (uploading) return;
+
+    if (file.size > MAX_IMAGE_SIZE) {
       setError("Maximum image size is 5 MB.");
       return;
     }
 
-    if (![
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-    ].includes(file.type)) {
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
       setError("Unsupported image format.");
       return;
     }
@@ -48,10 +69,29 @@ export default function ImageUploader({
         file
       );
 
-      onUploaded(result);
+      if (!result?.mediaId || !result?.url) {
+        throw new Error(
+          "Image upload returned incomplete data."
+        );
+      }
+
+      // Preserve the original upload response.
+      // Parent forms still save result.url and
+      // result.mediaId using their existing logic.
+      onUploaded?.(result);
+
+      // Use the custom delivery URL for preview
+      // only when the parent value matches the
+      // uploaded original URL.
+      setUploadedPreview({
+        originalUrl: result.url,
+        deliveryUrl:
+          result.deliveryUrl || result.url,
+      });
     } catch (err) {
       setError(
         err.response?.data?.message ||
+        err.message ||
         "Image upload failed."
       );
     } finally {
@@ -59,6 +99,12 @@ export default function ImageUploader({
       onUploadingChange?.(false);
     }
   };
+
+  const previewUrl =
+    value &&
+    uploadedPreview?.originalUrl === value
+      ? uploadedPreview.deliveryUrl
+      : value;
 
   return (
     <VStack align="stretch" gap="3">
@@ -69,7 +115,9 @@ export default function ImageUploader({
         onChange={handleChange}
       />
 
-      {uploading && <Text>Uploading image...</Text>}
+      {uploading && (
+        <Text>Uploading image...</Text>
+      )}
 
       {error && (
         <Text color="red.500" role="alert">
@@ -77,10 +125,10 @@ export default function ImageUploader({
         </Text>
       )}
 
-      {value && (
+      {previewUrl && (
         <Box>
           <Image
-            src={value}
+            src={previewUrl}
             maxH="200px"
             objectFit="contain"
             borderRadius="lg"

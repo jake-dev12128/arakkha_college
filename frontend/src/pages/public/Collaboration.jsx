@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import {
   Box,
@@ -28,10 +27,9 @@ export default function Collaboration() {
 
     async function loadPartners() {
       try {
-        const data =
-          await collaborationPartnerService.getPublic({
-            signal: controller.signal,
-          });
+        const data = await collaborationPartnerService.getPublic({
+          signal: controller.signal,
+        });
 
         if (active) {
           setPartners(data.partners || []);
@@ -63,10 +61,7 @@ export default function Collaboration() {
       <Container maxW="1280px" py={{ base: 10, md: 16 }}>
         {loading && (
           <Flex justify="center" py={16}>
-            <Spinner
-              size="lg"
-              color="var(--public-accent)"
-            />
+            <Spinner size="lg" color="var(--public-accent)" />
           </Flex>
         )}
 
@@ -77,11 +72,7 @@ export default function Collaboration() {
         )}
 
         {!loading && !error && partners.length === 0 && (
-          <Text
-            color="var(--public-muted)"
-            textAlign="center"
-            py={10}
-          >
+          <Text color="var(--public-muted)" textAlign="center" py={10}>
             No collaboration partners are currently available.
           </Text>
         )}
@@ -129,7 +120,7 @@ export default function Collaboration() {
                   >
                     {partner.logo ? (
                       <Image
-                        src={partner.logo}
+                        src={partner.logoDeliveryUrl || partner.logo}
                         alt={`${partner.name} logo`}
                         w="100%"
                         h="100%"
@@ -152,11 +143,7 @@ export default function Collaboration() {
                       {partner.type}
                     </Text>
 
-                    <Heading
-                      size="md"
-                      mt={2}
-                      color="var(--public-text)"
-                    >
+                    <Heading size="md" mt={2} color="var(--public-text)">
                       {partner.name}
                     </Heading>
                   </Box>

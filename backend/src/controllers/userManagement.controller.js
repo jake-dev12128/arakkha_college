@@ -14,6 +14,10 @@ import {
 import { asyncHandler } from "../utils/asyncHandler.js";
 import AppError from "../utils/AppError.js";
 
+import {
+  toPublicImageUrl,
+} from "../utils/imageDelivery.js";
+
 // ==================================================
 // HELPERS
 // ==================================================
@@ -34,6 +38,47 @@ const validateUserId = (id) => {
 };
 
 // ==================================================
+// PROFILE IMAGE DELIVERY MAPPING
+// ==================================================
+
+// Preserve original Cloudinary URL and media ID.
+// Add a display-only URL to user responses.
+//
+// This helper also handles lifecycle results
+// that do not contain a user profile.
+
+const withImageDelivery = (user) => {
+  if (
+    !user ||
+    typeof user !== "object" ||
+    Array.isArray(user)
+  ) {
+    return user;
+  }
+
+  // Avoid adding profile fields to lifecycle
+  // metadata objects that are not user records.
+  const isUserRecord =
+    user._id != null ||
+    user.id != null ||
+    user.clerkId != null;
+
+  if (!isUserRecord) {
+    return user;
+  }
+
+  return {
+    ...user,
+
+    profileImageDeliveryUrl:
+      typeof user.profileImage === "string" &&
+      user.profileImage.trim()
+        ? toPublicImageUrl(user.profileImage)
+        : null,
+  };
+};
+
+// ==================================================
 // LIST MANAGED USERS
 // GET /api/v1/admin/users
 // ==================================================
@@ -48,7 +93,14 @@ export const listManagedUsersController =
 
     return res.status(200).json({
       success: true,
-      data: result,
+
+      data: {
+        ...result,
+
+        users: Array.isArray(result.users)
+          ? result.users.map(withImageDelivery)
+          : result.users,
+      },
     });
   });
 
@@ -70,8 +122,9 @@ export const getManagedUserController =
 
     return res.status(200).json({
       success: true,
+
       data: {
-        user,
+        user: withImageDelivery(user),
       },
     });
   });
@@ -96,8 +149,9 @@ export const updateManagedUserController =
     return res.status(200).json({
       success: true,
       message: "User updated successfully.",
+
       data: {
-        user,
+        user: withImageDelivery(user),
       },
     });
   });
@@ -146,7 +200,9 @@ export const deactivateManagedUserController =
             : "User deactivated successfully.",
 
         data: {
-          user: result.user ?? result,
+          user: withImageDelivery(
+            result.user ?? result
+          ),
 
           lifecycle: {
             operationId:
@@ -194,7 +250,10 @@ export const reactivateManagedUserController =
         : "User reactivated successfully.",
 
       data: {
-        user: result.user ?? result,
+        user: withImageDelivery(
+          result.user ?? result
+        ),
+
         alreadyActive:
           result.alreadyActive === true,
       },
@@ -231,6 +290,7 @@ export const permanentlyDeleteManagedUserController =
       success: true,
       message:
         "User permanently deleted.",
+
       data: {
         result,
       },
@@ -249,6 +309,7 @@ export const getAdminDashboardStatsController =
 
     return res.status(200).json({
       success: true,
+
       data: {
         stats,
       },

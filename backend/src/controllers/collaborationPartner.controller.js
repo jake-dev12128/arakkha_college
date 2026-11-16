@@ -8,6 +8,14 @@ import {
   collaborationPublicationSchema,
 } from "../schemas/collaborationPartner.schema.js";
 
+import {
+  toPublicImageUrl,
+} from "../utils/imageDelivery.js";
+
+// ==================================================
+// RESPONSE HELPERS
+// ==================================================
+
 const sendSuccess = (res, data, statusCode = 200) =>
   res.status(statusCode).json({
     success: true,
@@ -47,13 +55,44 @@ const getActorId = (req) => {
 };
 
 // ==================================================
+// IMAGE DELIVERY RESPONSE MAPPING
+// ==================================================
+
+// Keep the original Cloudinary logo unchanged.
+// Add logoDeliveryUrl for frontend display.
+// Never mutate the original Mongoose document.
+
+const mapCollaborationDelivery = (partner) => {
+  if (!partner) {
+    return partner;
+  }
+
+  const record =
+    typeof partner.toObject === "function"
+      ? partner.toObject()
+      : partner;
+
+  return {
+    ...record,
+    logoDeliveryUrl: record.logo
+      ? toPublicImageUrl(record.logo)
+      : null,
+  };
+};
+
+const mapCollaborationListDelivery = (partners) =>
+  partners.map(mapCollaborationDelivery);
+
+// ==================================================
 // PUBLIC
 // ==================================================
 
 export const listPublicCollaborations = async (req, res) => {
   const partners = await service.getPublicPartners();
 
-  return sendSuccess(res, { partners });
+  return sendSuccess(res, {
+    partners: mapCollaborationListDelivery(partners),
+  });
 };
 
 export const getPublicCollaboration = async (req, res) => {
@@ -61,7 +100,9 @@ export const getPublicCollaboration = async (req, res) => {
 
   const partner = await service.getPublicPartnerById(id);
 
-  return sendSuccess(res, { partner });
+  return sendSuccess(res, {
+    partner: mapCollaborationDelivery(partner),
+  });
 };
 
 // ==================================================
@@ -71,7 +112,9 @@ export const getPublicCollaboration = async (req, res) => {
 export const listAdminCollaborations = async (req, res) => {
   const partners = await service.getAllPartners();
 
-  return sendSuccess(res, { partners });
+  return sendSuccess(res, {
+    partners: mapCollaborationListDelivery(partners),
+  });
 };
 
 export const getAdminCollaboration = async (req, res) => {
@@ -79,7 +122,9 @@ export const getAdminCollaboration = async (req, res) => {
 
   const partner = await service.getAdminPartnerById(id);
 
-  return sendSuccess(res, { partner });
+  return sendSuccess(res, {
+    partner: mapCollaborationDelivery(partner),
+  });
 };
 
 // ==================================================
@@ -99,7 +144,13 @@ export const createCollaboration = async (req, res) => {
     actorId
   );
 
-  return sendSuccess(res, { partner }, 201);
+  return sendSuccess(
+    res,
+    {
+      partner: mapCollaborationDelivery(partner),
+    },
+    201
+  );
 };
 
 // ==================================================
@@ -121,7 +172,9 @@ export const updateCollaboration = async (req, res) => {
     actorId
   );
 
-  return sendSuccess(res, { partner });
+  return sendSuccess(res, {
+    partner: mapCollaborationDelivery(partner),
+  });
 };
 
 // ==================================================
@@ -141,7 +194,9 @@ export const publishCollaboration = async (req, res) => {
     isPublished
   );
 
-  return sendSuccess(res, { partner });
+  return sendSuccess(res, {
+    partner: mapCollaborationDelivery(partner),
+  });
 };
 
 // ==================================================

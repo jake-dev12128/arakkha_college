@@ -2,8 +2,19 @@ import { useOutletContext } from "react-router-dom";
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  Badge, Box, Button, Field, Flex, Heading, Image,
-  Input, Spinner, Table, Text, Textarea, VStack,
+  Badge,
+  Box,
+  Button,
+  Field,
+  Flex,
+  Heading,
+  Image,
+  Input,
+  Spinner,
+  Table,
+  Text,
+  Textarea,
+  VStack,
 } from "@chakra-ui/react";
 import DOMPurify from "dompurify";
 
@@ -25,9 +36,7 @@ const emptyForm = () => ({
 });
 
 const getError = (error) =>
-  error?.response?.data?.message ||
-  error?.message ||
-  "Something went wrong.";
+  error?.response?.data?.message || error?.message || "Something went wrong.";
 
 const hasText = (html) =>
   String(html || "")
@@ -136,8 +145,8 @@ export default function CollaborationManagement() {
           key === "logoMediaId"
             ? (partner[key] ?? undefined)
             : (partner[key] ?? defaults[key]),
-        ])
-      )
+        ]),
+      ),
     );
 
     setError("");
@@ -164,37 +173,28 @@ export default function CollaborationManagement() {
     setSuccess("");
 
     if (!form.name.trim() || !form.type.trim()) {
-      setError(
-        "Organization name and partner type are required."
-      );
+      setError("Organization name and partner type are required.");
       return;
     }
 
     const order = Number(form.displayOrder);
 
     if (!Number.isInteger(order) || order < 0) {
-      setError(
-        "Display order must be a non-negative integer."
-      );
+      setError("Display order must be a non-negative integer.");
       return;
     }
 
     const payload = {
       ...form,
       displayOrder: order,
-      description: hasText(form.description)
-        ? form.description
-        : "",
+      description: hasText(form.description) ? form.description : "",
     };
 
     setBusy(true);
 
     try {
       if (editingId) {
-        await collaborationPartnerService.update(
-          editingId,
-          payload
-        );
+        await collaborationPartnerService.update(editingId, payload);
       } else {
         await collaborationPartnerService.create(payload);
       }
@@ -206,7 +206,7 @@ export default function CollaborationManagement() {
       setSuccess(
         editingId
           ? "Partner updated successfully."
-          : "Partner created successfully."
+          : "Partner created successfully.",
       );
 
       await loadPartners();
@@ -221,11 +221,7 @@ export default function CollaborationManagement() {
     if (!canManage) return;
     const next = !partner.isPublished;
 
-    if (
-      !window.confirm(
-        `${next ? "Publish" : "Unpublish"} ${partner.name}?`
-      )
-    ) {
+    if (!window.confirm(`${next ? "Publish" : "Unpublish"} ${partner.name}?`)) {
       return;
     }
 
@@ -234,15 +230,12 @@ export default function CollaborationManagement() {
     setSuccess("");
 
     try {
-      await collaborationPartnerService.setPublication(
-        partner._id,
-        next
-      );
+      await collaborationPartnerService.setPublication(partner._id, next);
 
       setSuccess(
         next
           ? "Partner published successfully."
-          : "Partner unpublished successfully."
+          : "Partner unpublished successfully.",
       );
 
       await loadPartners();
@@ -257,7 +250,7 @@ export default function CollaborationManagement() {
     if (!canManage) return;
     if (
       !window.confirm(
-        `Permanently delete ${partner.name}? This cannot be undone.`
+        `Permanently delete ${partner.name}? This cannot be undone.`,
       )
     ) {
       return;
@@ -268,9 +261,7 @@ export default function CollaborationManagement() {
     setSuccess("");
 
     try {
-      await collaborationPartnerService.remove(
-        partner._id
-      );
+      await collaborationPartnerService.remove(partner._id);
 
       setSuccess("Partner deleted successfully.");
       await loadPartners();
@@ -290,10 +281,7 @@ export default function CollaborationManagement() {
     setError("");
 
     try {
-      const data =
-        await collaborationPartnerService.getById(
-          partner._id
-        );
+      const data = await collaborationPartnerService.getById(partner._id);
 
       setViewPartner(data.partner);
     } catch (err) {
@@ -302,34 +290,26 @@ export default function CollaborationManagement() {
   };
 
   const filteredPartners = partners.filter((partner) => {
-    if (
-      statusFilter === "active" &&
-      partner.isActive !== true
-    ) {
+    if (statusFilter === "active" && partner.isActive !== true) {
       return false;
     }
 
-    if (
-      statusFilter === "inactive" &&
-      partner.isActive !== false
-    ) {
+    if (statusFilter === "inactive" && partner.isActive !== false) {
       return false;
     }
 
     const query = search.trim().toLowerCase();
 
     return [partner.name, partner.type].some((value) =>
-      String(value || "").toLowerCase().includes(query)
+      String(value || "")
+        .toLowerCase()
+        .includes(query),
     );
   });
 
   if (loading) {
     return (
-      <Flex
-        minH="300px"
-        align="center"
-        justify="center"
-      >
+      <Flex minH="300px" align="center" justify="center">
         <Spinner size="lg" />
       </Flex>
     );
@@ -340,30 +320,25 @@ export default function CollaborationManagement() {
       <VStack align="stretch" gap="6">
         {/* PAGE HEADER */}
 
-        <Flex
-          justify="space-between"
-          align="center"
-          gap="4"
-          wrap="wrap"
-        >
+        <Flex justify="space-between" align="center" gap="4" wrap="wrap">
           <Box>
-            <Heading size="xl">
-              Collaboration Management
-            </Heading>
+            <Heading size="xl">Collaboration Management</Heading>
             <Text color="fg.muted" mt="1">
-              {isReadOnly ? "View partner organizations (read-only)." : "Manage partner organizations and public visibility."}
+              {isReadOnly
+                ? "View partner organizations (read-only)."
+                : "Manage partner organizations and public visibility."}
             </Text>
           </Box>
 
           {canManage && (
-<Button
-            colorPalette="blue"
-            disabled={busy || imageUploading}
-            onClick={openCreate}
-          >
-            + Add Partner
-          </Button>
-)}
+            <Button
+              colorPalette="blue"
+              disabled={busy || imageUploading}
+              onClick={openCreate}
+            >
+              + Add Partner
+            </Button>
+          )}
         </Flex>
 
         {error && !formOpen && (
@@ -394,11 +369,7 @@ export default function CollaborationManagement() {
 
         {/* PARTNER TABLE */}
 
-        <Box
-          borderWidth="1px"
-          borderRadius="xl"
-          overflow="hidden"
-        >
+        <Box borderWidth="1px" borderRadius="xl" overflow="hidden">
           <Flex
             p="5"
             gap="4"
@@ -407,9 +378,7 @@ export default function CollaborationManagement() {
             wrap="wrap"
           >
             <Box>
-              <Heading size="md">
-                Collaboration Partners
-              </Heading>
+              <Heading size="md">Collaboration Partners</Heading>
               <Text fontSize="sm" color="fg.muted">
                 {partners.length} total partners
               </Text>
@@ -439,18 +408,10 @@ export default function CollaborationManagement() {
             <Table.Root size="sm" variant="line">
               <Table.Header>
                 <Table.Row>
-                  <Table.ColumnHeader>
-                    Partner
-                  </Table.ColumnHeader>
-                  <Table.ColumnHeader>
-                    Type
-                  </Table.ColumnHeader>
-                  <Table.ColumnHeader>
-                    Status
-                  </Table.ColumnHeader>
-                  <Table.ColumnHeader>
-                    Order
-                  </Table.ColumnHeader>
+                  <Table.ColumnHeader>Partner</Table.ColumnHeader>
+                  <Table.ColumnHeader>Type</Table.ColumnHeader>
+                  <Table.ColumnHeader>Status</Table.ColumnHeader>
+                  <Table.ColumnHeader>Order</Table.ColumnHeader>
                   <Table.ColumnHeader textAlign="end">
                     Actions
                   </Table.ColumnHeader>
@@ -461,11 +422,7 @@ export default function CollaborationManagement() {
                 {filteredPartners.length === 0 ? (
                   <Table.Row>
                     <Table.Cell colSpan={5}>
-                      <Text
-                        py="8"
-                        textAlign="center"
-                        color="fg.muted"
-                      >
+                      <Text py="8" textAlign="center" color="fg.muted">
                         No collaboration partners found.
                       </Text>
                     </Table.Cell>
@@ -474,14 +431,10 @@ export default function CollaborationManagement() {
                   filteredPartners.map((partner) => (
                     <Table.Row key={partner._id}>
                       <Table.Cell>
-                        <Flex
-                          align="center"
-                          gap="3"
-                          minW="190px"
-                        >
+                        <Flex align="center" gap="3" minW="190px">
                           {partner.logo ? (
                             <Image
-                              src={partner.logo}
+                              src={partner.logoDeliveryUrl || partner.logo}
                               alt={partner.name}
                               boxSize="48px"
                               borderRadius="lg"
@@ -502,112 +455,81 @@ export default function CollaborationManagement() {
                           )}
 
                           <Box>
-                            <Text fontWeight="semibold">
-                              {partner.name}
-                            </Text>
-                            <Text
-                              fontSize="xs"
-                              color="fg.muted"
-                            >
+                            <Text fontWeight="semibold">{partner.name}</Text>
+                            <Text fontSize="xs" color="fg.muted">
                               {partner.shortDescription}
                             </Text>
                           </Box>
                         </Flex>
                       </Table.Cell>
 
-                      <Table.Cell>
-                        {partner.type}
-                      </Table.Cell>
+                      <Table.Cell>{partner.type}</Table.Cell>
 
                       <Table.Cell>
                         <VStack align="start" gap="1">
                           <Badge
                             colorPalette={
-                              partner.isPublished
-                                ? "green"
-                                : "gray"
+                              partner.isPublished ? "green" : "gray"
                             }
                           >
-                            {partner.isPublished
-                              ? "Published"
-                              : "Draft"}
+                            {partner.isPublished ? "Published" : "Draft"}
                           </Badge>
 
                           {!partner.isActive && (
-                            <Badge colorPalette="orange">
-                              Inactive
-                            </Badge>
+                            <Badge colorPalette="orange">Inactive</Badge>
                           )}
                         </VStack>
                       </Table.Cell>
 
-                      <Table.Cell>
-                        {partner.displayOrder}
-                      </Table.Cell>
+                      <Table.Cell>{partner.displayOrder}</Table.Cell>
 
                       <Table.Cell textAlign="end">
-                        <Flex
-                          gap="2"
-                          justify="flex-end"
-                          wrap="wrap"
-                        >
+                        <Flex gap="2" justify="flex-end" wrap="wrap">
                           <Button
+                            size="xs"
+                            variant="outline"
+                            disabled={busy || imageUploading}
+                            onClick={() => handleView(partner)}
+                          >
+                            View
+                          </Button>
+
+                          {canManage && (
+                            <Button
                               size="xs"
                               variant="outline"
                               disabled={busy || imageUploading}
-                              onClick={() =>
-                                handleView(partner)
-                              }
+                              onClick={() => openEdit(partner)}
                             >
-                              View
+                              Edit
                             </Button>
+                          )}
 
                           {canManage && (
-<Button
-                            size="xs"
-                            variant="outline"
-                            disabled={busy || imageUploading}
-                            onClick={() =>
-                              openEdit(partner)
-                            }
-                          >
-                            Edit
-                          </Button>
-)}
+                            <Button
+                              size="xs"
+                              colorPalette={
+                                partner.isPublished ? "orange" : "green"
+                              }
+                              variant="outline"
+                              disabled={busy || imageUploading}
+                              onClick={() => handlePublication(partner)}
+                            >
+                              {partner.isPublished ? "Unpublish" : "Publish"}
+                            </Button>
+                          )}
 
                           {canManage && (
-<Button
-                            size="xs"
-                            colorPalette={
-                              partner.isPublished
-                                ? "orange"
-                                : "green"
-                            }
-                            variant="outline"
-                            disabled={busy || imageUploading}
-                            onClick={() =>
-                              handlePublication(partner)
-                            }
-                          >
-                            {partner.isPublished
-                              ? "Unpublish"
-                              : "Publish"}
-                          </Button>
-)}
-
-                          {canManage && (
-<Button
-                            size="xs"
-                            colorPalette="red"
-                            variant="outline"
-                            disabled={busy || imageUploading}
-                            onClick={() =>
-                              handleDelete(partner)
-                            }
-                          >
-                            Delete
-                          </Button>
-)}
+                            <Button
+                              size="xs"
+                              colorPalette="red"
+                              variant="outline"
+                              disabled={busy || imageUploading}
+                              onClick={() => handleDelete(partner)}
+                            >
+                              Delete
+                            </Button>
+                          )}
                         </Flex>
                       </Table.Cell>
                     </Table.Row>
@@ -622,10 +544,7 @@ export default function CollaborationManagement() {
       {/* CREATE / EDIT PANEL */}
 
       {canManage && formOpen && (
-        <SidePanel
-          title="Collaboration partner form"
-          onClose={closeForm}
-        >
+        <SidePanel title="Collaboration partner form" onClose={closeForm}>
           <Flex
             p="5"
             justify="space-between"
@@ -634,14 +553,9 @@ export default function CollaborationManagement() {
           >
             <Box>
               <Heading size="lg">
-                {editingId
-                  ? "Edit Partner"
-                  : "Create Partner"}
+                {editingId ? "Edit Partner" : "Create Partner"}
               </Heading>
-              <Text
-                fontSize="sm"
-                color="fg.muted"
-              >
+              <Text fontSize="sm" color="fg.muted">
                 Organization information
               </Text>
             </Box>
@@ -656,10 +570,7 @@ export default function CollaborationManagement() {
           </Flex>
 
           <Box flex="1" overflowY="auto" p="5">
-            <form
-              id="collaboration-form"
-              onSubmit={handleSave}
-            >
+            <form id="collaboration-form" onSubmit={handleSave}>
               <VStack align="stretch" gap="4">
                 {error && (
                   <Box
@@ -675,21 +586,14 @@ export default function CollaborationManagement() {
                 )}
 
                 <Field.Root>
-                  <Field.Label>
-                    Partner Logo
-                  </Field.Label>
+                  <Field.Label>Partner Logo</Field.Label>
 
                   <ImageUploader
                     category="collaborations"
                     value={form.logo}
                     onUploaded={(image) => {
-                      if (
-                        !image?.mediaId ||
-                        !image?.url
-                      ) {
-                        setError(
-                          "Upload response is missing mediaId or URL."
-                        );
+                      if (!image?.mediaId || !image?.url) {
+                        setError("Upload response is missing mediaId or URL.");
                         return;
                       }
 
@@ -699,9 +603,7 @@ export default function CollaborationManagement() {
                         logoMediaId: image.mediaId,
                       }));
                     }}
-                    onUploadingChange={
-                      setImageUploading
-                    }
+                    onUploadingChange={setImageUploading}
                   />
 
                   {form.logo && (
@@ -723,59 +625,36 @@ export default function CollaborationManagement() {
                     </Button>
                   )}
 
-                  <Text
-                    fontSize="xs"
-                    color="fg.muted"
-                  >
-                    Upload JPG, PNG or WebP (max 5 MB).
-                    Unused uploads are cleaned up by the backend.
+                  <Text fontSize="xs" color="fg.muted">
+                    Upload JPG, PNG or WebP (max 5 MB). Unused uploads are
+                    cleaned up by the backend.
                   </Text>
                 </Field.Root>
 
-                {fields.map(
-                  ([key, label, required]) => (
-                    <Field.Root
-                      key={key}
-                      required={required}
-                    >
-                      <Field.Label>
-                        {label}
-                      </Field.Label>
+                {fields.map(([key, label, required]) => (
+                  <Field.Root key={key} required={required}>
+                    <Field.Label>{label}</Field.Label>
 
-                      <Input
-                        value={form[key]}
-                        disabled={
-                          busy || imageUploading
-                        }
-                        type={
-                          key === "email"
-                            ? "email"
-                            : "text"
-                        }
-                        maxLength={
-                          key === "name"
-                            ? 150
-                            : key === "type"
-                              ? 100
-                              : key === "email"
-                                ? 254
-                                : 2048
-                        }
-                        onChange={(event) =>
-                          updateField(
-                            key,
-                            event.target.value
-                          )
-                        }
-                      />
-                    </Field.Root>
-                  )
-                )}
+                    <Input
+                      value={form[key]}
+                      disabled={busy || imageUploading}
+                      type={key === "email" ? "email" : "text"}
+                      maxLength={
+                        key === "name"
+                          ? 150
+                          : key === "type"
+                            ? 100
+                            : key === "email"
+                              ? 254
+                              : 2048
+                      }
+                      onChange={(event) => updateField(key, event.target.value)}
+                    />
+                  </Field.Root>
+                ))}
 
                 <Field.Root>
-                  <Field.Label>
-                    Short Description
-                  </Field.Label>
+                  <Field.Label>Short Description</Field.Label>
 
                   <Textarea
                     rows={3}
@@ -783,40 +662,26 @@ export default function CollaborationManagement() {
                     maxLength={5000}
                     disabled={busy || imageUploading}
                     onChange={(event) =>
-                      updateField(
-                        "shortDescription",
-                        event.target.value
-                      )
+                      updateField("shortDescription", event.target.value)
                     }
                   />
                 </Field.Root>
 
                 <Field.Root>
-                  <Field.Label>
-                    Detailed Description
-                  </Field.Label>
+                  <Field.Label>Detailed Description</Field.Label>
 
                   <Box width="100%" minW="0">
                     <RichTextEditor
                       value={form.description}
-                      onChange={(value) =>
-                        updateField(
-                          "description",
-                          value
-                        )
-                      }
+                      onChange={(value) => updateField("description", value)}
                       minHeight="180px"
-                      disabled={
-                        busy || imageUploading
-                      }
+                      disabled={busy || imageUploading}
                     />
                   </Box>
                 </Field.Root>
 
                 <Field.Root>
-                  <Field.Label>
-                    Display Order
-                  </Field.Label>
+                  <Field.Label>Display Order</Field.Label>
 
                   <Input
                     type="number"
@@ -825,10 +690,7 @@ export default function CollaborationManagement() {
                     value={form.displayOrder}
                     disabled={busy || imageUploading}
                     onChange={(event) =>
-                      updateField(
-                        "displayOrder",
-                        event.target.value
-                      )
+                      updateField("displayOrder", event.target.value)
                     }
                   />
                 </Field.Root>
@@ -836,12 +698,7 @@ export default function CollaborationManagement() {
             </form>
           </Box>
 
-          <Flex
-            p="5"
-            gap="3"
-            justify="flex-end"
-            borderTopWidth="1px"
-          >
+          <Flex p="5" gap="3" justify="flex-end" borderTopWidth="1px">
             <Button
               variant="outline"
               disabled={busy || imageUploading}
@@ -857,9 +714,7 @@ export default function CollaborationManagement() {
               loading={busy}
               disabled={busy || imageUploading}
             >
-              {editingId
-                ? "Save Changes"
-                : "Create Partner"}
+              {editingId ? "Save Changes" : "Create Partner"}
             </Button>
           </Flex>
         </SidePanel>
@@ -870,9 +725,7 @@ export default function CollaborationManagement() {
       {viewPartner && (
         <SidePanel
           title="Collaboration partner details"
-          onClose={() =>
-            setViewPartner(null)
-          }
+          onClose={() => setViewPartner(null)}
         >
           <Flex
             p="5"
@@ -880,16 +733,9 @@ export default function CollaborationManagement() {
             justify="space-between"
             borderBottomWidth="1px"
           >
-            <Heading size="lg">
-              Partner Details
-            </Heading>
+            <Heading size="lg">Partner Details</Heading>
 
-            <Button
-              variant="outline"
-              onClick={() =>
-                setViewPartner(null)
-              }
-            >
+            <Button variant="outline" onClick={() => setViewPartner(null)}>
               Close
             </Button>
           </Flex>
@@ -898,7 +744,7 @@ export default function CollaborationManagement() {
             <VStack align="stretch" gap="5">
               {viewPartner.logo && (
                 <Image
-                  src={viewPartner.logo}
+                  src={viewPartner.logoDeliveryUrl || viewPartner.logo}
                   alt={viewPartner.name}
                   maxH="150px"
                   maxW="260px"
@@ -907,21 +753,13 @@ export default function CollaborationManagement() {
               )}
 
               <Box>
-                <Heading size="xl">
-                  {viewPartner.name}
-                </Heading>
+                <Heading size="xl">{viewPartner.name}</Heading>
 
-                <Text
-                  mt="2"
-                  color="fg.muted"
-                >
+                <Text mt="2" color="fg.muted">
                   {viewPartner.type}
                 </Text>
 
-                <Badge
-                  colorPalette="green"
-                  mt="3"
-                >
+                <Badge colorPalette="green" mt="3">
                   Published
                 </Badge>
               </Box>
@@ -948,30 +786,21 @@ export default function CollaborationManagement() {
                       listStyleType: "decimal",
                     },
                     "& a": {
-                      color:
-                        "var(--chakra-colors-blue-500)",
+                      color: "var(--chakra-colors-blue-500)",
                       textDecoration: "underline",
                     },
                   }}
                   dangerouslySetInnerHTML={{
-                    __html: DOMPurify.sanitize(
-                      viewPartner.description
-                    ),
+                    __html: DOMPurify.sanitize(viewPartner.description),
                   }}
                 />
               )}
 
               {viewPartner.websiteUrl && (
-                <Text>
-                  Website: {viewPartner.websiteUrl}
-                </Text>
+                <Text>Website: {viewPartner.websiteUrl}</Text>
               )}
 
-              {viewPartner.email && (
-                <Text>
-                  Email: {viewPartner.email}
-                </Text>
-              )}
+              {viewPartner.email && <Text>Email: {viewPartner.email}</Text>}
             </VStack>
           </Box>
         </SidePanel>

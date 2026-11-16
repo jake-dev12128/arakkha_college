@@ -8,6 +8,14 @@ import {
   facultyPublicationSchema,
 } from "../schemas/facultyMember.schema.js";
 
+import {
+  toPublicImageUrl,
+} from "../utils/imageDelivery.js";
+
+// ==================================================
+// RESPONSE HELPERS
+// ==================================================
+
 const sendSuccess = (res, data, statusCode = 200) =>
   res.status(statusCode).json({
     success: true,
@@ -47,21 +55,56 @@ const getActorId = (req) => {
 };
 
 // ==================================================
+// IMAGE DELIVERY RESPONSE MAPPING
+// ==================================================
+
+// Never mutate original MongoDB documents.
+// Keep the original image URL unchanged.
+// Add imageDeliveryUrl for frontend display.
+
+const mapFacultyDelivery = (member) => {
+  if (!member) {
+    return member;
+  }
+
+  const record =
+    typeof member.toObject === "function"
+      ? member.toObject()
+      : member;
+
+  return {
+    ...record,
+    imageDeliveryUrl: record.image
+      ? toPublicImageUrl(record.image)
+      : null,
+  };
+};
+
+const mapFacultyListDelivery = (members) =>
+  members.map(mapFacultyDelivery);
+
+// ==================================================
 // PUBLIC
 // ==================================================
 
 export const listPublicFaculty = async (req, res) => {
-  const members = await facultyService.getPublicFacultyMembers();
+  const members =
+    await facultyService.getPublicFacultyMembers();
 
-  return sendSuccess(res, { members });
+  return sendSuccess(res, {
+    members: mapFacultyListDelivery(members),
+  });
 };
 
 export const getPublicFaculty = async (req, res) => {
   const id = validateId(req);
 
-  const member = await facultyService.getPublicFacultyMemberById(id);
+  const member =
+    await facultyService.getPublicFacultyMemberById(id);
 
-  return sendSuccess(res, { member });
+  return sendSuccess(res, {
+    member: mapFacultyDelivery(member),
+  });
 };
 
 // ==================================================
@@ -69,17 +112,23 @@ export const getPublicFaculty = async (req, res) => {
 // ==================================================
 
 export const listAdminFaculty = async (req, res) => {
-  const members = await facultyService.getAllFacultyMembers();
+  const members =
+    await facultyService.getAllFacultyMembers();
 
-  return sendSuccess(res, { members });
+  return sendSuccess(res, {
+    members: mapFacultyListDelivery(members),
+  });
 };
 
 export const getAdminFaculty = async (req, res) => {
   const id = validateId(req);
 
-  const member = await facultyService.getAdminFacultyMemberById(id);
+  const member =
+    await facultyService.getAdminFacultyMemberById(id);
 
-  return sendSuccess(res, { member });
+  return sendSuccess(res, {
+    member: mapFacultyDelivery(member),
+  });
 };
 
 // ==================================================
@@ -94,12 +143,19 @@ export const createFaculty = async (req, res) => {
     req.body
   );
 
-  const member = await facultyService.createFacultyMember(
-    payload,
-    actorId
-  );
+  const member =
+    await facultyService.createFacultyMember(
+      payload,
+      actorId
+    );
 
-  return sendSuccess(res, { member }, 201);
+  return sendSuccess(
+    res,
+    {
+      member: mapFacultyDelivery(member),
+    },
+    201
+  );
 };
 
 // ==================================================
@@ -115,13 +171,16 @@ export const updateFaculty = async (req, res) => {
     req.body
   );
 
-  const member = await facultyService.updateFacultyMember(
-    id,
-    payload,
-    actorId
-  );
+  const member =
+    await facultyService.updateFacultyMember(
+      id,
+      payload,
+      actorId
+    );
 
-  return sendSuccess(res, { member });
+  return sendSuccess(res, {
+    member: mapFacultyDelivery(member),
+  });
 };
 
 // ==================================================
@@ -136,12 +195,15 @@ export const publishFaculty = async (req, res) => {
     req.body
   );
 
-  const member = await facultyService.setFacultyPublication(
-    id,
-    isPublished
-  );
+  const member =
+    await facultyService.setFacultyPublication(
+      id,
+      isPublished
+    );
 
-  return sendSuccess(res, { member });
+  return sendSuccess(res, {
+    member: mapFacultyDelivery(member),
+  });
 };
 
 // ==================================================

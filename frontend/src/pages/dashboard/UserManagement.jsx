@@ -511,7 +511,7 @@ export default function UserManagement() {
                           {user.profileImage ? (
                             <Box
                               as="img"
-                              src={user.profileImage}
+                              src={user.profileImageDeliveryUrl || user.profileImage}
                               alt=""
                               w="100%"
                               h="100%"

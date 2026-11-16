@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import {
   Badge,
@@ -12,10 +11,7 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react";
-import {
-  Link as RouterLink,
-  useParams,
-} from "react-router-dom";
+import { Link as RouterLink, useParams } from "react-router-dom";
 import { FaArrowLeft } from "react-icons/fa";
 import DOMPurify from "dompurify";
 
@@ -53,10 +49,9 @@ export default function NewsDetail() {
 
     async function loadArticle() {
       try {
-        const data = await newsService.getPublicById(
-          id,
-          { signal: controller.signal }
-        );
+        const data = await newsService.getPublicById(id, {
+          signal: controller.signal,
+        });
 
         if (active) {
           setArticle(data.news || null);
@@ -66,7 +61,7 @@ export default function NewsDetail() {
           setError(
             err?.response?.status === 404
               ? "This news article is not available."
-              : "Unable to load news details."
+              : "Unable to load news details.",
           );
         }
       } finally {
@@ -109,10 +104,7 @@ export default function NewsDetail() {
 
           {loading && (
             <Flex justify="center" py={16}>
-              <Spinner
-                size="lg"
-                color="var(--public-accent)"
-              />
+              <Spinner size="lg" color="var(--public-accent)" />
             </Flex>
           )}
 
@@ -124,17 +116,11 @@ export default function NewsDetail() {
               borderRadius="2xl"
               textAlign="center"
             >
-              <Heading
-                size="lg"
-                color="var(--public-text)"
-              >
+              <Heading size="lg" color="var(--public-text)">
                 News Unavailable
               </Heading>
 
-              <Text
-                mt={3}
-                color="var(--public-muted)"
-              >
+              <Text mt={3} color="var(--public-muted)">
                 {error || "News article not found."}
               </Text>
             </Box>
@@ -152,7 +138,7 @@ export default function NewsDetail() {
             >
               {article.coverImage && (
                 <Image
-                  src={article.coverImage}
+                  src={article.coverImageDeliveryUrl || article.coverImage}
                   alt={article.title}
                   w="100%"
                   maxH="450px"
@@ -160,20 +146,12 @@ export default function NewsDetail() {
                 />
               )}
 
-              <VStack
-                align="stretch"
-                gap={6}
-                p={{ base: 6, md: 10 }}
-              >
+              <VStack align="stretch" gap={6} p={{ base: 6, md: 10 }}>
                 <Flex gap={2} wrap="wrap">
-                  <Badge colorPalette="blue">
-                    {article.category}
-                  </Badge>
+                  <Badge colorPalette="blue">{article.category}</Badge>
 
                   {article.isFeatured && (
-                    <Badge colorPalette="purple">
-                      Featured
-                    </Badge>
+                    <Badge colorPalette="purple">Featured</Badge>
                   )}
                 </Flex>
 
@@ -185,10 +163,7 @@ export default function NewsDetail() {
                   {article.title}
                 </Heading>
 
-                <Text
-                  fontSize="sm"
-                  color="var(--public-muted)"
-                >
+                <Text fontSize="sm" color="var(--public-muted)">
                   Published: {formatDate(article.publishedAt)}
                 </Text>
 
@@ -239,9 +214,7 @@ export default function NewsDetail() {
                     },
                   }}
                   dangerouslySetInnerHTML={{
-                    __html: DOMPurify.sanitize(
-                      article.content || ""
-                    ),
+                    __html: DOMPurify.sanitize(article.content || ""),
                   }}
                 />
               </VStack>

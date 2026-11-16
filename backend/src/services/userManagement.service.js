@@ -113,6 +113,11 @@ const toPublicUser = (user) => ({
   studentId: user.studentId,
   isActive: user.isActive,
   createdAt: user.createdAt,
+
+  // Preserve original image metadata.
+  profileImage: user.profileImage ?? null,
+  profileImageMediaId:
+    user.profileImageMediaId ?? null,
 });
 
 const assertManagementPermission = (

@@ -13,6 +13,10 @@ import {
   asyncHandler,
 } from "../utils/asyncHandler.js";
 
+import {
+  toPublicImageUrl,
+} from "../utils/imageDelivery.js";
+
 // ==========================================
 // HELPERS
 // ==========================================
@@ -43,6 +47,26 @@ const sendNotFound = (res) =>
   });
 
 // ==========================================
+// IMAGE DELIVERY MAPPING
+// ==========================================
+
+// Only changes the response representation.
+// Never mutates the original MongoDB document.
+
+const mapPublicProgram = (program) => {
+  if (!program) {
+    return program;
+  }
+
+  return {
+    ...program,
+    imageUrl: toPublicImageUrl(
+      program.imageUrl
+    ),
+  };
+};
+
+// ==========================================
 // GET ALL PUBLIC PROGRAMS
 // GET /api/v1/public/programs
 // ==========================================
@@ -60,10 +84,13 @@ export const getPublicPrograms = asyncHandler(
       })
       .lean();
 
+    const publicPrograms =
+      programs.map(mapPublicProgram);
+
     return res.status(200).json({
       success: true,
       data: {
-        programs,
+        programs: publicPrograms,
         total: programs.length,
       },
     });
@@ -98,7 +125,9 @@ export const getPublicProgram = asyncHandler(
     return res.status(200).json({
       success: true,
       data: {
-        program,
+        program: mapPublicProgram(
+          program
+        ),
       },
     });
   }
@@ -114,7 +143,7 @@ export const getPublicProgram = asyncHandler(
 // Teacher: All published curriculum courses
 // Admin/Super Admin: All published curriculum courses
 // Lessons and videos: Separate authorization required
-// // ==========================================
+// ==========================================
 
 export const getPublishedProgramCourses =
   asyncHandler(async (req, res) => {
@@ -179,7 +208,9 @@ export const getPublishedProgramCourses =
       return res.status(200).json({
         success: true,
         data: {
-          program,
+          program: mapPublicProgram(
+            program
+          ),
           curriculum: null,
           semesters: [],
           totalCourses: 0,
@@ -291,7 +322,9 @@ export const getPublishedProgramCourses =
     return res.status(200).json({
       success: true,
       data: {
-        program,
+        program: mapPublicProgram(
+          program
+        ),
 
         curriculum: {
           _id: curriculum._id,
