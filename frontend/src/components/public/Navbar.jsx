@@ -23,6 +23,8 @@ import {
 import {
   MdDarkMode,
   MdOutlineLightMode,
+  MdMenu,
+  MdClose,
 } from "react-icons/md";
 
 import { useThemeMode } from "../../context/ThemeContext.jsx";
@@ -104,7 +106,7 @@ function NavItem({
 }) {
   const activeColor = isDark ? "#79B9FF" : "#2563EB";
   const activeBg = isDark ? "#344A63" : "#EFF6FF";
-  const normalColor = isDark ? "#F3F7FF" : "#374151";
+  const normalColor = isDark ? "#DCE8F7" : "#475569";
 
   return (
     <NavLink
@@ -123,12 +125,14 @@ function NavItem({
             ? activeBg
             : "transparent",
           fontWeight: 600,
-          borderRadius: "8px",
-          padding: "8px 12px",
+          borderRadius: "10px",
+          padding: "9px 10px",
+          fontSize: "13px",
+          whiteSpace: "nowrap",
           textDecoration: "none",
           display: "inline-flex",
           alignItems: "center",
-          transition: "all 0.2s ease",
+          transition: "color 0.2s ease, background-color 0.2s ease",
         };
       }}
       onMouseEnter={(event) => {
@@ -172,7 +176,9 @@ function AdmissionMenu({ isDark, isActive }) {
           variant="ghost"
           size="sm"
           fontWeight="600"
-          borderRadius="8px"
+          fontSize="13px"
+          whiteSpace="nowrap"
+          borderRadius="10px"
           color={
             isActive
               ? activeColor
@@ -284,7 +290,7 @@ function ThemeToggle({
       onClick={toggleTheme}
       display={
         mobile
-          ? { base: "inline-flex", lg: "none" }
+          ? { base: "inline-flex", xl: "none" }
           : undefined
       }
     >
@@ -356,7 +362,7 @@ export default function Navbar() {
           minH="76px"
           align="center"
           justify="space-between"
-          gap="4"
+          gap="3"
         >
           {/* LOGO AND COLLEGE NAME */}
 
@@ -379,8 +385,8 @@ export default function Navbar() {
           >
             <HStack gap="3">
               <Box
-                w={{ base: "54px", md: "66px" }}
-                h={{ base: "54px", md: "66px" }}
+                w={{ base: "50px", md: "56px" }}
+                h={{ base: "50px", md: "56px" }}
                 display="flex"
                 alignItems="center"
                 justifyContent="center"
@@ -425,8 +431,8 @@ export default function Navbar() {
           {/* DESKTOP NAVIGATION */}
 
           <HStack
-            display={{ base: "none", lg: "flex" }}
-            gap={{ lg: "2", xl: "3" }}
+            display={{ base: "none", xl: "flex" }}
+            gap="1"
             align="center"
           >
             {renderNavItem(links[0])}
@@ -455,7 +461,7 @@ export default function Navbar() {
 
           <HStack
             gap="2"
-            display={{ base: "flex", lg: "none" }}
+            display={{ base: "flex", xl: "none" }}
           >
             <ThemeToggle
               isDark={isDark}
@@ -485,7 +491,7 @@ export default function Navbar() {
                 setOpen((value) => !value)
               }
             >
-              {open ? "✕" : "☰"}
+              {open ? <MdClose /> : <MdMenu />}
             </IconButton>
           </HStack>
         </Flex>
@@ -494,18 +500,18 @@ export default function Navbar() {
 
         {open && (
           <VStack
-            display={{ base: "flex", lg: "none" }}
+            display={{ base: "flex", xl: "none" }}
             align="stretch"
-            gap="3"
-            py="5"
+            gap="2"
+            py="4"
+            maxH="calc(100vh - 76px)"
+            overflowY="auto"
             borderTopWidth="1px"
             borderColor={
               isDark ? "#405772" : "#DCE5EF"
             }
           >
-            {links.map((link) =>
-              renderNavItem(link, true)
-            )}
+            {links.filter((link) => link.to === "/" || link.to === "/about").map((link) => renderNavItem(link, true))}
 
             {/* MOBILE ADMISSION LINKS */}
 
@@ -558,6 +564,7 @@ export default function Navbar() {
                 ))}
               </VStack>
             </Box>
+            {links.filter((link) => link.to !== "/" && link.to !== "/about").map((link) => renderNavItem(link, true))}
           </VStack>
         )}
       </Container>

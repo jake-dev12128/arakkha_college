@@ -19,7 +19,13 @@ import {
   Link,
   Text,
   VStack,
+  IconButton,
 } from "@chakra-ui/react";
+
+import {
+  MdVisibility,
+  MdVisibilityOff,
+} from "react-icons/md";
 
 import { useSignIn } from "@clerk/react";
 
@@ -43,6 +49,9 @@ function Login() {
   const [email, setEmail] = useState("");
   const [studentId, setStudentId] = useState("");
   const [password, setPassword] = useState("");
+
+  // PASSWORD SHOW / HIDE
+  const [showPassword, setShowPassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -478,7 +487,7 @@ function Login() {
                   </Field.Root>
                 )}
 
-                {/* PASSWORD */}
+                {/* PASSWORD WITH EYE ICON */}
 
                 <Field.Root required>
                   <Field.Label
@@ -489,19 +498,64 @@ function Login() {
                     <Field.RequiredIndicator />
                   </Field.Label>
 
-                  <Input
-                    className="acc-auth-input"
-                    type="password"
-                    size="lg"
-                    borderRadius="12px"
-                    value={password}
-                    onChange={(event) =>
-                      setPassword(event.target.value)
-                    }
-                    placeholder="Enter your password"
-                    autoComplete="current-password"
-                    disabled={loading}
-                  />
+                  <Box position="relative" w="full">
+                    <Input
+                      className="acc-auth-input"
+                      type={
+                        showPassword
+                          ? "text"
+                          : "password"
+                      }
+                      size="lg"
+                      borderRadius="12px"
+                      value={password}
+                      onChange={(event) =>
+                        setPassword(event.target.value)
+                      }
+                      placeholder="Enter your password"
+                      autoComplete="current-password"
+                      disabled={loading}
+                      pe="52px"
+                    />
+
+                    <IconButton
+                      type="button"
+                      aria-label={
+                        showPassword
+                          ? "Hide password"
+                          : "Show password"
+                      }
+                      title={
+                        showPassword
+                          ? "Hide password"
+                          : "Show password"
+                      }
+                      aria-pressed={showPassword}
+                      variant="ghost"
+                      size="sm"
+                      position="absolute"
+                      right="8px"
+                      top="50%"
+                      transform="translateY(-50%)"
+                      zIndex={1}
+                      color="var(--auth-muted)"
+                      _hover={{
+                        bg: "var(--auth-page)",
+                        color: "var(--auth-accent)",
+                      }}
+                      onClick={() =>
+                        setShowPassword(
+                          (current) => !current,
+                        )
+                      }
+                    >
+                      {showPassword ? (
+                        <MdVisibilityOff />
+                      ) : (
+                        <MdVisibility />
+                      )}
+                    </IconButton>
+                  </Box>
                 </Field.Root>
 
                 {/* FORGOT PASSWORD */}
