@@ -61,11 +61,12 @@ export default function Programs() {
   }, []);
 
   return (
-    <Box
-      py={{ base: 14, md: 20 }}
-      bg="var(--public-bg)"
-      color="var(--public-text)"
-    >
+   <Box
+  pt={{ base: 6, md: 8 }}
+  pb={{ base: 12, md: 16 }}
+  bg="var(--public-bg)"
+  color="var(--public-text)"
+>
       <Container maxW="1280px">
         <SectionTitle
           eyebrow="Academic"

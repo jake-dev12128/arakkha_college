@@ -19,8 +19,18 @@ import { useThemeMode } from "../../context/ThemeContext.jsx";
 // ==================================================
 
 const collegeLinks = [
-  { label: "Home", to: "/" },
-  { label: "About Us", to: "/about" },
+  {
+    label: "Home",
+    to: "/",
+  },
+  {
+    label: "About Us",
+    to: "/about",
+  },
+  {
+    label: "Organization Chart",
+    to: "/organization-chart",
+  },
   {
     label: "Faculties & Staff",
     to: "/faculties-staff",
@@ -118,7 +128,9 @@ export default function Footer() {
           }}
           gap={{ base: 8, lg: 10 }}
         >
-          {/* COLLEGE INFORMATION */}
+          {/* ======================================
+              COLLEGE INFORMATION
+          ====================================== */}
 
           <GridItem>
             <Heading
@@ -142,7 +154,9 @@ export default function Footer() {
             </Text>
           </GridItem>
 
-          {/* COLLEGE LINKS */}
+          {/* ======================================
+              COLLEGE LINKS
+          ====================================== */}
 
           <GridItem>
             <Heading
@@ -168,7 +182,9 @@ export default function Footer() {
             </VStack>
           </GridItem>
 
-          {/* INFORMATION LINKS */}
+          {/* ======================================
+              INFORMATION LINKS
+          ====================================== */}
 
           <GridItem>
             <Heading
@@ -194,7 +210,9 @@ export default function Footer() {
             </VStack>
           </GridItem>
 
-          {/* CONTACT */}
+          {/* ======================================
+              CONTACT
+          ====================================== */}
 
           <GridItem>
             <Heading
@@ -216,7 +234,9 @@ export default function Footer() {
           </GridItem>
         </Grid>
 
-        {/* COPYRIGHT */}
+        {/* ======================================
+            COPYRIGHT
+        ====================================== */}
 
         <Box
           mt="12"
