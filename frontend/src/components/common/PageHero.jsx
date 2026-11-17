@@ -20,16 +20,6 @@ export default function PageHero({
           gap={3}
           maxW="800px"
         >
-          <Text
-            textTransform="uppercase"
-            letterSpacing="widest"
-            fontSize="sm"
-            fontWeight="800"
-            color="whiteAlpha.900"
-          >
-            ACC Computer College
-          </Text>
-
           <Heading
             size={{ base: "2xl", md: "4xl" }}
             color="white"
