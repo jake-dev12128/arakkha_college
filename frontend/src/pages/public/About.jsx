@@ -320,7 +320,7 @@ export default function About() {
       ========================================== */}
 
       <PageHero
-        title=""
+        title={about.hero?.title || "About Us"}
         description={about.hero?.description || ""}
       />
 
