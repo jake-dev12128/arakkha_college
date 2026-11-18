@@ -60,7 +60,7 @@ import {
 } from "./routes/about.routes.js";
 
 // ==================================================
-// ORGANIZATION CHART ROUTES — NEW
+// ORGANIZATION CHART ROUTES
 // ==================================================
 
 import {
@@ -86,6 +86,15 @@ import {
   publicNewsRoutes,
   adminNewsRoutes,
 } from "./routes/news.routes.js";
+
+// ==================================================
+// CONTACT ROUTES — NEW
+// ==================================================
+
+import {
+  publicContactRoutes,
+  adminContactRoutes,
+} from "./routes/contact.routes.js";
 
 // ==================================================
 // EXPRESS APP
@@ -176,7 +185,7 @@ app.use("/api/v1/public", publicAcademicRoutes);
 // Entrance
 app.use("/api/v1/public", publicEntranceRouter);
 
-// Organization Chart — NEW
+// Organization Chart
 app.use(
   "/api/v1/public",
   publicOrganizationChartRouter,
@@ -198,6 +207,22 @@ app.use(
 app.use(
   "/api/v1/public/news",
   publicNewsRoutes,
+);
+
+// ==================================================
+// PUBLIC CONTACT ROUTE — NEW
+// ==================================================
+
+// POST /api/v1/public/contact
+//
+// No Clerk authentication required.
+//
+// Rate limiting and validation are handled
+// by the Contact Router and Controller.
+
+app.use(
+  "/api/v1/public/contact",
+  publicContactRoutes,
 );
 
 // ==================================================
@@ -235,13 +260,30 @@ app.use(
 // AUTHENTICATION + RBAC
 // ==================================================
 
+// ==================================================
+// ADMIN CONTACT ROUTE — NEW
+// ==================================================
+
+// GET    /api/v1/admin/contacts
+// GET    /api/v1/admin/contacts/:id
+// PATCH  /api/v1/admin/contacts/:id
+// POST   /api/v1/admin/contacts/:id/replies
+//
+// Authentication and role authorization
+// must be enforced inside adminContactRoutes.
+
+app.use(
+  "/api/v1/admin/contacts",
+  adminContactRoutes,
+);
+
 // About Us Management
 app.use(
   "/api/v1/admin",
   adminAboutRouter,
 );
 
-// Organization Chart Management — NEW
+// Organization Chart Management
 app.use(
   "/api/v1/admin",
   adminOrganizationChartRouter,

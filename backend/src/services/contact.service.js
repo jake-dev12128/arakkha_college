@@ -1,32 +1,19 @@
 
 import mongoose from "mongoose";
-
-import {
-  createHash,
-  randomUUID,
-} from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import Contact from "../models/contact.model.js";
-
 import ContactNotification from "../models/contactNotification.model.js";
-
 import User from "../models/user.model.js";
-
 import AppError from "../utils/AppError.js";
 
 // ==================================================
 // ACC CONTACT SERVICE
 // ==================================================
 
-const ADMIN_ROLES = new Set([
-  "super_admin",
-  "admin",
-]);
-
+const ADMIN_ROLES = new Set(["super_admin", "admin"]);
 const REPLY_LIMIT = 100;
-
-const PUBLIC_DUPLICATE_WINDOW_MS =
-  10 * 60 * 1000;
+const PUBLIC_DUPLICATE_WINDOW_MS = 10 * 60 * 1000;
 
 // ==================================================
 // ERROR HELPERS
@@ -37,11 +24,7 @@ const fail = (
   statusCode = 400,
   code = "CONTACT_ERROR"
 ) => {
-  throw new AppError(
-    message,
-    statusCode,
-    code
-  );
+  throw new AppError(message, statusCode, code);
 };
 
 const isValidId = (value) =>
@@ -51,31 +34,20 @@ const isDuplicateKeyError = (error) =>
   error?.code === 11000;
 
 const hashValue = (value) =>
-  createHash("sha256")
-    .update(value)
-    .digest("hex");
+  createHash("sha256").update(value).digest("hex");
 
 const normalizeEmail = (value) =>
-  String(value || "")
-    .trim()
-    .toLowerCase();
+  String(value || "").trim().toLowerCase();
 
 const normalizeText = (value) =>
   String(value || "").trim();
 
 const sameId = (a, b) =>
-  Boolean(
-    a &&
-    b &&
-    String(a) === String(b)
-  );
+  Boolean(a && b && String(a) === String(b));
 
 // ==================================================
 // CONFIGURATION
 // ==================================================
-
-// Configure these before enabling notifications.
-// Never silently send to an arbitrary address.
 
 const getContactEmailConfig = () => {
   const adminEmail = normalizeEmail(
@@ -84,9 +56,7 @@ const getContactEmailConfig = () => {
 
   if (
     !adminEmail ||
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-      adminEmail
-    )
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail)
   ) {
     fail(
       "Contact notification configuration is unavailable.",
@@ -95,9 +65,7 @@ const getContactEmailConfig = () => {
     );
   }
 
-  return {
-    adminEmail,
-  };
+  return { adminEmail };
 };
 
 // ==================================================
@@ -109,7 +77,6 @@ const createReferenceNumber = (
 ) => {
   const year = new Date().getUTCFullYear();
 
-  // Deterministic reference for retries.
   if (idempotencyKey) {
     const digest = hashValue(
       `acc-contact:v1:${idempotencyKey}`
@@ -148,20 +115,12 @@ const normalizeIdempotencyKey = (value) => {
 // PUBLIC CONTACT PAYLOAD
 // ==================================================
 
-// Controller must validate with createContactSchema.
-// This service also explicitly picks allowed fields.
-
 const normalizeContactInput = (data) => ({
   name: normalizeText(data.name),
-
   email: normalizeEmail(data.email),
-
   phone: normalizeText(data.phone),
-
   category: data.category || "general",
-
   subject: normalizeText(data.subject),
-
   message: normalizeText(data.message),
 });
 
@@ -177,10 +136,7 @@ const sameContactPayload = (contact, data) =>
 // NOTIFICATION JOB BUILDERS
 // ==================================================
 
-const buildInitialJobs = ({
-  contact,
-  adminEmail,
-}) => {
+const buildInitialJobs = ({ contact, adminEmail }) => {
   const reference = contact.referenceNumber;
 
   const adminBody = [
@@ -217,40 +173,28 @@ const buildInitialJobs = ({
     {
       contact: contact._id,
       type: "admin_notification",
-
       idempotencyKey:
         `contact:${contact._id}:admin_notification:v1`,
-
       recipientEmail: adminEmail,
-
-      subject:
-        `New ACC Inquiry: ${contact.subject}`,
-
+      subject: `New ACC Inquiry: ${contact.subject}`,
       textBody: adminBody,
-
       status: "pending",
     },
     {
       contact: contact._id,
       type: "visitor_confirmation",
-
       idempotencyKey:
         `contact:${contact._id}:visitor_confirmation:v1`,
-
       recipientEmail: contact.email,
-
-      subject:
-        "ACC Computer College — Inquiry Received",
-
+      subject: "ACC Computer College — Inquiry Received",
       textBody: confirmationBody,
-
       status: "pending",
     },
   ];
 };
 
 // ==================================================
-// PUBLIC SUBMISSION
+// PUBLIC CONTACT SUBMISSION
 // ==================================================
 
 export const submitContact = async (
@@ -259,18 +203,16 @@ export const submitContact = async (
 ) => {
   const data = normalizeContactInput(input);
 
-  const idempotencyKey =
-    normalizeIdempotencyKey(
-      options.idempotencyKey
-    );
+  const idempotencyKey = normalizeIdempotencyKey(
+    options.idempotencyKey
+  );
 
-  const { adminEmail } =
-    getContactEmailConfig();
+  const { adminEmail } = getContactEmailConfig();
 
   const referenceNumber =
     createReferenceNumber(idempotencyKey);
 
-  // Fast path for a repeated request.
+  // Idempotent request fast path.
   if (idempotencyKey) {
     const existing = await Contact.findOne({
       referenceNumber,
@@ -292,28 +234,20 @@ export const submitContact = async (
     }
   }
 
-  // Optional short-window duplicate detection.
-  // This is not a replacement for a client
-  // Idempotency-Key.
+  // Short-window duplicate prevention.
   if (!idempotencyKey) {
     const cutoff = new Date(
-      Date.now() -
-      PUBLIC_DUPLICATE_WINDOW_MS
+      Date.now() - PUBLIC_DUPLICATE_WINDOW_MS
     );
 
     const recent = await Contact.findOne({
       email: data.email,
       subject: data.subject,
       message: data.message,
-      createdAt: {
-        $gte: cutoff,
-      },
+      createdAt: { $gte: cutoff },
     }).lean();
 
-    if (
-      recent &&
-      sameContactPayload(recent, data)
-    ) {
+    if (recent && sameContactPayload(recent, data)) {
       return {
         contact: recent,
         duplicate: true,
@@ -337,7 +271,10 @@ export const submitContact = async (
               priority: "normal",
             },
           ],
-          { session }
+          {
+            session,
+            ordered: true,
+          }
         );
 
         const jobs = buildInitialJobs({
@@ -347,7 +284,10 @@ export const submitContact = async (
 
         await ContactNotification.create(
           jobs,
-          { session }
+          {
+            session,
+            ordered: true,
+          }
         );
 
         createdContact = contact;
@@ -462,7 +402,7 @@ const getContactOrFail = async (
 };
 
 // ==================================================
-// ADMIN LIST
+// ADMIN CONTACT LIST
 // ==================================================
 
 export const listContacts = async (
@@ -566,9 +506,7 @@ export const listContacts = async (
       page: safePage,
       limit: safeLimit,
       total,
-      totalPages: Math.ceil(
-        total / safeLimit
-      ),
+      totalPages: Math.ceil(total / safeLimit),
     },
   };
 };
@@ -583,9 +521,7 @@ export const getContactDetail = async (
 ) => {
   await requireAdminActor(actorId);
 
-  const contact = await getContactOrFail(
-    contactId
-  );
+  const contact = await getContactOrFail(contactId);
 
   if (!contact.firstViewedAt) {
     await Contact.updateOne(
@@ -697,18 +633,14 @@ export const updateContact = async (
           session
         );
 
-        if (
-          Object.hasOwn(input, "assignedTo")
-        ) {
+        if (Object.hasOwn(input, "assignedTo")) {
           await validateAssignee(
             input.assignedTo,
             session
           );
         }
 
-        if (
-          Object.hasOwn(input, "status")
-        ) {
+        if (Object.hasOwn(input, "status")) {
           const transitions = {
             new: [
               "new",
@@ -742,8 +674,7 @@ export const updateContact = async (
             );
           }
 
-          // A reply must exist before a contact
-          // can be manually marked as replied.
+          // A successfully sent reply is required.
           if (
             input.status === "replied" &&
             !contact.replies.some(
@@ -773,23 +704,16 @@ export const updateContact = async (
           }
         }
 
-        if (
-          Object.hasOwn(input, "priority")
-        ) {
+        if (Object.hasOwn(input, "priority")) {
           contact.priority = input.priority;
         }
 
-        if (
-          Object.hasOwn(input, "assignedTo")
-        ) {
+        if (Object.hasOwn(input, "assignedTo")) {
           contact.assignedTo = input.assignedTo;
         }
 
-        if (
-          Object.hasOwn(input, "internalNotes")
-        ) {
-          contact.internalNotes =
-            input.internalNotes;
+        if (Object.hasOwn(input, "internalNotes")) {
+          contact.internalNotes = input.internalNotes;
         }
 
         contact.updatedBy = actorId;
@@ -819,11 +743,10 @@ export const updateContact = async (
 // ADMIN REPLY PREPARATION
 // ==================================================
 
-// This function only queues the reply.
-// The worker will send it using Resend.
+// Only queues a reply.
+// The email worker sends it using Resend.
 //
-// Caller must supply a stable Idempotency-Key.
-// A retry must reuse the same key.
+// A retry must reuse the same Idempotency-Key.
 
 export const prepareContactReply = async (
   actorId,
@@ -866,7 +789,7 @@ export const prepareContactReply = async (
   const jobKey =
     `contact:${contactId}:reply:${hashValue(requestKey)}`;
 
-  // Fast path: previously queued reply.
+  // Idempotent reply fast path.
   const existingJob =
     await ContactNotification.findOne({
       idempotencyKey: jobKey,
@@ -884,10 +807,7 @@ export const prepareContactReply = async (
     if (
       !existingReply ||
       existingReply.body !== body ||
-      !sameId(
-        existingReply.repliedBy,
-        actorId
-      )
+      !sameId(existingReply.repliedBy, actorId)
     ) {
       fail(
         "Idempotency key was already used for a different reply.",
@@ -924,9 +844,7 @@ export const prepareContactReply = async (
           );
         }
 
-        if (
-          contact.replies.length >= REPLY_LIMIT
-        ) {
+        if (contact.replies.length >= REPLY_LIMIT) {
           fail(
             "Contact reply history limit reached.",
             409,
@@ -955,37 +873,33 @@ export const prepareContactReply = async (
 
         await contact.save({ session });
 
-        const [job] =
-          await ContactNotification.create(
-            [
-              {
-                contact: contact._id,
-                type: "admin_reply",
-                replyId,
-
-                idempotencyKey: jobKey,
-
-                recipientEmail:
-                  contact.email,
-
-                subject:
-                  `Re: ${contact.subject} [${contact.referenceNumber}]`,
-
-                textBody: [
-                  body,
-                  "",
-                  "Best regards,",
-                  "ACC Computer College",
-                  "",
-                  `Reference: ${contact.referenceNumber}`,
-                ].join("\n"),
-
-                status: "pending",
-                createdBy: actorId,
-              },
-            ],
-            { session }
-          );
+        const [job] = await ContactNotification.create(
+          [
+            {
+              contact: contact._id,
+              type: "admin_reply",
+              replyId,
+              idempotencyKey: jobKey,
+              recipientEmail: contact.email,
+              subject:
+                `Re: ${contact.subject} [${contact.referenceNumber}]`,
+              textBody: [
+                body,
+                "",
+                "Best regards,",
+                "ACC Computer College",
+                "",
+                `Reference: ${contact.referenceNumber}`,
+              ].join("\n"),
+              status: "pending",
+              createdBy: actorId,
+            },
+          ],
+          {
+            session,
+            ordered: true,
+          }
+        );
 
         result = {
           contact,
@@ -1055,11 +969,8 @@ export const createContact = submitContact;
 
 export const listAdminContacts = listContacts;
 
-export const getAdminContact =
-  getContactDetail;
+export const getAdminContact = getContactDetail;
 
-export const updateAdminContact =
-  updateContact;
+export const updateAdminContact = updateContact;
 
-export const queueContactReply =
-  prepareContactReply;
+export const queueContactReply = prepareContactReply;
